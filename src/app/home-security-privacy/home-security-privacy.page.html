@@ -1,0 +1,86 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" aria-label="Back to More">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Security &amp; Privacy</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="security-content">
+  <div class="security-page">
+    <section class="privacy-section">
+      <h2>Privacy</h2>
+      @for (item of privacyItems; track item.title) {
+        <article class="privacy-item">
+          <div class="privacy-icon">
+            <ion-icon [name]="item.icon"></ion-icon>
+          </div>
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.detail }}</p>
+          </div>
+        </article>
+      }
+    </section>
+
+    <section class="pin-section">
+      <h2>Change PIN</h2>
+      <p class="pin-lead">Update the 6-digit PIN you use to sign in.</p>
+
+      <form class="pin-form" (ngSubmit)="submitChangePin()">
+        <label>
+          Current PIN
+          <input
+            type="password"
+            [value]="currentPin"
+            maxlength="6"
+            inputmode="numeric"
+            placeholder="6-digit PIN"
+            autocomplete="current-password"
+            (input)="onCurrentPinInput($event)"
+          />
+        </label>
+
+        <label>
+          New PIN
+          <input
+            type="password"
+            [value]="newPin"
+            maxlength="6"
+            inputmode="numeric"
+            placeholder="6-digit PIN"
+            autocomplete="new-password"
+            (input)="onNewPinInput($event)"
+          />
+        </label>
+
+        <label>
+          Confirm new PIN
+          <input
+            type="password"
+            [value]="confirmPin"
+            maxlength="6"
+            inputmode="numeric"
+            placeholder="Re-enter new PIN"
+            autocomplete="new-password"
+            (input)="onConfirmPinInput($event)"
+          />
+        </label>
+
+        @if (errorMessage) {
+          <p class="error-text">{{ errorMessage }}</p>
+        }
+        @if (successMessage) {
+          <p class="success-text">{{ successMessage }}</p>
+        }
+
+        <ion-button expand="block" type="submit" class="submit-btn" [disabled]="isSubmitting">
+          {{ isSubmitting ? 'Updating PIN...' : 'Update PIN' }}
+        </ion-button>
+      </form>
+    </section>
+  </div>
+</ion-content>

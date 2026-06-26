@@ -1,0 +1,50 @@
+<ion-content class="login-content">
+  <div class="login-page">
+    <div class="login-brand">
+      <span class="nets-logo">NETS</span>
+      <h1>Welcome back</h1>
+      <p>Sign in with your mobile number and PIN</p>
+    </div>
+
+    <div class="login-form">
+      <label>
+        Mobile number
+        <div class="phone-prefix-row">
+          <span class="phone-prefix">+65</span>
+          <input
+            type="tel"
+            inputmode="numeric"
+            maxlength="8"
+            [value]="phoneDigits"
+            placeholder="8-digit number"
+            autocomplete="tel-national"
+            (input)="onPhoneInput($event)"
+          />
+        </div>
+      </label>
+
+      <label>
+        PIN
+        <input
+          type="password"
+          [value]="pin"
+          maxlength="6"
+          inputmode="numeric"
+          placeholder="6-digit PIN"
+          autocomplete="current-password"
+          (input)="onPinInput($event)"
+        />
+      </label>
+
+      @if (errorMessage) {
+        <p class="error-message">{{ errorMessage }}</p>
+      }
+
+      <ion-button expand="block" class="login-btn" [disabled]="isLoading" (click)="submitLogin()">
+        {{ isLoading ? 'Signing in...' : 'Sign In' }}
+      </ion-button>
+
+      <button type="button" class="signup-link" (click)="goToSignup()">Create a new account</button>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,263 @@
+.scan-header {
+  ion-toolbar {
+    --background: #fff;
+    --border-width: 0;
+  }
+
+  ion-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+
+  ion-button {
+    --color: #1a1a2e;
+  }
+}
+
+.scan-content {
+  --background: #ffffff;
+  --padding-bottom: 16px;
+}
+
+.scan-page {
+  padding: 16px;
+}
+
+.scan-intro {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #8e8e93;
+}
+
+.camera-preview {
+  position: relative;
+  background: #b0b0b0;
+  border-radius: 12px;
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 20px;
+
+  &.has-image {
+    background: #1a1a2e;
+  }
+}
+
+.viewfinder {
+  width: 220px;
+  height: 220px;
+  border: 2px dashed rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+
+  ion-icon {
+    font-size: 40px;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+}
+
+.viewfinder-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.viewfinder-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.preview-image {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+}
+
+.scanning-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #fff;
+
+  ion-spinner {
+    --color: #fff;
+    width: 36px;
+    height: 36px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+  }
+}
+
+.scan-error {
+  margin: 0 0 16px;
+  color: #eb5757;
+  font-size: 13px;
+  text-align: center;
+}
+
+.scan-result {
+  background: #f8f8fa;
+  border: 1px solid #f0f0f2;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+}
+
+.scan-message {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #6c63ff;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+
+  &:last-of-type {
+    border-bottom: none;
+    margin-bottom: 12px;
+  }
+
+  span {
+    color: #8e8e93;
+  }
+
+  strong {
+    color: #1a1a2e;
+    text-align: right;
+    max-width: 60%;
+  }
+}
+
+.save-success {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #27ae60;
+  text-align: center;
+}
+
+.save-tx-btn {
+  --background: #27ae60;
+  --border-radius: 12px;
+  margin-top: 12px;
+  font-weight: 700;
+}
+
+.reset-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #6c63ff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.scan-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.take-photo-btn {
+  --border-radius: 12px;
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+  --border-color: #e0e0e0;
+  --color: #1a1a2e;
+  font-weight: 600;
+}
+
+.gallery-btn {
+  --background: #6c63ff;
+  --border-radius: 12px;
+  --padding-top: 14px;
+  --padding-bottom: 14px;
+  font-weight: 700;
+}
+
+.demo-receipts {
+  margin-bottom: 16px;
+}
+
+.demo-receipts-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.demo-receipts-hint {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: #8e8e93;
+}
+
+.demo-receipt-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.demo-receipt-chip {
+  border: 1px solid #e8e8ed;
+  background: #f8f8fa;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.demo-receipt-merchant {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.demo-receipt-meta {
+  font-size: 10px;
+  color: #8e8e93;
+}

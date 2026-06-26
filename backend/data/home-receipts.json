@@ -1,0 +1,64 @@
+{
+  "receipts": [
+    {
+      "id": "receipt_generic_01",
+      "imageFile": "receipt-generic-watsons.png",
+      "imageUrl": "assets/demo-receipts/receipt-generic-watsons.png",
+      "scanType": "qr",
+      "scanPayload": "{\"type\":\"nets_receipt\",\"id\":\"receipt_generic_01\"}",
+      "merchant": "WATSONS",
+      "amount": 12.3,
+      "date": "23 Jun 2026",
+      "dateTime": "23 Jun 2026 14:28",
+      "category": "Retail",
+      "paymentMethod": "NETS Prepaid",
+      "cardNumber": null,
+      "owner": null
+    },
+    {
+      "id": "receipt_generic_02",
+      "imageFile": "receipt-generic-fairprice.png",
+      "imageUrl": "assets/demo-receipts/receipt-generic-fairprice.png",
+      "scanType": "qr",
+      "scanPayload": "{\"type\":\"nets_receipt\",\"id\":\"receipt_generic_02\"}",
+      "merchant": "NTUC FAIRPRICE",
+      "amount": 17.6,
+      "date": "22 Jun 2026",
+      "dateTime": "22 Jun 2026 19:05",
+      "category": "Groceries",
+      "paymentMethod": "NETS Prepaid",
+      "cardNumber": null,
+      "owner": null
+    },
+    {
+      "id": "receipt_generic_03",
+      "imageFile": "receipt-generic-starbucks.png",
+      "imageUrl": "assets/demo-receipts/receipt-generic-starbucks.png",
+      "scanType": "qr",
+      "scanPayload": "{\"type\":\"nets_receipt\",\"id\":\"receipt_generic_03\"}",
+      "merchant": "STARBUCKS",
+      "amount": 8.5,
+      "date": "28 Jun 2026",
+      "dateTime": "28 Jun 2026 14:34",
+      "category": "Dining",
+      "paymentMethod": "NETS Prepaid",
+      "cardNumber": null,
+      "owner": null
+    },
+    {
+      "id": "receipt_generic_04",
+      "imageFile": "receipt-generic-grab.png",
+      "imageUrl": "assets/demo-receipts/receipt-generic-grab.png",
+      "scanType": "qr",
+      "scanPayload": "{\"type\":\"nets_receipt\",\"id\":\"receipt_generic_04\"}",
+      "merchant": "GRAB",
+      "amount": 15,
+      "date": "20 Jun 2026",
+      "dateTime": "20 Jun 2026 08:15",
+      "category": "Transport",
+      "paymentMethod": "NETS Prepaid",
+      "cardNumber": null,
+      "owner": null
+    }
+  ]
+}

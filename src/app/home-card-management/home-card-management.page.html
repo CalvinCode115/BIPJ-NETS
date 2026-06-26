@@ -1,0 +1,81 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Card Management</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="card-mgmt-content">
+  <div class="card-mgmt-page">
+    @if (isLoading) {
+      <div class="loading-box">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+    } @else {
+      <section class="info-card">
+        <h2>Incoming transfers</h2>
+        @if (receiveSettings?.receiveLabelShort) {
+          <p>PayNow and QR transfers credit:</p>
+          <strong>{{ receiveSettings?.receiveLabelShort }}</strong>
+        } @else if (receiveSettings?.fallbackPrepaid) {
+          <p>No linked debit account. Transfers go to your primary prepaid card.</p>
+          <strong>{{ formatCardPaymentLabel(receiveSettings!.fallbackPrepaid!) }}</strong>
+        } @else {
+          <p>Link a debit card to receive transfers.</p>
+        }
+      </section>
+
+      @if (pageMessage) {
+        <p class="success-text">{{ pageMessage }}</p>
+      }
+      @if (pageError) {
+        <p class="error-text">{{ pageError }}</p>
+      }
+
+      <h3 class="section-title">Your cards</h3>
+
+      @for (card of cards; track card.id) {
+        <div class="wallet-card-row">
+          <div class="wallet-card-main">
+            <p class="wallet-card-type">{{ cardTypeLabel(card) }}</p>
+            <p class="wallet-card-label">{{ formatCardPaymentLabel(card) }}</p>
+            <p class="wallet-card-balance">${{ card.balance | number: '1.2-2' }}</p>
+            @if (isDefaultReceive(card) && canSetDefaultReceive(card)) {
+              <span class="default-badge">Default receive</span>
+            }
+          </div>
+
+          <div class="wallet-card-actions">
+            @if (canSetDefaultReceive(card)) {
+              <ion-button
+                size="small"
+                fill="outline"
+                [disabled]="isDefaultReceive(card) || settingDefaultId === card.id"
+                (click)="setDefaultReceive(card)"
+              >
+                {{ isDefaultReceive(card) ? 'Receiving here' : 'Receive here' }}
+              </ion-button>
+            }
+            <ion-button
+              size="small"
+              color="danger"
+              fill="clear"
+              [disabled]="unlinkingCardId === card.id"
+              (click)="confirmUnlink(card)"
+            >
+              {{ unlinkingCardId === card.id ? 'Removing...' : 'Unlink' }}
+            </ion-button>
+          </div>
+        </div>
+      }
+
+      @if (!cards.length) {
+        <p class="empty-text">No cards linked yet. Add a card from Home.</p>
+      }
+    }
+  </div>
+</ion-content>

@@ -1,0 +1,288 @@
+<ion-header class="qr-header">
+  <ion-toolbar>
+    <ion-title>QR Code</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closePage()" aria-label="Close">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="qr-content">
+  <div class="qr-page">
+    <div class="qr-tabs">
+      <button
+        type="button"
+        class="qr-tab"
+        [class.active]="activeTab === 'scan'"
+        (click)="setTab('scan')"
+      >
+        Scan QR/Receipt
+      </button>
+      <button
+        type="button"
+        class="qr-tab"
+        [class.active]="activeTab === 'my'"
+        (click)="setTab('my')"
+      >
+        My QR
+      </button>
+    </div>
+
+    @if (activeTab === 'scan') {
+      <div class="scan-panel">
+        @if (activeCard && canPayWithQr && !pendingPayment && !pendingReceive) {
+          <div class="pay-from-banner">
+            <p class="pay-from-label">Pay from</p>
+            <div class="pay-from-readonly">
+              <span>{{ payingFromLabel }}</span>
+              <strong>{{ displayedPayFromFunds }}</strong>
+            </div>
+            <button type="button" class="change-card-link" (click)="goToHomeForCard()">
+              Change card on Home
+            </button>
+          </div>
+        }
+
+        @if (!canPayWithQr && !pendingPayment && !pendingReceive && !paymentSuccess && !receiptResult) {
+          <div class="cashcard-blocked-panel">
+            <ion-icon name="bus-outline"></ion-icon>
+            <p>{{ cashcardBlockedMessage }}</p>
+            <button type="button" class="change-card-link" (click)="goToHomeForCard()">
+              Switch card on Home
+            </button>
+          </div>
+        } @else {
+        <div #cameraPreview class="camera-preview" [class.is-live]="cameraActive" [class.is-loading]="cameraStarting">
+          <video #videoElement class="camera-video" playsinline muted></video>
+
+          @if (!cameraActive) {
+            <div class="camera-placeholder">
+              @if (cameraStarting) {
+                <ion-spinner name="crescent"></ion-spinner>
+                <p class="viewfinder-title">Starting camera...</p>
+              } @else {
+                <ion-icon name="camera"></ion-icon>
+                <p class="viewfinder-title">Scan QR code or receipt</p>
+                <p class="viewfinder-subtitle">{{ scanHint }}</p>
+                @if (cameraError) {
+                  <button type="button" class="restart-camera-btn" (click)="restartCamera()">Restart camera</button>
+                }
+              }
+            </div>
+          }
+
+          <div class="scan-overlay">
+            <div #scanFrame class="scan-frame">
+              @if (cameraActive && !isProcessing && !pendingPayment && !pendingReceive) {
+                <div class="scan-line"></div>
+              }
+            </div>
+            @if (cameraActive && !isProcessing && !pendingPayment && !pendingReceive) {
+              <p class="live-hint">Live scan — QR or printed receipt in frame</p>
+            }
+          </div>
+
+          @if (isProcessing) {
+            <div class="scanning-overlay">
+              <ion-spinner name="crescent"></ion-spinner>
+              <p>Processing...</p>
+            </div>
+          }
+        </div>
+
+        <canvas #scanCanvas hidden></canvas>
+
+        @if (showScreenScanTip && !pendingPayment && !pendingReceive && !receiptResult) {
+          <p class="scan-note screen-scan-tip">
+            Hold the demo receipt inside the frame, then tap <strong>Take Photo</strong>.
+            If the match fails, lower phone brightness or use <strong>Choose from Gallery</strong>.
+          </p>
+        }
+
+        @if (cameraError && !cameraStarting) {
+          <p class="scan-note">{{ cameraError }}</p>
+        }
+
+        @if (pendingPayment) {
+          <div class="payment-card">
+            <h3>Confirm payment</h3>
+            <div class="result-row">
+              <span>Merchant</span>
+              <strong>{{ pendingPayment.merchant }}</strong>
+            </div>
+            <div class="result-row">
+              <span>Amount</span>
+              <strong>${{ pendingPayment.amount | number: '1.2-2' }}</strong>
+            </div>
+            <div class="result-row">
+              <span>Category</span>
+              <strong>{{ pendingPayment.category }}</strong>
+            </div>
+            <p class="field-label">Pay from</p>
+            @if (activeCard) {
+              <div class="pay-from-readonly">
+                <span>{{ payingFromLabel }}</span>
+                <strong>{{ displayedPayFromFunds }}</strong>
+              </div>
+            } @else {
+              <p class="hint-text">Select a card on Home to continue.</p>
+            }
+            @if (paymentError) {
+              <p class="error-text">{{ paymentError }}</p>
+            }
+            <div class="payment-actions">
+              <ion-button expand="block" class="confirm-btn" (click)="confirmPayment()" [disabled]="isProcessing || !selectedPayCardId">
+                Pay now
+              </ion-button>
+              <button type="button" class="text-btn" (click)="cancelPayment()">Cancel</button>
+            </div>
+          </div>
+        } @else if (pendingReceive) {
+          <div class="payment-card">
+            <h3>Send money</h3>
+            <div class="result-row">
+              <span>To</span>
+              <strong>{{ maskedRecipientName }}</strong>
+            </div>
+            <div class="result-row">
+              <span>Mobile</span>
+              <strong>{{ pendingReceive.phone }}</strong>
+            </div>
+            @if (pendingReceive.receiveLabel) {
+              <div class="result-row">
+                <span>Credited to</span>
+                <strong>{{ shortReceiveLabel(pendingReceive.receiveLabel) }}</strong>
+              </div>
+            }
+            <p class="field-label">Amount</p>
+            <div class="transfer-amount-box">
+              <span class="transfer-currency">$</span>
+              <ion-input
+                class="transfer-amount-input"
+                type="text"
+                inputmode="decimal"
+                placeholder="0.00"
+                [value]="transferAmountText"
+                (ionInput)="onTransferAmountInput($event)"
+              ></ion-input>
+            </div>
+            <p class="field-label">Pay from</p>
+            @if (activeCard) {
+              <div class="pay-from-readonly">
+                <span>{{ payingFromLabel }}</span>
+                <strong>{{ displayedPayFromFunds }}</strong>
+              </div>
+            } @else {
+              <p class="hint-text">Select a card on Home to continue.</p>
+            }
+            @if (paymentError) {
+              <p class="error-text">{{ paymentError }}</p>
+            }
+            <div class="payment-actions">
+              <ion-button expand="block" class="confirm-btn" (click)="confirmTransfer()" [disabled]="isProcessing || !selectedPayCardId || transferAmount < 0.01">
+                Transfer
+              </ion-button>
+              <button type="button" class="text-btn" (click)="cancelPayment()">Cancel</button>
+            </div>
+          </div>
+        } @else if (paymentSuccess) {
+          <div class="success-card">
+            <ion-icon name="checkmark-circle"></ion-icon>
+            <p>{{ paymentSuccess }}</p>
+            <button type="button" class="text-btn" (click)="scanAnother()">Scan another</button>
+          </div>
+        } @else if (receiptResult) {
+          <div class="payment-card">
+            <h3>Receipt detected</h3>
+            @if (receiptMessage) {
+              <p class="hint-text">{{ receiptMessage }}</p>
+            }
+            <div class="result-row">
+              <span>Merchant</span>
+              <strong>{{ receiptResult.merchant }}</strong>
+            </div>
+            <div class="result-row">
+              <span>Amount</span>
+              <strong>${{ receiptResult.amount | number: '1.2-2' }}</strong>
+            </div>
+            @if (receiptResult.cardNumber) {
+              <div class="result-row">
+                <span>Card used</span>
+                <strong>{{ maskCardNumber(receiptResult.cardNumber) }}</strong>
+              </div>
+            }
+            @if (receiptSuccess) {
+              <p class="success-text">{{ receiptSuccess }}</p>
+            }
+            @if (receiptError) {
+              <p class="error-text">{{ receiptError }}</p>
+            }
+            <div class="payment-actions">
+              @if (!receiptSuccess) {
+                <ion-button
+                  expand="block"
+                  class="confirm-btn"
+                  (click)="confirmSaveReceipt()"
+                  [disabled]="isProcessing"
+                >
+                  Add to transactions
+                </ion-button>
+              }
+              <button type="button" class="text-btn" (click)="resetReceiptScan()">Scan again</button>
+            </div>
+          </div>
+        } @else {
+          <div class="scan-actions">
+            <ion-button expand="block" class="take-photo-btn" (click)="takePhoto()" [disabled]="isProcessing">
+              Take Photo
+            </ion-button>
+            <ion-button expand="block" fill="outline" class="gallery-btn" (click)="chooseFromGallery()" [disabled]="isProcessing">
+              Choose from Gallery
+            </ion-button>
+          </div>
+        }
+
+        @if (receiptError && !receiptResult) {
+          <p class="error-text">{{ receiptError }}</p>
+        }
+        }
+      </div>
+    } @else {
+      <div class="my-qr-panel">
+        <div class="my-qr-card">
+          @if (myQrDataUrl) {
+            <img [src]="myQrDataUrl" alt="My NETS QR code" class="my-qr-image" />
+          } @else {
+            <ion-spinner name="crescent"></ion-spinner>
+          }
+          <div class="my-qr-detail-row">
+            <h2>{{ displayedMyQrName }}</h2>
+            <button
+              type="button"
+              class="visibility-toggle"
+              (click)="toggleMyQrDetails()"
+              [attr.aria-label]="showMyQrDetails ? 'Hide your details' : 'Show your details'"
+            >
+              <ion-icon [name]="showMyQrDetails ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+            </button>
+          </div>
+          <p>{{ myQrPhone }}</p>
+          @if (myQrReceiveLabel) {
+            <p class="my-qr-receive">Receive to: {{ displayedMyQrReceiveLabel }}</p>
+          }
+        </div>
+        <p class="my-qr-caption">Others can scan this to send you money via NETS.</p>
+      </div>
+    }
+  </div>
+
+  <input
+    id="qr-gallery-input"
+    type="file"
+    accept="image/*"
+    hidden
+    (change)="onGallerySelected($event)"
+  />
+</ion-content>

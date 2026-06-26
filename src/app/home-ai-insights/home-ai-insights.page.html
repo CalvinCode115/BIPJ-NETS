@@ -1,0 +1,157 @@
+<ion-header class="insights-header">
+  <ion-toolbar>
+    <ion-title>
+      <span class="title-with-icon">
+        <ion-icon name="sparkles"></ion-icon>
+        Insights
+      </span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeInsights()" aria-label="Close insights">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="insights-content">
+  <div class="insights-page">
+    <div class="period-row">
+      <button type="button" class="change-period-btn" (click)="openPeriodSheet()">
+        {{ summaryMonth }}
+      </button>
+    </div>
+
+    @if (loadError) {
+      <p class="load-error">{{ loadError }}</p>
+    }
+
+    @if (isLoading) {
+      <div class="loading-state"><ion-spinner name="crescent"></ion-spinner></div>
+    }
+
+    <div class="summary-card">
+      <p class="summary-month">{{ summaryMonth }} Summary</p>
+      <div class="summary-stats">
+        @for (stat of summaryStats; track stat.label) {
+          <div class="summary-stat">
+            <span class="summary-value">{{ stat.value }}</span>
+            <span class="summary-label">{{ stat.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    @if (dnaTraits.length) {
+      <div class="traits-card">
+        <p class="traits-label">Your spending DNA</p>
+        <div class="dna-trait-chips">
+          @for (trait of dnaTraits; track trait) {
+            <span class="dna-trait-chip">{{ trait }}</span>
+          }
+        </div>
+      </div>
+    }
+
+    @if (smartInsights.length) {
+      <div class="alert-card">
+        <ion-icon name="bulb"></ion-icon>
+        <div>
+          <h3>{{ smartInsights[0].title }}</h3>
+          <p>{{ smartInsights[0].message }}</p>
+        </div>
+      </div>
+    }
+
+    @for (dive of deepDives; track dive.id) {
+      <div class="deep-dive-card">
+        <div class="deep-dive-header">
+          <div class="deep-dive-icon" [style.background]="dive.iconBg">
+            <ion-icon [name]="dive.icon" [style.color]="dive.iconColor"></ion-icon>
+          </div>
+          <h3>{{ dive.heading }}</h3>
+        </div>
+        <p class="deep-dive-subtitle">{{ dive.subtitle }}</p>
+        <div class="donut-section">
+          <div class="donut-wrap">
+            <div class="donut" [style.background]="getDonutGradient(dive)">
+              <div class="donut-center">
+                <span>${{ dive.total | number: '1.0-0' }}</span>
+                <small>Total</small>
+              </div>
+            </div>
+          </div>
+          <div class="donut-legend">
+            @for (seg of dive.segments; track seg.label) {
+              <div class="legend-row">
+                <span class="legend-dot" [style.background]="seg.color"></span>
+                <span class="legend-label">{{ seg.label }}</span>
+                <span class="legend-percent">{{ seg.percent }}%</span>
+                <strong>${{ seg.amount | number: '1.1-1' }}</strong>
+              </div>
+            }
+            <div class="legend-total">
+              <span>Total</span>
+              <strong>${{ dive.total | number: '1.1-1' }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <h3 class="section-title">Your Top Spots</h3>
+    <div class="top-spots">
+      @for (spot of topSpots; track spot.rank) {
+        <div class="spot-row">
+          <span class="spot-rank">{{ spot.rank }}</span>
+          <div class="spot-details">
+            <p class="spot-name">{{ spot.name }}</p>
+            <p class="spot-meta">{{ spot.category }} · {{ spot.visits }} visits this month</p>
+          </div>
+          <span class="spot-amount">${{ spot.amount }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="transport-card">
+      <h3>Transport Analysis</h3>
+      <div class="transport-stats">
+        <div>
+          <span class="transport-value">${{ transportAnalysis.totalTransport | number: '1.0-0' }}</span>
+          <span class="transport-label">Total Transport</span>
+        </div>
+        <div>
+          <span class="transport-value">{{ transportAnalysis.totalTrips }}</span>
+          <span class="transport-label">Total Trips</span>
+        </div>
+      </div>
+      @if (transportAnalysis.highlight) {
+        <p class="transport-highlight">{{ transportAnalysis.highlight }}</p>
+      }
+    </div>
+
+    <h3 class="section-title">Smart Insights</h3>
+    <div class="smart-insights">
+      @for (item of smartInsights; track item.title) {
+        <div class="smart-item">
+          <div class="smart-icon" [style.background]="item.bg" [style.color]="item.color">
+            <ion-icon [name]="item.icon"></ion-icon>
+          </div>
+          <div>
+            <p class="smart-title">{{ item.title }}</p>
+            <p class="smart-message">{{ item.message }}</p>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</ion-content>
+
+<app-period-select-sheet
+  [isOpen]="isPeriodSheetOpen"
+  title="Select Period"
+  [options]="periodSheetOptions"
+  [selectedId]="periodSelectValue"
+  (selected)="onPeriodSelected($event)"
+  (dismissed)="closePeriodSheet()"
+></app-period-select-sheet>

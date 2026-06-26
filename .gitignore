@@ -31,8 +31,14 @@ log.txt
 
 # Node
 /node_modules
+/backend/node_modules
 npm-debug.log
 yarn-error.log
+
+# Local SQLite database (each developer has their own)
+/backend/data/wallet.db
+/backend/data/wallet.db-wal
+/backend/data/wallet.db-shm
 
 # IDEs and editors
 .idea/

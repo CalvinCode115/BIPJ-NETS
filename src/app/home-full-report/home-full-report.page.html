@@ -1,0 +1,111 @@
+<ion-header class="report-header">
+  <ion-toolbar>
+    <ion-title>Full Report</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeReport()" aria-label="Close report">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="report-content">
+  <div class="report-page">
+    <div class="period-row">
+      <h2>{{ reportPeriod }}</h2>
+      <button type="button" class="change-period-btn" (click)="openPeriodSheet()">Change Period</button>
+    </div>
+
+    @if (loadError) {
+      <p class="load-error">{{ loadError }}</p>
+    }
+
+    @if (isLoading) {
+      <div class="loading-state"><ion-spinner name="crescent"></ion-spinner></div>
+    }
+
+    <div class="stats-grid">
+      @for (stat of stats; track stat.label) {
+        <div class="stat-card">
+          <div class="stat-top">
+            <span class="stat-label">{{ stat.label }}</span>
+            <span class="stat-badge" [class]="stat.badgeType">{{ stat.badge }}</span>
+          </div>
+          <p class="stat-value">{{ stat.value }}</p>
+        </div>
+      }
+    </div>
+
+    <div class="chart-card">
+      <h3>5-Month Trend</h3>
+      <div class="trend-legend">
+        <span><i class="dot spending"></i> Spending</span>
+        <span><i class="dot income"></i> Income</span>
+      </div>
+      <div class="trend-chart">
+        @for (month of trendMonths; track month.label) {
+          <div class="trend-column">
+            <div class="trend-bars">
+              <div
+                class="trend-bar income"
+                [style.height.%]="getTrendHeight(month.income, 'income')"
+              ></div>
+              <div
+                class="trend-bar spending"
+                [style.height.%]="getTrendHeight(month.spending, 'spending')"
+              ></div>
+            </div>
+            <span class="trend-label">{{ month.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <h3 class="section-title">All Categories</h3>
+    <div class="categories-list">
+      @for (category of categories; track category.name) {
+        <div class="category-card">
+          <div class="category-top">
+            <span class="category-name">{{ category.name }}</span>
+            <span class="category-amount">${{ category.amount }}</span>
+          </div>
+          <div class="category-meta">
+            <span [class.positive]="category.change > 0" [class.negative]="category.change < 0">
+              @if (category.change > 0) { +{{ category.change }}% } @else if (category.change < 0) { {{ category.change }}% } @else { 0% }
+              vs {{ compareLabel }}
+            </span>
+            <span>{{ category.percent }}% of total</span>
+          </div>
+          <div class="category-track">
+            <div
+              class="category-fill"
+              [style.width.%]="category.percent"
+              [style.background]="category.color"
+            ></div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="summary-card">
+      <h3>Monthly Summary</h3>
+      <p class="summary-highlight">You saved ${{ netSaved | number }} this month.</p>
+      <p class="summary-message">
+        Great job keeping spending in check. Your savings rate improved compared to last month.
+      </p>
+      <div class="goal-track">
+        <div class="goal-fill" [style.width.%]="savingsGoalProgress"></div>
+      </div>
+      <span class="goal-label">{{ savingsGoalProgress }}% to goal</span>
+    </div>
+  </div>
+</ion-content>
+
+<app-period-select-sheet
+  [isOpen]="isPeriodOpen"
+  title="Select Period"
+  [options]="periodSheetOptions"
+  [selectedId]="periodSelectValue"
+  (selected)="onPeriodSelected($event)"
+  (dismissed)="closePeriodSheet()"
+></app-period-select-sheet>
