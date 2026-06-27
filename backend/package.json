@@ -9,12 +9,15 @@
     "dev": "node server.js",
     "seed": "node scripts/seed-db.js",
     "db:migrate": "node scripts/migrate.js",
-    "db:seed": "node scripts/seed-db.js",
-    "db:seed:reset": "node scripts/seed-db.js --reset"
+    "db:seed": "node scripts/seed-firestore.js",
+    "db:seed:reset": "node scripts/seed-firestore.js --reset",
+    "firestore:seed": "node scripts/seed-firestore.js",
+    "firestore:seed:reset": "node scripts/seed-firestore.js --reset"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "firebase-admin": "^14.1.0"
   },
   "engines": {
     "node": ">=22.0.0"

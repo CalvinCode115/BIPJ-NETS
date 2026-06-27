@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const asyncHandler = require('../utils/async-handler');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ function formatPhoneDigits(phone) {
   return digits.length >= 8 ? digits.slice(-8) : '';
 }
 
-router.post('/register', (req, res) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const name = String(req.body.name || '').trim();
   const phoneDigits = formatPhoneDigits(req.body.phone);
   const pin = String(req.body.pin || '');
@@ -51,7 +52,7 @@ router.post('/register', (req, res) => {
   }
 
   const formattedPhone = db.formatPhoneDisplay(phoneDigits);
-  if (db.findUserByPhone(formattedPhone)) {
+  if (await db.findUserByPhone(formattedPhone)) {
     return res.status(409).json({ error: 'This mobile number is already registered.' });
   }
 
@@ -65,22 +66,22 @@ router.post('/register', (req, res) => {
     points: 0,
   };
 
-  db.addUser(user);
+  await db.addUser(user);
 
   res.status(201).json({
     token: `demo-${user.id}-${Date.now()}`,
     user: publicUser(user),
   });
-});
+}));
 
-router.post('/login', (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { phone, pin } = req.body || {};
 
   if (!phone || !pin) {
     return res.status(400).json({ error: 'Phone and PIN are required.' });
   }
 
-  const user = db.findUserByPhone(phone);
+  const user = await db.findUserByPhone(phone);
   if (!user || user.pin !== String(pin)) {
     return res.status(401).json({ error: 'Invalid phone number or PIN.' });
   }
@@ -89,9 +90,9 @@ router.post('/login', (req, res) => {
     token: `demo-${user.id}-${Date.now()}`,
     user: publicUser(user),
   });
-});
+}));
 
-router.post('/change-pin', (req, res) => {
+router.post('/change-pin', asyncHandler(async (req, res) => {
   const userId = String(req.body?.userId || '').trim();
   const currentPin = String(req.body?.currentPin || '');
   const newPin = String(req.body?.newPin || '');
@@ -117,7 +118,7 @@ router.post('/change-pin', (req, res) => {
     return res.status(400).json({ error: 'Choose a different PIN from your current one.' });
   }
 
-  const user = db.getUser(userId);
+  const user = await db.getUser(userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found.' });
   }
@@ -126,26 +127,26 @@ router.post('/change-pin', (req, res) => {
     return res.status(401).json({ error: 'Current PIN is incorrect.' });
   }
 
-  db.updateUserPin(userId, newPin);
+  await db.updateUserPin(userId, newPin);
 
   res.json({
     success: true,
     message: 'PIN updated successfully.',
   });
-});
+}));
 
-router.get('/me', (req, res) => {
+router.get('/me', asyncHandler(async (req, res) => {
   const userId = req.headers['x-user-id'];
   if (!userId) {
     return res.status(401).json({ error: 'Not authenticated.' });
   }
 
-  const user = db.getUser(userId);
+  const user = await db.getUser(userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found.' });
   }
 
   res.json({ user: publicUser(user) });
-});
+}));
 
 module.exports = router;

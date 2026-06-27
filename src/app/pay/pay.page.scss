@@ -47,9 +47,15 @@
     box-shadow: 0 8px 32px rgba(215, 25, 32, 0.35);
   }
 
+  &.debit-theme,
   &.others-theme {
     background: linear-gradient(135deg, #56ccf2 0%, #2f80ed 100%);
     box-shadow: 0 8px 32px rgba(47, 128, 237, 0.35);
+  }
+
+  &.credit-theme {
+    background: linear-gradient(135deg, #1e3a5f 0%, #312e81 100%);
+    box-shadow: 0 8px 32px rgba(30, 58, 95, 0.4);
   }
 
   &.empty-card-banner {

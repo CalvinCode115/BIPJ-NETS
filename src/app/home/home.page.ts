@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { CardType, AccountKind, CardsService, FALLBACK_REGISTRY, LINKABLE_BANKS, RegistryCard, TopUpMethod, WalletCard, formatCardPaymentLabel, getCardBrandBadge, getCardFundsAmount, getCardFundsLabel, getCardFundsSubtext } from '../services/cards.service';
+import { CardType, AccountKind, CardsService, FALLBACK_REGISTRY, LINKABLE_BANKS, RegistryCard, TopUpMethod, WalletCard, formatCardPaymentLabel, getCardBrandBadge, getCardFundsAmount, getCardFundsLabel, getCardFundsSubtext, getCardThemeClass } from '../services/cards.service';
 import { CardContextService } from '../services/card-context.service';
 import { AppNotification, NotificationsService } from '../services/notifications.service';
 import { TransactionsService } from '../services/transactions.service';
@@ -13,7 +13,7 @@ import {
   displayedCardExpiry as formatDisplayedCardExpiry,
   displayedCardNumber as formatDisplayedCardNumber,
 } from '../utils/card-display';
-import { canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, manualTopUpDisabledReason as walletTopUpReason } from '../utils/wallet-topup';
+import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../utils/wallet-topup';
 import {
   clearLowBalanceDismiss,
   dismissLowBalanceReminder,
@@ -32,17 +32,6 @@ interface QuickAction {
   color: string;
   route?: string;
   action?: 'top-up';
-}
-
-interface TopUpFundingOption {
-  id: string;
-  method: TopUpMethod;
-  title: string;
-  subtitle: string;
-  icon: string;
-  iconColor: string;
-  iconBg: string;
-  sourceCardId?: string;
 }
 
 interface SpendingCategory {
@@ -244,6 +233,10 @@ export class HomePage {
     return this.activeCards[this.activeCardSlide];
   }
 
+  get cardThemeClass(): string {
+    return getCardThemeClass(this.currentCard);
+  }
+
   get cardBrandBadge(): string {
     return getCardBrandBadge(this.currentCard);
   }
@@ -328,9 +321,9 @@ export class HomePage {
 
   get balanceLookupNotice(): string {
     if (this.activeAccountTab === 'others') {
-      return 'Your card details are encrypted and protected by NETS security.';
+      return 'Enter any 16-digit card not already linked. Debit and credit balances are simulated for this demo.';
     }
-    return 'After linking, NETS will verify your card and retrieve the current balance automatically.';
+    return 'Enter any unused 16-digit card number. NETS will verify it and show a simulated balance.';
   }
 
   get activeRegistryCards(): RegistryCard[] {
@@ -528,28 +521,7 @@ export class HomePage {
   }
 
   private buildTopUpFundingOptions(): void {
-    const linkedDebits = this.cardsByType.others.filter((card) => card.accountKind !== 'credit');
-    const options: TopUpFundingOption[] = linkedDebits.map((card) => ({
-      id: `linked_${card.id}`,
-      method: 'linked',
-      title: formatCardPaymentLabel(card),
-      subtitle: `$${card.balance.toFixed(2)} available`,
-      icon: 'business',
-      iconColor: '#2f80ed',
-      iconBg: '#e3f2fd',
-      sourceCardId: card.id,
-    }));
-
-    options.push({
-      id: 'paynow',
-      method: 'paynow',
-      title: 'PayNow',
-      subtitle: 'External bank account',
-      icon: 'phone-portrait',
-      iconColor: '#27ae60',
-      iconBg: '#e8f8ef',
-    });
-
+    const options = buildTopUpFundingOptions(this.cardsByType);
     this.topUpFundingOptions = options;
     this.selectedTopUpFundingId = options[0]?.id ?? '';
   }

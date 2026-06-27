@@ -2,13 +2,9 @@
   <div class="home-page">
     <!-- Header -->
     <div class="home-header">
-      <div class="brand-row">
-        <span class="nets-logo">NETS</span>
-        <div class="header-actions">
-          <button class="ai-insights-btn" type="button" (click)="openAiInsights()">
-            <ion-icon name="sparkles"></ion-icon>
-            Insights
-          </button>
+      <div class="home-header-top">
+        <div class="brand-row">
+          <app-nets-logo></app-nets-logo>
           <button class="notification-btn" type="button" (click)="openNotifications()" aria-label="Notifications">
             <ion-icon name="notifications-outline"></ion-icon>
             @if (notificationUnreadCount > 0) {
@@ -18,7 +14,14 @@
         </div>
       </div>
 
-      <p class="greeting">Hi {{ userName }}, welcome back!</p>
+      <div class="home-header-body">
+        <div class="greeting-row">
+          <p class="greeting">Hi {{ userName }}, welcome back!</p>
+          <button class="ai-insights-btn" type="button" (click)="openAiInsights()">
+            <ion-icon name="sparkles"></ion-icon>
+            Insights
+          </button>
+        </div>
 
       @if (visibleLoginAlert) {
         <button
@@ -99,6 +102,7 @@
           </button>
         }
       </div>
+      </div>
     </div>
 
     <!-- Card Carousel -->
@@ -109,7 +113,7 @@
 
       <div class="carousel-viewport">
         @if (currentCard) {
-          <div class="balance-card" [ngClass]="currentCard.cardType + '-theme'">
+          <div class="balance-card" [ngClass]="cardThemeClass">
             <div class="card-face-header">
               <p class="balance-label">{{ cardFundsLabel }}</p>
               <div class="card-header-actions">

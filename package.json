@@ -18,7 +18,9 @@
     "generate:demo-assets": "node scripts/generate-home-pay-assets.mjs",
     "build:prod": "ng build --configuration production",
     "firebase:login": "firebase login",
-    "firebase:deploy:rules": "firebase deploy --only firestore:rules,storage",
+    "firebase:deploy:indexes": "firebase deploy --only firestore:indexes",
+    "firebase:deploy:rules": "firebase deploy --only firestore:rules",
+    "firebase:deploy:storage": "firebase deploy --only storage",
     "firebase:deploy:hosting": "npm run build:prod && firebase deploy --only hosting",
     "firebase:deploy": "npm run build:prod && firebase deploy"
   },

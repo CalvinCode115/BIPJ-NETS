@@ -14,25 +14,35 @@
 }
 
 .home-page {
-  padding: 16px 16px 32px;
+  padding: 0 16px 32px;
 }
 
 .home-header {
-  margin-bottom: 20px;
+  margin: 0 -16px 20px;
+}
+
+.home-header-top {
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid #ececf1;
+}
+
+.home-header-body {
+  padding: 12px 16px 0;
 }
 
 .brand-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  min-height: 36px;
 }
 
-.nets-logo {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--nets-red);
-  letter-spacing: -0.5px;
+.greeting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 0;
 }
 
 .header-actions {
@@ -50,15 +60,16 @@
   background: #fff;
   border-radius: 20px;
   cursor: pointer;
-  box-shadow: var(--nets-card-shadow);
 }
 
 .ai-insights-btn {
   gap: 4px;
+  flex-shrink: 0;
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 600;
   color: var(--nets-text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 
   ion-icon {
     font-size: 14px;
@@ -68,12 +79,15 @@
 
 .notification-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 
   ion-icon {
-    font-size: 20px;
-    color: var(--nets-text);
+    font-size: 22px;
+    color: #4a4a4a;
   }
 }
 
@@ -95,7 +109,9 @@
 }
 
 .greeting {
-  margin: 0 0 16px;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
   font-size: 15px;
   color: var(--nets-muted);
 }
@@ -250,6 +266,7 @@
 .account-tabs {
   display: flex;
   gap: 8px;
+  margin-top: 16px;
 }
 
 .account-tab {
@@ -324,9 +341,15 @@
     box-shadow: 0 8px 32px rgba(215, 25, 32, 0.35);
   }
 
+  &.debit-theme,
   &.others-theme {
     background: linear-gradient(135deg, #56ccf2 0%, #2f80ed 100%);
     box-shadow: 0 8px 32px rgba(47, 128, 237, 0.35);
+  }
+
+  &.credit-theme {
+    background: linear-gradient(135deg, #1e3a5f 0%, #312e81 100%);
+    box-shadow: 0 8px 32px rgba(30, 58, 95, 0.4);
   }
 }
 
@@ -1116,6 +1139,7 @@
 
   &::part(content) {
     border-radius: 16px;
+    overflow: hidden;
   }
 }
 
@@ -1123,7 +1147,6 @@
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
-  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
@@ -1157,8 +1180,7 @@
 
 .add-card-panel-body {
   padding: 12px 16px 20px;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
 }
 
 .security-notice {
@@ -1205,15 +1227,25 @@
 }
 
 .rounded-input {
-  --background: #f4f4f6;
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --padding-top: 10px;
-  --padding-bottom: 10px;
+  --background: #f5f5f7;
+  --color: #1a1a2e;
+  --placeholder-color: #8e8e93;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  --highlight-color-focused: transparent;
+  --highlight-color-valid: transparent;
+  --highlight-color-invalid: transparent;
+  min-height: 48px;
   border: 1px solid #e8e8ed;
-  border-radius: 10px;
-  overflow: hidden;
-  font-size: 13px;
+  border-radius: 12px;
+  font-size: 15px;
+
+  &.ion-focused {
+    --background: #ffffff;
+    border-color: #6c63ff;
+  }
 }
 
 .form-row {

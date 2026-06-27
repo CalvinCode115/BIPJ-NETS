@@ -40,6 +40,10 @@ yarn-error.log
 /backend/data/wallet.db-wal
 /backend/data/wallet.db-shm
 
+# Firebase service account (never commit)
+/backend/firebase/service-account.json
+/backend/config/firebase-service-account.json
+
 # IDEs and editors
 .idea/
 .project

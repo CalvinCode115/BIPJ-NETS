@@ -25,7 +25,6 @@ const CATEGORY_ICONS = {
 };
 
 const period = require('./period');
-const db = require('../db');
 const { buildDeepDives, toLegacyDonut } = require('./insight-deep-dives');
 const { aggregateTagStats } = require('./merchant-tags');
 const { deriveDnaTraits, pickSmartInsights } = require('./insight-engine');
@@ -535,19 +534,17 @@ function resolveTransferCounterparty(row) {
   const digits = value.replace(/\D/g, '').slice(-8);
 
   if (digits.length === 8) {
-    const user = db.findUserByPhone(value);
     return {
       direction,
       phone: formatTransferPhone(value),
-      name: user?.name,
+      name: row.counterparty_name || undefined,
     };
   }
 
-  const user = db.getUsers().find((entry) => entry.name === value);
   return {
     direction,
     name: value,
-    phone: user?.phone ? formatTransferPhone(user.phone) : undefined,
+    phone: row.counterparty_phone ? formatTransferPhone(row.counterparty_phone) : undefined,
   };
 }
 

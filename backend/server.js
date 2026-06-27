@@ -5,15 +5,6 @@ const seedData = require('./seed-data');
 const apiRouter = require('./routes/api');
 const authRouter = require('./routes/auth');
 
-db.initialize();
-
-if (db.isEmpty()) {
-  db.seed(seedData, { mode: 'reset' });
-  console.log('Initialized SQLite with seed accounts (Alex, Sarah, Cheng).');
-} else {
-  console.log('SQLite ready — runtime data preserved (no auto-reseed on startup).');
-}
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -23,6 +14,27 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api', apiRouter);
 
-app.listen(PORT, () => {
-  console.log(`NETS backend running at http://localhost:${PORT}/api`);
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+async function start() {
+  await db.initialize();
+
+  if (await db.isEmpty()) {
+    await db.seed(seedData, { mode: 'reset' });
+    console.log('Initialized Firestore with seed accounts (Alex, Sarah, Cheng).');
+  } else {
+    console.log('Firestore ready — runtime data preserved (no auto-reseed on startup).');
+  }
+
+  app.listen(PORT, () => {
+    console.log(`NETS backend running at http://localhost:${PORT}/api`);
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start backend:', err);
+  process.exit(1);
 });

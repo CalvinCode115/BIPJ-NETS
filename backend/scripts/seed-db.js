@@ -1,22 +1,27 @@
 #!/usr/bin/env node
 const db = require('../db');
 const seedData = require('../seed-data');
-const { closeDb } = require('../db/sqlite');
 
 const reset = process.argv.includes('--reset');
 
-db.initialize();
+async function main() {
+  await db.initialize();
 
-if (reset) {
-  db.seed(seedData, { mode: 'reset' });
-  console.log('Database reset with seed accounts and sample history.');
-} else if (db.isEmpty()) {
-  db.seed(seedData, { mode: 'reset' });
-  console.log('Empty database — loaded seed accounts (Alex, Sarah, Cheng, Adam).');
-} else {
-  db.seed(seedData, { mode: 'merge' });
-  console.log('Seed accounts merged (existing users and transactions kept).');
+  if (reset) {
+    await db.seed(seedData, { mode: 'reset' });
+    console.log('Firestore reset with seed accounts and sample history.');
+  } else if (await db.isEmpty()) {
+    await db.seed(seedData, { mode: 'reset' });
+    console.log('Empty Firestore — loaded seed accounts (Alex, Sarah, Cheng, Adam).');
+  } else {
+    await db.seed(seedData, { mode: 'merge' });
+    console.log('Seed accounts merged (existing users and transactions kept).');
+  }
+
+  console.log('Accounts: Alex 91234567, Sarah 87654321, Cheng 80680505, Adam 84688831 (PIN 123456)');
 }
 
-console.log('Accounts: Alex 91234567, Sarah 87654321, Cheng 80680505, Adam 84688831 (PIN 123456)');
-closeDb();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

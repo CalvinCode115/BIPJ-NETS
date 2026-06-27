@@ -59,3 +59,25 @@ ion-content.scroll-content-visible::part(scroll)::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
+
+.nets-page-header ion-toolbar.nets-page-toolbar {
+  --background: #ffffff;
+  --border-color: #ececf1;
+  --padding-start: 16px;
+  --padding-end: 8px;
+  --min-height: 52px;
+}
+
+.nets-page-toolbar ion-buttons[slot='start'] {
+  margin-inline-start: 0;
+}
+
+.nets-header-bell {
+  --color: #4a4a4a;
+  --padding-start: 8px;
+  --padding-end: 8px;
+
+  ion-icon {
+    font-size: 22px;
+  }
+}

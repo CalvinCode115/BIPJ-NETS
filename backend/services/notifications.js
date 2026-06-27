@@ -2,7 +2,7 @@ const db = require('../db');
 const period = require('./period');
 const nameMask = require('./name-mask');
 
-function createTransferReceivedNotification(toUserId, { fromName, amount, transferId }) {
+async function createTransferReceivedNotification(toUserId, { fromName, amount, transferId }) {
   const maskedName = nameMask.maskDisplayName(fromName);
   return db.addNotification({
     id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -32,19 +32,19 @@ function formatNotification(row) {
   };
 }
 
-function listForUser(userId) {
-  return db.getNotifications(userId).map(formatNotification);
+async function listForUser(userId) {
+  return (await db.getNotifications(userId)).map(formatNotification);
 }
 
-function unreadCount(userId) {
-  return db.getNotifications(userId).filter((row) => !row.read).length;
+async function unreadCount(userId) {
+  return (await db.getNotifications(userId)).filter((row) => !row.read).length;
 }
 
-function markRead(userId, notificationId) {
+async function markRead(userId, notificationId) {
   return db.markNotificationRead(userId, notificationId);
 }
 
-function markAllRead(userId) {
+async function markAllRead(userId) {
   return db.markAllNotificationsRead(userId);
 }
 

@@ -7,7 +7,7 @@
 <ion-content class="pay-content">
   <div class="pay-page">
     @if (activeCard) {
-      <div class="balance-card" [ngClass]="activeCard.cardType + '-theme'">
+      <div class="balance-card" [ngClass]="cardThemeClass">
         <div class="card-face-header">
           <p class="balance-label">{{ cardFundsLabel }}</p>
           <div class="card-header-actions">

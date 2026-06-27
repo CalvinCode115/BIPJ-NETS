@@ -12,6 +12,6 @@ export const environment = {
     messagingSenderId: 'YOUR_SENDER_ID',
     appId: 'YOUR_APP_ID',
   },
-  /** Local Express + SQLite API (keep until team migrates data to Firestore). */
+  /** Local Express API (reads/writes Firestore via firebase-admin). */
   apiUrl: 'http://localhost:3000',
 };

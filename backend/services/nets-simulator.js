@@ -1,22 +1,13 @@
 /**
  * Simulates NETS card registry lookup and balance retrieval.
- * In production this would call NETS wallet APIs after card verification.
+ * Any valid 16-digit number works if not already linked; balance is derived from the digits.
  */
 
 const cardUtils = require('./card-utils');
 const { clampCreditLimit } = require('./credit-config');
 
-function enrichRegistryEntry(entry) {
-  const inferred = cardUtils.inferFromLabel(entry.label);
-  return {
-    ...entry,
-    bank_name: inferred.bankName,
-    account_kind: inferred.accountKind,
-  };
-}
-
+/** Optional demo numbers for presentations — not required for linking. */
 const REGISTRY = [
-  // PREPAID — 5 demo cards
   {
     card_number: '5990899067786689',
     card_type: 'prepaid',
@@ -24,126 +15,10 @@ const REGISTRY = [
     balance: 125.5,
   },
   {
-    card_number: '6011000000000004',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid (Student)',
-    balance: 42.0,
-  },
-  {
-    card_number: '6011000000000005',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid (Travel)',
-    balance: 380.75,
-  },
-  {
-    card_number: '6011000000000006',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid (Premium)',
-    balance: 485.0,
-  },
-  {
-    card_number: '6011000000000007',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid (Starter)',
-    balance: 15.0,
-  },
-  {
-    card_number: '6011000000000008',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid',
-    balance: 55.0,
-  },
-  {
-    card_number: '6011000000000009',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid',
-    balance: 210.0,
-  },
-  {
-    card_number: '6011000000000010',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid',
-    balance: 920.0,
-  },
-  {
-    card_number: '6011000000000011',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid',
-    balance: 175.25,
-  },
-  {
-    card_number: '6011000000000012',
-    card_type: 'prepaid',
-    label: 'NETS Prepaid',
-    balance: 8.5,
-  },
-  // CASHCARD — 10 demo cards
-  {
     card_number: '6250123456789012',
     card_type: 'cashcard',
     label: 'NETS CashCard (Transit)',
     balance: 28.9,
-  },
-  {
-    card_number: '6250987654321098',
-    card_type: 'cashcard',
-    label: 'NETS CashCard (Motoring)',
-    balance: 67.3,
-  },
-  {
-    card_number: '6250111122223333',
-    card_type: 'cashcard',
-    label: 'NETS CashCard (FlashPay)',
-    balance: 0,
-  },
-  {
-    card_number: '6250445566778899',
-    card_type: 'cashcard',
-    label: 'NETS CashCard (Family)',
-    balance: 203.15,
-  },
-  {
-    card_number: '5283778878921289',
-    card_type: 'cashcard',
-    label: 'NETS CashCard',
-    balance: 112.5,
-  },
-  {
-    card_number: '6250555666777888',
-    card_type: 'cashcard',
-    label: 'NETS CashCard',
-    balance: 45.0,
-  },
-  {
-    card_number: '6250666777888999',
-    card_type: 'cashcard',
-    label: 'NETS CashCard',
-    balance: 18.6,
-  },
-  {
-    card_number: '6250777888999000',
-    card_type: 'cashcard',
-    label: 'NETS CashCard',
-    balance: 92.4,
-  },
-  {
-    card_number: '6250888999000111',
-    card_type: 'cashcard',
-    label: 'NETS CashCard',
-    balance: 134.75,
-  },
-  {
-    card_number: '6250999000111222',
-    card_type: 'cashcard',
-    label: 'NETS CashCard',
-    balance: 56.2,
-  },
-  // OTHERS — 10 debit + 10 credit demo cards
-  {
-    card_number: '4111111111111111',
-    card_type: 'others',
-    label: 'Linked Visa Debit',
-    balance: 0,
   },
   {
     card_number: '4532015112830366',
@@ -152,88 +27,10 @@ const REGISTRY = [
     balance: 245.8,
   },
   {
-    card_number: '5213240000000000',
-    card_type: 'others',
-    label: 'Linked UOB Debit',
-    balance: 312.0,
-  },
-  {
-    card_number: '4532123456789012',
-    card_type: 'others',
-    label: 'Linked POSB Debit',
-    balance: 188.2,
-  },
-  {
-    card_number: '4532987654321098',
-    card_type: 'others',
-    label: 'Linked Maybank Debit',
-    balance: 421.5,
-  },
-  {
-    card_number: '4111222233334444',
-    card_type: 'others',
-    label: 'Linked HSBC Debit',
-    balance: 76.9,
-  },
-  {
-    card_number: '5213567890123456',
-    card_type: 'others',
-    label: 'Linked Citi Debit',
-    balance: 502.3,
-  },
-  {
-    card_number: '5213789012345678',
-    card_type: 'others',
-    label: 'Linked UOB Debit (Premium)',
-    balance: 890.0,
-  },
-  {
     card_number: '5500000000000004',
     card_type: 'others',
     label: 'Linked Mastercard Credit',
     balance: 156.4,
-    credit_limit: 3000,
-  },
-  {
-    card_number: '4917610000000000',
-    card_type: 'others',
-    label: 'Linked OCBC Credit',
-    balance: 2450,
-    credit_limit: 3000,
-  },
-  {
-    card_number: '5500123456789012',
-    card_type: 'others',
-    label: 'Linked DBS Credit',
-    balance: 680,
-    credit_limit: 3000,
-  },
-  {
-    card_number: '4917123456789012',
-    card_type: 'others',
-    label: 'Linked OCBC Credit (Platinum)',
-    balance: 420,
-    credit_limit: 3000,
-  },
-  {
-    card_number: '5500987654321098',
-    card_type: 'others',
-    label: 'Linked UOB Credit',
-    balance: 920,
-    credit_limit: 3000,
-  },
-  {
-    card_number: '4532111122223333',
-    card_type: 'others',
-    label: 'Linked Maybank Credit',
-    balance: 1100,
-    credit_limit: 3000,
-  },
-  {
-    card_number: '5500445566778899',
-    card_type: 'others',
-    label: 'Linked Citi Credit',
-    balance: 750,
     credit_limit: 3000,
   },
 ];
@@ -247,28 +44,24 @@ const DEMO_LINK = {
 };
 
 const OTHERS_DEMO_CARDHOLDERS = {
-  '4111111111111111': 'ADAM LIM',
-  '5500000000000004': 'BELINDA HO',
   '4532015112830366': 'ALEX TAN',
-  '4917610000000000': 'SARAH LIM',
-  '5213240000000000': 'JUN JIE GOH',
-  '4532123456789012': 'MEI LING TAN',
-  '4532987654321098': 'RAJ KUMAR',
-  '4111222233334444': 'JASON ONG',
-  '5213567890123456': 'NURUL AZIZ',
-  '5213789012345678': 'DAVID CHUA',
-  '5500123456789012': 'EMILY KOH',
-  '4917123456789012': 'MICHAEL GOH',
-  '5500987654321098': 'PRIYA NAIR',
-  '4532111122223333': 'WEI MING LEE',
-  '5500445566778899': 'SITI AMINAH',
+  '5500000000000004': 'BELINDA HO',
 };
+
+function enrichRegistryEntry(entry) {
+  const inferred = cardUtils.inferFromLabel(entry.label);
+  return {
+    ...entry,
+    bank_name: inferred.bankName,
+    account_kind: inferred.accountKind,
+  };
+}
 
 function formatRegistryEntry(entry) {
   const enriched = enrichRegistryEntry(entry);
   const requiresCardholder = entry.card_type === 'others';
   const cardholderName = requiresCardholder
-    ? OTHERS_DEMO_CARDHOLDERS[entry.card_number] || 'ADAM LIM'
+    ? OTHERS_DEMO_CARDHOLDERS[entry.card_number] || 'CARDHOLDER'
     : null;
 
   return {
@@ -305,6 +98,20 @@ function maskCardNumber(digits) {
 
 function round2(value) {
   return Math.round(value * 100) / 100;
+}
+
+function digitHash(digits) {
+  return normalizeDigits(digits)
+    .split('')
+    .reduce((sum, digit) => sum + parseInt(digit, 10), 0);
+}
+
+function hashToRange(hash, min, max, salt = 1) {
+  const span = max - min;
+  if (span <= 0) {
+    return round2(min);
+  }
+  return round2(min + ((hash * salt) % Math.round(span * 100)) / 100);
 }
 
 function isExpiryValid(expiry) {
@@ -372,21 +179,32 @@ function lookupRegistry(digits, cardType) {
   );
 }
 
-function simulateBalance(digits, cardType) {
-  const hash = digits.split('').reduce((sum, digit) => sum + parseInt(digit, 10), 0);
-
-  if (cardType === 'others') {
-    return round2(((hash * 7.3) % 499) + 1);
-  }
-
-  if (cardType === 'prepaid') {
-    return round2(((hash * 13.7) % 499) + 1);
-  }
-
-  return round2(((hash * 3.1) % 499) + 1);
+function simulateCreditLimit(digits) {
+  const hash = digitHash(digits);
+  return clampCreditLimit(1000 + ((hash * 47) % 2001));
 }
 
-function resolveBalance(digits, cardType) {
+function simulateBalance(digits, cardType, accountKind = 'debit') {
+  const hash = digitHash(digits);
+
+  if (cardType === 'prepaid') {
+    return hashToRange(hash, 10, 500, 13.7);
+  }
+
+  if (cardType === 'cashcard') {
+    return hashToRange(hash, 0, 200, 3.1);
+  }
+
+  if (accountKind === 'credit') {
+    const limit = simulateCreditLimit(digits);
+    const availablePct = 0.15 + ((hash * 11) % 76) / 100;
+    return round2(limit * availablePct);
+  }
+
+  return hashToRange(hash, 50, 2000, 7.3);
+}
+
+function resolveBalance(digits, cardType, accountKind = 'debit') {
   const registryHit = lookupRegistry(digits, cardType);
   if (registryHit) {
     return {
@@ -397,21 +215,25 @@ function resolveBalance(digits, cardType) {
     };
   }
 
+  const isCredit = cardType === 'others' && accountKind === 'credit';
+  const creditLimit = isCredit ? simulateCreditLimit(digits) : null;
+
   return {
-    balance: simulateBalance(digits, cardType),
-    label: defaultLabel(cardType),
+    balance: simulateBalance(digits, cardType, accountKind),
+    label: defaultLabel(cardType, accountKind),
     source: 'nets_simulated',
-    creditLimit: null,
+    creditLimit,
   };
 }
 
-function defaultLabel(cardType) {
-  const labels = {
-    prepaid: 'NETS Prepaid',
-    cashcard: 'NETS CashCard',
-    others: 'Linked Bank Card',
-  };
-  return labels[cardType];
+function defaultLabel(cardType, accountKind = 'debit') {
+  if (cardType === 'prepaid') {
+    return 'NETS Prepaid';
+  }
+  if (cardType === 'cashcard') {
+    return 'NETS CashCard';
+  }
+  return accountKind === 'credit' ? 'Linked Bank Credit' : 'Linked Bank Debit';
 }
 
 function buildLinkResult(payload, userName) {
@@ -421,20 +243,25 @@ function buildLinkResult(payload, userName) {
   }
 
   const { cardType, digits, cardNumber, maskedNumber, cardholderName, expiryDate } = validation.data;
-  const resolved = resolveBalance(digits, cardType);
+
+  let bankName = payload.bankName ? String(payload.bankName).trim() : null;
+  let accountKind =
+    payload.accountKind === 'credit' ? 'credit' : payload.accountKind === 'debit' ? 'debit' : 'debit';
+
+  const resolved = resolveBalance(digits, cardType, cardType === 'others' ? accountKind : 'debit');
   const holder =
     cardType === 'others' ? cardholderName : String(userName || 'CARDHOLDER').toUpperCase();
 
-  let bankName = payload.bankName ? String(payload.bankName).trim() : null;
-  let accountKind = payload.accountKind === 'credit' ? 'credit' : payload.accountKind === 'debit' ? 'debit' : null;
   let label = resolved.label;
 
   if (cardType === 'others') {
-    const inferred = cardUtils.inferFromLabel(resolved.label);
-    bankName = bankName || inferred.bankName;
-    accountKind = accountKind || inferred.accountKind;
     if (payload.bankName || payload.accountKind) {
+      bankName = bankName || 'Bank';
       label = cardUtils.buildLinkedLabel(bankName, accountKind);
+    } else {
+      const inferred = cardUtils.inferFromLabel(resolved.label);
+      bankName = bankName || inferred.bankName;
+      accountKind = accountKind || inferred.accountKind;
     }
   }
 
@@ -452,7 +279,7 @@ function buildLinkResult(payload, userName) {
       creditLimit: resolved.creditLimit ? clampCreditLimit(resolved.creditLimit) : null,
       topUpEnabled: cardType !== 'others',
       bankName: bankName || null,
-      accountKind: accountKind || null,
+      accountKind: cardType === 'others' ? accountKind : null,
       isDefaultReceive: Boolean(payload.isDefaultReceive),
     },
   };

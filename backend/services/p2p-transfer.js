@@ -21,17 +21,17 @@ function validateAmount(amount) {
   return { ok: true, amount: Math.round(value * 100) / 100 };
 }
 
-function resolveUsers(fromUserId, { toUserId, toPhone }) {
-  const fromUser = db.getUser(fromUserId);
+async function resolveUsers(fromUserId, { toUserId, toPhone }) {
+  const fromUser = await db.getUser(fromUserId);
   if (!fromUser) {
     return { ok: false, error: 'Sender not found.' };
   }
 
   let toUser = null;
   if (toUserId) {
-    toUser = db.getUser(toUserId);
+    toUser = await db.getUser(toUserId);
   } else if (toPhone) {
-    toUser = db.findUserByPhone(toPhone);
+    toUser = await db.findUserByPhone(toPhone);
   }
 
   if (!toUser) {
@@ -45,13 +45,13 @@ function resolveUsers(fromUserId, { toUserId, toPhone }) {
   return { ok: true, fromUser, toUser };
 }
 
-function executeTransfer(fromUserId, input) {
+async function executeTransfer(fromUserId, input) {
   const amountResult = validateAmount(input.amount);
   if (!amountResult.ok) {
     return amountResult;
   }
 
-  const usersResult = resolveUsers(fromUserId, input);
+  const usersResult = await resolveUsers(fromUserId, input);
   if (!usersResult.ok) {
     return usersResult;
   }
@@ -59,7 +59,7 @@ function executeTransfer(fromUserId, input) {
   const { fromUser, toUser } = usersResult;
   const amount = amountResult.amount;
 
-  const fromCards = db.getCards(fromUserId).map(cardUtils.normalizeCardRow);
+  const fromCards = (await db.getCards(fromUserId)).map(cardUtils.normalizeCardRow);
   const fromCard = fromCards.find((c) => c.id === input.fromCardId);
   if (!fromCard) {
     return { ok: false, error: 'Select a valid card to pay from.' };
@@ -78,7 +78,7 @@ function executeTransfer(fromUserId, input) {
     };
   }
 
-  const toCards = db.getCards(toUser.id).map(cardUtils.normalizeCardRow);
+  const toCards = (await db.getCards(toUser.id)).map(cardUtils.normalizeCardRow);
   const receiveTarget = cardUtils.resolveReceiveCard(toCards);
   if (!receiveTarget?.card) {
     return {
@@ -95,7 +95,7 @@ function executeTransfer(fromUserId, input) {
 
   const receiverSubtitle = `From ${formatPhoneDisplay(fromUser.phone)}`;
 
-  const senderTxn = db.addTransaction({
+  const senderTxn = await db.addTransaction({
     id: `txn_${Date.now()}_out`,
     user_id: fromUserId,
     card_id: fromCard.id,
@@ -113,7 +113,7 @@ function executeTransfer(fromUserId, input) {
     transfer_id: transferId,
   });
 
-  const receiverTxn = db.addTransaction({
+  const receiverTxn = await db.addTransaction({
     id: `txn_${Date.now()}_in`,
     user_id: toUser.id,
     card_id: toCard.id,
@@ -131,13 +131,13 @@ function executeTransfer(fromUserId, input) {
     transfer_id: transferId,
   });
 
-  db.setCardBalance(fromCard.id, cardUtils.applyDebit(fromCard, amount));
-  db.setCardBalance(toCard.id, cardUtils.applyCredit(toCard, amount));
+  await db.setCardBalance(fromCard.id, cardUtils.applyDebit(fromCard, amount));
+  await db.setCardBalance(toCard.id, cardUtils.applyCredit(toCard, amount));
 
-  const refreshedFrom = db.getCardById(fromUserId, fromCard.id);
-  const refreshedTo = db.getCardById(toUser.id, toCard.id);
+  const refreshedFrom = await db.getCardById(fromUserId, fromCard.id);
+  const refreshedTo = await db.getCardById(toUser.id, toCard.id);
 
-  notifications.createTransferReceivedNotification(toUser.id, {
+  await notifications.createTransferReceivedNotification(toUser.id, {
     fromName: fromUser.name,
     amount,
     transferId,

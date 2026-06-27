@@ -11,6 +11,7 @@ import {
   getCardFundsAmount,
   getCardFundsLabel,
   getCardFundsSubtext,
+  getCardThemeClass,
   TopUpMethod,
   WalletCard,
 } from '../services/cards.service';
@@ -23,7 +24,7 @@ import {
   displayedCardFundsLabel as formatDisplayedCardFundsLabel,
   displayedCardNumber as formatDisplayedCardNumber,
 } from '../utils/card-display';
-import { canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, manualTopUpDisabledReason as walletTopUpReason } from '../utils/wallet-topup';
+import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../utils/wallet-topup';
 import { shortReceiveLabel } from '../utils/display-name';
 import { formatCounterpartyLine } from '../utils/transfer-display';
 
@@ -34,17 +35,6 @@ interface QuickPayOption {
   iconColor: string;
   iconBg: string;
   action?: 'scan' | 'paynow';
-}
-
-interface TopUpFundingOption {
-  id: string;
-  method: TopUpMethod;
-  title: string;
-  subtitle: string;
-  icon: string;
-  iconColor: string;
-  iconBg: string;
-  sourceCardId?: string;
 }
 
 type TransferMode = 'phone' | 'saved';
@@ -130,6 +120,10 @@ export class PayPage {
       action: 'paynow',
     },
   ];
+
+  get cardThemeClass(): string {
+    return getCardThemeClass(this.activeCard);
+  }
 
   get cardBrandBadge(): string {
     return getCardBrandBadge(this.activeCard);
@@ -693,28 +687,7 @@ export class PayPage {
   }
 
   private buildTopUpFundingOptions(): void {
-    const linkedDebits = this.cardsByType.others.filter((card) => card.accountKind !== 'credit');
-    const options: TopUpFundingOption[] = linkedDebits.map((card) => ({
-      id: `linked_${card.id}`,
-      method: 'linked',
-      title: formatCardPaymentLabel(card),
-      subtitle: `$${card.balance.toFixed(2)} available`,
-      icon: 'business',
-      iconColor: '#2f80ed',
-      iconBg: '#e3f2fd',
-      sourceCardId: card.id,
-    }));
-
-    options.push({
-      id: 'paynow',
-      method: 'paynow',
-      title: 'PayNow',
-      subtitle: 'External bank account',
-      icon: 'phone-portrait',
-      iconColor: '#27ae60',
-      iconBg: '#e8f8ef',
-    });
-
+    const options = buildTopUpFundingOptions(this.cardsByType);
     this.topUpFundingOptions = options;
     this.selectedTopUpFundingId = options[0]?.id ?? '';
   }

@@ -239,6 +239,22 @@ export function formatCardFundsLabel(card: WalletCard): string {
   return `$${card.balance.toFixed(2)}`;
 }
 
+export function getCardThemeClass(card: WalletCard | null | undefined): string {
+  if (!card) {
+    return '';
+  }
+  if (card.cardType === 'prepaid') {
+    return 'prepaid-theme';
+  }
+  if (card.cardType === 'cashcard') {
+    return 'cashcard-theme';
+  }
+  if (card.accountKind === 'credit') {
+    return 'credit-theme';
+  }
+  return 'debit-theme';
+}
+
 export function getCardBrandBadge(card: WalletCard | null | undefined): string {
   if (!card) {
     return '';
@@ -283,40 +299,9 @@ export function getCardFundsSubtext(card: WalletCard | null | undefined): string
 
 export const FALLBACK_REGISTRY: RegistryCard[] = [
   buildRegistryCard('prepaid', 'NETS Prepaid', '5990 8990 6778 6689', 125.5),
-  buildRegistryCard('prepaid', 'NETS Prepaid (Student)', '6011 0000 0000 0004', 42),
-  buildRegistryCard('prepaid', 'NETS Prepaid (Travel)', '6011 0000 0000 0005', 380.75),
-  buildRegistryCard('prepaid', 'NETS Prepaid (Premium)', '6011 0000 0000 0006', 485),
-  buildRegistryCard('prepaid', 'NETS Prepaid (Starter)', '6011 0000 0000 0007', 15),
-  buildRegistryCard('prepaid', 'NETS Prepaid', '6011 0000 0000 0008', 55),
-  buildRegistryCard('prepaid', 'NETS Prepaid', '6011 0000 0000 0009', 210),
-  buildRegistryCard('prepaid', 'NETS Prepaid', '6011 0000 0000 0010', 920),
-  buildRegistryCard('prepaid', 'NETS Prepaid', '6011 0000 0000 0011', 175.25),
-  buildRegistryCard('prepaid', 'NETS Prepaid', '6011 0000 0000 0012', 8.5),
   buildRegistryCard('cashcard', 'NETS CashCard (Transit)', '6250 1234 5678 9012', 28.9),
-  buildRegistryCard('cashcard', 'NETS CashCard (Motoring)', '6250 9876 5432 1098', 67.3),
-  buildRegistryCard('cashcard', 'NETS CashCard (FlashPay)', '6250 1111 2222 3333', 0),
-  buildRegistryCard('cashcard', 'NETS CashCard (Family)', '6250 4455 6677 8899', 203.15),
-  buildRegistryCard('cashcard', 'NETS CashCard', '5283 7788 7892 1289', 112.5),
-  buildRegistryCard('cashcard', 'NETS CashCard', '6250 5556 6677 7888', 45),
-  buildRegistryCard('cashcard', 'NETS CashCard', '6250 6667 7788 8999', 18.6),
-  buildRegistryCard('cashcard', 'NETS CashCard', '6250 7778 8899 9000', 92.4),
-  buildRegistryCard('cashcard', 'NETS CashCard', '6250 8889 9900 0111', 134.75),
-  buildRegistryCard('cashcard', 'NETS CashCard', '6250 9990 0011 1222', 56.2),
-  buildRegistryCard('others', 'Linked Visa Debit', '4111 1111 1111 1111', 0, 'ADAM LIM'),
-  buildRegistryCard('others', 'Linked Mastercard Credit', '5500 0000 0000 0004', 156.4, 'BELINDA HO', 3000),
   buildRegistryCard('others', 'Linked DBS Debit', '4532 0151 1283 0366', 245.8, 'ALEX TAN'),
-  buildRegistryCard('others', 'Linked OCBC Credit', '4917 6100 0000 0000', 2450, 'SARAH LIM', 3000),
-  buildRegistryCard('others', 'Linked UOB Debit', '5213 2400 0000 0000', 312, 'JUN JIE GOH'),
-  buildRegistryCard('others', 'Linked POSB Debit', '4532 1234 5678 9012', 188.2, 'MEI LING TAN'),
-  buildRegistryCard('others', 'Linked Maybank Debit', '4532 9876 5432 1098', 421.5, 'RAJ KUMAR'),
-  buildRegistryCard('others', 'Linked HSBC Debit', '4111 2222 3333 4444', 76.9, 'JASON ONG'),
-  buildRegistryCard('others', 'Linked Citi Debit', '5213 5678 9012 3456', 502.3, 'NURUL AZIZ'),
-  buildRegistryCard('others', 'Linked UOB Debit (Premium)', '5213 7890 1234 5678', 890, 'DAVID CHUA'),
-  buildRegistryCard('others', 'Linked DBS Credit', '5500 1234 5678 9012', 680, 'EMILY KOH', 3000),
-  buildRegistryCard('others', 'Linked OCBC Credit (Platinum)', '4917 1234 5678 9012', 420, 'MICHAEL GOH', 3000),
-  buildRegistryCard('others', 'Linked UOB Credit', '5500 9876 5432 1098', 920, 'PRIYA NAIR', 3000),
-  buildRegistryCard('others', 'Linked Maybank Credit', '4532 1111 2222 3333', 1100, 'WEI MING LEE', 3000),
-  buildRegistryCard('others', 'Linked Citi Credit', '5500 4455 6677 8899', 750, 'SITI AMINAH', 3000),
+  buildRegistryCard('others', 'Linked Mastercard Credit', '5500 0000 0000 0004', 156.4, 'BELINDA HO', 3000),
 ];
 
 function normalizeRegistryCard(card: Partial<RegistryCard>): RegistryCard {

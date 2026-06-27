@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const asyncHandler = require('../utils/async-handler');
 const authRouter = require('./auth');
 const {
   buildDnaProfile,
@@ -28,13 +29,14 @@ const router = express.Router();
 router.use('/auth', authRouter);
 
 router.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'nets-backend', mode: 'simulation' });
+  res.json({ ok: true, service: 'nets-backend', mode: 'firestore' });
 });
 
 /** Demo registry — cards known to the simulated NETS system */
 router.get('/nets-simulator/registry', (_req, res) => {
   res.json({
-    description: 'Known cards in the NETS simulation registry. Linking returns these balances.',
+    description:
+      'Optional demo card numbers for quick testing. Any unused 16-digit number can be linked; balance is simulated from the digits.',
     cards: netsSimulator.REGISTRY.map(netsSimulator.formatRegistryEntry),
   });
 });
@@ -80,8 +82,8 @@ router.post('/receipts/scan', (req, res) => {
   });
 });
 
-router.post('/users/:userId/transactions/receipt', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.post('/users/:userId/transactions/receipt', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -94,22 +96,22 @@ router.post('/users/:userId/transactions/receipt', (req, res) => {
   let card = null;
   if (receipt.cardNumber) {
     const digits = netsSimulator.normalizeDigits(receipt.cardNumber);
-    card = db.findLinkedCardByNumber(req.params.userId, digits);
+    card = await db.findLinkedCardByNumber(req.params.userId, digits);
     if (!card) {
       return res.status(400).json({
         error: 'This receipt was paid with a card that is not linked to your account.',
       });
     }
   } else {
-    card = db.resolveCardForPayment(req.params.userId, receipt.paymentMethod);
+    card = await db.resolveCardForPayment(req.params.userId, receipt.paymentMethod);
     if (!card) {
       return res.status(400).json({ error: 'No linked card found for this payment method.' });
     }
   }
 
-  const saved = db.addTransaction(createTransactionFromReceipt(req.params.userId, receipt, card));
+  const saved = await db.addTransaction(createTransactionFromReceipt(req.params.userId, receipt, card));
 
-  const refreshedCard = db.setCardBalance(
+  const refreshedCard = await db.setCardBalance(
     card.id,
     cardUtils.applyDebit(card, Math.abs(receipt.amount))
   );
@@ -120,7 +122,7 @@ router.post('/users/:userId/transactions/receipt', (req, res) => {
     transaction: formatTransaction(saved),
     card: mapCard(refreshedCard, 'wallet'),
   });
-});
+}));
 
 function listPayQrMerchantsSummary(_req, res) {
   res.json({
@@ -135,19 +137,19 @@ function listPayQrMerchantsSummary(_req, res) {
 router.get('/pay/qr-merchants/summary', listPayQrMerchantsSummary);
 router.get('/payments/qr/demo', listPayQrMerchantsSummary);
 
-router.post('/payments/qr/parse', (req, res) => {
+router.post('/payments/qr/parse', asyncHandler(async (req, res) => {
   const result = qrPayment.parseQrPayload(req.body.payload);
   if (!result.ok) {
     return res.status(400).json({ error: result.error });
   }
 
   if (result.kind === 'receive') {
-    const recipient = db.getUser(result.receive.userId);
+    const recipient = await db.getUser(result.receive.userId);
     if (!recipient) {
       return res.status(400).json({ error: 'Recipient in this QR is not registered.' });
     }
 
-    const receiveTarget = cardUtils.resolveReceiveCard(db.getCards(recipient.id));
+    const receiveTarget = cardUtils.resolveReceiveCard(await db.getCards(recipient.id));
     return res.json({
       success: true,
       kind: 'receive',
@@ -162,20 +164,20 @@ router.post('/payments/qr/parse', (req, res) => {
   }
 
   res.json({ success: true, kind: 'pay', payment: result.payment });
-});
+}));
 
-router.get('/users/lookup', (req, res) => {
+router.get('/users/lookup', asyncHandler(async (req, res) => {
   const phone = req.query.phone;
   if (!phone) {
     return res.status(400).json({ error: 'Phone number is required.' });
   }
 
-  const user = db.findUserByPhone(phone);
+  const user = await db.findUserByPhone(phone);
   if (!user) {
     return res.status(404).json({ error: 'No NETS user found for this mobile number.' });
   }
 
-  const receiveTarget = cardUtils.resolveReceiveCard(db.getCards(user.id));
+  const receiveTarget = cardUtils.resolveReceiveCard(await db.getCards(user.id));
   res.json({
     user: {
       id: user.id,
@@ -187,15 +189,15 @@ router.get('/users/lookup', (req, res) => {
     receiveLabelShort: nameMask.shortReceiveLabel(receiveTarget?.label),
     receiveMode: receiveTarget?.mode ?? null,
   });
-});
+}));
 
-router.get('/users/:userId/qr/receive', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/qr/receive', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const receiveTarget = cardUtils.resolveReceiveCard(db.getCards(user.id));
+  const receiveTarget = cardUtils.resolveReceiveCard(await db.getCards(user.id));
 
   res.json({
     payload: qrPayment.buildReceivePayload(user),
@@ -204,10 +206,10 @@ router.get('/users/:userId/qr/receive', (req, res) => {
     receiveLabel: receiveTarget?.label ?? null,
     receiveMode: receiveTarget?.mode ?? null,
   });
-});
+}));
 
-router.post('/users/:userId/payments/qr', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -219,12 +221,13 @@ router.post('/users/:userId/payments/qr', (req, res) => {
 
   let card = null;
   if (req.body.cardId) {
-    card = db.getCards(req.params.userId).find((row) => row.id === req.body.cardId) || null;
+    const payerCards = await db.getCards(req.params.userId);
+    card = payerCards.find((row) => row.id === req.body.cardId) || null;
   } else if (req.body.cardNumber) {
     const digits = netsSimulator.normalizeDigits(req.body.cardNumber);
-    card = db.findLinkedCardByNumber(req.params.userId, digits);
+    card = await db.findLinkedCardByNumber(req.params.userId, digits);
   } else {
-    card = db.resolveCardForPayment(req.params.userId, 'NETS Prepaid');
+    card = await db.resolveCardForPayment(req.params.userId, 'NETS Prepaid');
   }
 
   if (!card) {
@@ -252,11 +255,11 @@ router.post('/users/:userId/payments/qr', (req, res) => {
     return res.status(400).json({ error: 'Insufficient balance on the selected card.' });
   }
 
-  const saved = db.addTransaction(
+  const saved = await db.addTransaction(
     qrPayment.createTransactionFromQr(req.params.userId, parsed.payment, card)
   );
 
-  const refreshedCard = db.setCardBalance(card.id, cardUtils.applyDebit(card, parsed.payment.amount));
+  const refreshedCard = await db.setCardBalance(card.id, cardUtils.applyDebit(card, parsed.payment.amount));
 
   res.status(201).json({
     success: true,
@@ -268,15 +271,15 @@ router.post('/users/:userId/payments/qr', (req, res) => {
       balance: refreshedCard.balance,
     },
   });
-});
+}));
 
-router.post('/users/:userId/transfers', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.post('/users/:userId/transfers', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const result = p2pTransfer.executeTransfer(req.params.userId, {
+  const result = await p2pTransfer.executeTransfer(req.params.userId, {
     toUserId: req.body.toUserId,
     toPhone: req.body.toPhone,
     amount: req.body.amount,
@@ -300,10 +303,10 @@ router.post('/users/:userId/transfers', (req, res) => {
     toCard: mapCard(result.toCard, 'wallet'),
     transaction: formatTransaction(result.senderTransaction),
   });
-});
+}));
 
-router.post('/users/:userId/payments/qr/receive', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.post('/users/:userId/payments/qr/receive', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -313,7 +316,7 @@ router.post('/users/:userId/payments/qr/receive', (req, res) => {
     return res.status(400).json({ error: parsed.error || 'Invalid receive QR.' });
   }
 
-  const result = p2pTransfer.executeTransfer(req.params.userId, {
+  const result = await p2pTransfer.executeTransfer(req.params.userId, {
     toUserId: parsed.receive.userId,
     amount: req.body.amount,
     fromCardId: req.body.fromCardId,
@@ -334,24 +337,23 @@ router.post('/users/:userId/payments/qr/receive', (req, res) => {
     fromCard: mapCard(result.fromCard, 'wallet'),
     transaction: formatTransaction(result.senderTransaction),
   });
-});
+}));
 
-router.get('/users/:userId/payable-cards', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/payable-cards', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const cards = db
-    .getCards(req.params.userId)
+  const cards = (await db.getCards(req.params.userId))
     .filter(cardUtils.canPayFrom)
     .map((row) => mapCard(row, 'wallet'));
 
   res.json({ cards });
-});
+}));
 
-router.get('/users/:userId', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -363,10 +365,10 @@ router.get('/users/:userId', (req, res) => {
     tier: user.tier,
     points: user.points,
   });
-});
+}));
 
-router.get('/users/:userId/cards', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/cards', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -377,22 +379,22 @@ router.get('/users/:userId/cards', (req, res) => {
   }
 
   const view = req.query.view || 'summary';
-  const cards = db.getCards(req.params.userId, cardType).map((row) => mapCard(row, view));
+  const cards = (await db.getCards(req.params.userId, cardType)).map((row) => mapCard(row, view));
   res.json({ cards });
-});
+}));
 
-router.get('/users/:userId/cards/wallet', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/cards/wallet', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const cards = db.getCards(req.params.userId).map((row) => mapCard(row, 'wallet'));
+  const cards = (await db.getCards(req.params.userId)).map((row) => mapCard(row, 'wallet'));
   res.json({ cardsByType: groupCardsByType(cards) });
-});
+}));
 
-router.post('/users/:userId/cards/link', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.post('/users/:userId/cards/link', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -403,17 +405,17 @@ router.post('/users/:userId/cards/link', (req, res) => {
   }
 
   const digits = netsSimulator.normalizeDigits(req.body.cardNumber);
-  const existingForUser = db.findLinkedCardByNumber(req.params.userId, digits);
+  const existingForUser = await db.findLinkedCardByNumber(req.params.userId, digits);
   if (existingForUser) {
     return res.status(409).json({ error: 'This card is already linked to your account.' });
   }
 
-  const linkedElsewhere = db.findAnyLinkedCardByNumber(digits);
+  const linkedElsewhere = await db.findAnyLinkedCardByNumber(digits);
   if (linkedElsewhere && linkedElsewhere.user_id !== req.params.userId) {
     return res.status(409).json({ error: 'This card is already linked to another account.' });
   }
 
-  const userCards = db.getCards(req.params.userId);
+  const userCards = await db.getCards(req.params.userId);
   const isOthersDebit =
     linkResult.card.cardType === 'others' && linkResult.card.accountKind === 'debit';
   const hasDefaultDebit = userCards.some(
@@ -423,7 +425,7 @@ router.post('/users/:userId/cards/link', (req, res) => {
     isOthersDebit &&
     (linkResult.card.isDefaultReceive || !hasDefaultDebit);
 
-  const saved = db.addCard({
+  const saved = await db.addCard({
     id: `card_${Date.now()}`,
     user_id: req.params.userId,
     card_type: linkResult.card.cardType,
@@ -441,7 +443,7 @@ router.post('/users/:userId/cards/link', (req, res) => {
   });
 
   if (shouldDefaultReceive) {
-    db.setDefaultReceiveCard(req.params.userId, saved.id);
+    await db.setDefaultReceiveCard(req.params.userId, saved.id);
   }
 
   res.status(201).json({
@@ -450,18 +452,18 @@ router.post('/users/:userId/cards/link', (req, res) => {
     message:
       linkResult.source === 'nets_registry'
         ? 'Card verified with NETS registry. Balance retrieved.'
-        : 'Card verified with NETS simulation. Balance retrieved.',
+        : 'Card verified. Balance simulated from your card number.',
     card: mapCard(saved, 'wallet'),
   });
-});
+}));
 
-router.delete('/users/:userId/cards/:cardId', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.delete('/users/:userId/cards/:cardId', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const result = db.deleteCard(req.params.userId, req.params.cardId);
+  const result = await db.deleteCard(req.params.userId, req.params.cardId);
   if (!result.ok) {
     return res.status(400).json({ error: result.error });
   }
@@ -471,15 +473,15 @@ router.delete('/users/:userId/cards/:cardId', (req, res) => {
     message: 'Card removed from your wallet.',
     cardId: req.params.cardId,
   });
-});
+}));
 
-router.patch('/users/:userId/cards/:cardId/default-receive', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.patch('/users/:userId/cards/:cardId/default-receive', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const card = db.getCardById(req.params.userId, req.params.cardId);
+  const card = await db.getCardById(req.params.userId, req.params.cardId);
   if (!card) {
     return res.status(404).json({ error: 'Card not found.' });
   }
@@ -489,24 +491,24 @@ router.patch('/users/:userId/cards/:cardId/default-receive', (req, res) => {
     return res.status(400).json({ error: 'Only linked debit cards can receive incoming transfers.' });
   }
 
-  db.setDefaultReceiveCard(req.params.userId, req.params.cardId);
-  const updated = db.getCardById(req.params.userId, req.params.cardId);
+  await db.setDefaultReceiveCard(req.params.userId, req.params.cardId);
+  const updated = await db.getCardById(req.params.userId, req.params.cardId);
 
   res.json({
     success: true,
     message: 'Default receive account updated.',
     card: mapCard(updated, 'wallet'),
   });
-});
+}));
 
-router.patch('/users/:userId/cards/:cardId/top-up-preference', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.patch('/users/:userId/cards/:cardId/top-up-preference', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
   const enabled = Boolean(req.body?.enabled);
-  const result = db.setCardTopUpEnabled(req.params.userId, req.params.cardId, enabled);
+  const result = await db.setCardTopUpEnabled(req.params.userId, req.params.cardId, enabled);
   if (!result.ok) {
     return res.status(400).json({ error: result.error });
   }
@@ -519,28 +521,28 @@ router.patch('/users/:userId/cards/:cardId/top-up-preference', (req, res) => {
     card: mapCard(result.card, 'wallet'),
     lowBalanceThreshold: LOW_BALANCE_THRESHOLD,
   });
-});
+}));
 
-router.get('/users/:userId/notifications', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/notifications', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const items = notificationService.listForUser(req.params.userId);
+  const items = await notificationService.listForUser(req.params.userId);
   res.json({
     notifications: items,
-    unreadCount: notificationService.unreadCount(req.params.userId),
+    unreadCount: await notificationService.unreadCount(req.params.userId),
   });
-});
+}));
 
-router.patch('/users/:userId/notifications/:notificationId/read', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.patch('/users/:userId/notifications/:notificationId/read', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const result = db.markNotificationRead(req.params.userId, req.params.notificationId);
+  const result = await db.markNotificationRead(req.params.userId, req.params.notificationId);
   if (!result.ok) {
     return res.status(404).json({ error: result.error });
   }
@@ -548,28 +550,29 @@ router.patch('/users/:userId/notifications/:notificationId/read', (req, res) => 
   res.json({
     success: true,
     notification: notificationService.formatNotification(result.notification),
-    unreadCount: notificationService.unreadCount(req.params.userId),
+    unreadCount: await notificationService.unreadCount(req.params.userId),
   });
-});
+}));
 
-router.patch('/users/:userId/notifications/read-all', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.patch('/users/:userId/notifications/read-all', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  db.markAllNotificationsRead(req.params.userId);
+  await db.markAllNotificationsRead(req.params.userId);
   res.json({ success: true, unreadCount: 0 });
-});
+}));
 
-router.get('/users/:userId/receive-settings', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/receive-settings', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const cards = db.getCards(req.params.userId).map((row) => mapCard(row, 'wallet'));
-  const receiveTarget = cardUtils.resolveReceiveCard(db.getCards(req.params.userId));
+  const userCards = await db.getCards(req.params.userId);
+  const cards = userCards.map((row) => mapCard(row, 'wallet'));
+  const receiveTarget = cardUtils.resolveReceiveCard(userCards);
 
   res.json({
     defaultCardId: receiveTarget?.card?.id ?? null,
@@ -581,15 +584,15 @@ router.get('/users/:userId/receive-settings', (req, res) => {
     ),
     fallbackPrepaid: cards.find((c) => c.cardType === 'prepaid') ?? null,
   });
-});
+}));
 
-router.post('/users/:userId/cards/:cardId/top-up', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const card = db.getCardById(req.params.userId, req.params.cardId);
+  const card = await db.getCardById(req.params.userId, req.params.cardId);
   if (!card) {
     return res.status(404).json({ error: 'Card not found' });
   }
@@ -619,14 +622,14 @@ router.post('/users/:userId/cards/:cardId/top-up', (req, res) => {
       return res.status(400).json({ error: 'Select a linked bank card to pay from.' });
     }
 
-    sourceCard = db.getCardById(req.params.userId, sourceCardId);
+    sourceCard = await db.getCardById(req.params.userId, sourceCardId);
     if (!sourceCard || sourceCard.card_type !== 'others') {
       return res.status(400).json({ error: 'Select a valid linked bank card.' });
     }
 
     const normalized = cardUtils.normalizeCardRow(sourceCard);
-    if (normalized.account_kind !== 'debit') {
-      return res.status(400).json({ error: 'Top up can only be funded from a linked debit card.' });
+    if (normalized.account_kind !== 'debit' && normalized.account_kind !== 'credit') {
+      return res.status(400).json({ error: 'Select a valid linked debit or credit card.' });
     }
 
     if (!cardUtils.hasSufficientFunds(sourceCard, amount)) {
@@ -634,7 +637,7 @@ router.post('/users/:userId/cards/:cardId/top-up', (req, res) => {
     }
 
     methodLabel = cardUtils.formatPayFromLabel(sourceCard);
-    db.setCardBalance(sourceCard.id, cardUtils.applyDebit(sourceCard, amount));
+    await db.setCardBalance(sourceCard.id, cardUtils.applyDebit(sourceCard, amount));
   } else {
     const methodLabels = {
       bank: 'DBS Bank ****1234',
@@ -644,12 +647,12 @@ router.post('/users/:userId/cards/:cardId/top-up', (req, res) => {
     methodLabel = methodLabels[method] || 'PayNow';
   }
 
-  const updated = db.updateCardBalance(card.id, amount);
+  const updated = await db.updateCardBalance(card.id, amount);
   if (!updated) {
     return res.status(500).json({ error: 'Unable to update card balance.' });
   }
 
-  const saved = db.addTransaction({
+  const saved = await db.addTransaction({
     id: `txn_${Date.now()}`,
     user_id: req.params.userId,
     card_id: card.id,
@@ -672,23 +675,23 @@ router.post('/users/:userId/cards/:cardId/top-up', (req, res) => {
 
   if (sourceCard) {
     responsePayload.sourceCard = mapCard(
-      db.getCardById(req.params.userId, sourceCard.id),
+      await db.getCardById(req.params.userId, sourceCard.id),
       'wallet'
     );
   }
 
   res.json(responsePayload);
-});
+}));
 
-router.get('/users/:userId/transactions', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/transactions', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
   const selectedPeriod = period.parsePeriod(req.query.month, req.query.year);
-  const transactionFilters = resolveTransactionFilters(req.params.userId, req.query);
-  const rows = db.getTransactions(req.params.userId, {
+  const transactionFilters = await resolveTransactionFilters(req.params.userId, req.query);
+  const rows = await db.getTransactions(req.params.userId, {
     ...transactionFilters,
     category: req.query.category,
     type: req.query.type,
@@ -696,7 +699,7 @@ router.get('/users/:userId/transactions', (req, res) => {
     month: selectedPeriod.month,
     year: selectedPeriod.year,
   });
-  const allTransactions = db.getTransactions(req.params.userId);
+  const allTransactions = await db.getTransactions(req.params.userId);
 
   res.json({
     transactions: rows.map(formatTransaction),
@@ -708,27 +711,27 @@ router.get('/users/:userId/transactions', (req, res) => {
       label: period.monthLabel(selectedPeriod.month, selectedPeriod.year),
     },
   });
-});
+}));
 
-router.get('/users/:userId/dashboard', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/dashboard', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
   const selectedPeriod = period.parsePeriod(req.query.month, req.query.year);
   const periodType = req.query.period === 'weekly' ? 'weekly' : 'monthly';
-  const transactionFilters = resolveTransactionFilters(req.params.userId, req.query);
+  const transactionFilters = await resolveTransactionFilters(req.params.userId, req.query);
 
-  const cards = db.getCards(req.params.userId);
-  const transactions = db.getTransactions(req.params.userId, transactionFilters);
+  const cards = await db.getCards(req.params.userId);
+  const transactions = await db.getTransactions(req.params.userId, transactionFilters);
   const periodTransactions =
     periodType === 'weekly'
       ? period.filterByCurrentWeek(transactions)
       : period.filterByMonth(transactions, selectedPeriod.month, selectedPeriod.year);
   const dnaProfile = buildDnaProfile(req.params.userId, periodTransactions);
 
-  const allTransactions = db.getTransactions(req.params.userId);
+  const allTransactions = await db.getTransactions(req.params.userId);
   const insightsPack = buildInsights(
     allTransactions,
     selectedPeriod.month,
@@ -754,49 +757,49 @@ router.get('/users/:userId/dashboard', (req, res) => {
   }
 
   res.json(dashboard);
-});
+}));
 
-router.get('/users/:userId/report', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/report', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
   const selectedPeriod = period.parsePeriod(req.query.month, req.query.year);
-  const transactionFilters = resolveTransactionFilters(req.params.userId, req.query);
+  const transactionFilters = await resolveTransactionFilters(req.params.userId, req.query);
 
-  const transactions = db.getTransactions(req.params.userId, transactionFilters);
+  const transactions = await db.getTransactions(req.params.userId, transactionFilters);
   res.json(buildReport(req.params.userId, transactions, selectedPeriod.month, selectedPeriod.year));
-});
+}));
 
-router.get('/users/:userId/insights', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/insights', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
   const selectedPeriod = period.parsePeriod(req.query.month, req.query.year);
-  const transactions = db.getTransactions(req.params.userId);
+  const transactions = await db.getTransactions(req.params.userId);
   res.json(buildInsights(transactions, selectedPeriod.month, selectedPeriod.year));
-});
+}));
 
-router.get('/users/:userId/dna-profile', (req, res) => {
-  const user = db.getUser(req.params.userId);
+router.get('/users/:userId/dna-profile', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
   const selectedPeriod = period.parsePeriod(req.query.month, req.query.year);
-  const transactions = db.getTransactions(req.params.userId);
+  const transactions = await db.getTransactions(req.params.userId);
   const monthTransactions = period.filterByMonth(
     transactions,
     selectedPeriod.month,
     selectedPeriod.year
   );
   res.json(buildDnaProfile(req.params.userId, monthTransactions));
-});
+}));
 
-function resolveTransactionFilters(userId, query) {
+async function resolveTransactionFilters(userId, query) {
   const filters = {};
 
   if (query.cardId) {
@@ -806,7 +809,7 @@ function resolveTransactionFilters(userId, query) {
 
   if (query.cardNumber) {
     const digits = netsSimulator.normalizeDigits(query.cardNumber);
-    const card = db.findLinkedCardByNumber(userId, digits);
+    const card = await db.findLinkedCardByNumber(userId, digits);
     if (card) {
       filters.cardId = card.id;
     }
