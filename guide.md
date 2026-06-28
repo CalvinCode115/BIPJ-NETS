@@ -1,606 +1,429 @@
-NETS Wallet — team guide
+# NETS Wallet — guide for Eron (Travel & User DNA)
 
+This document explains **how User DNA, Spending DNA, and Smart Insights are derived** in the codebase today, and **how Eron’s Travel Concierge feature should build on them**.
 
-First-time clone
-----------------
+It is aligned with the team slides (*BIPJ Business Idea Proposal — Team 3*):
 
-You need Node 22 or newer (backend uses built-in SQLite).
+- **Jun Jie (CEO)** — Home, Pay, cards, transactions, **DNA Analysis Engine** (backend rules)
+- **Eron (CTO)** — **NETS Beyond: AI Travel Concierge** (“Beyond Transactions”)
+- **Yunen (CFO)** — Payogotchi, rewards, budgeting personas
+- **Calvin (CSO)** — Payogotchi gamification, merchant/network
 
-From the project root(terminal):
+---
 
-  npm install
-  cd backend
-  npm install
-  cd ..
+## 1. What the slides say vs what the code does
 
-Run everything (backend on port 3000, Ionic app on port 8100):
+### Slide promise (Business Idea)
 
-  npm start
+> *“NETS Beyond uses your unique User DNA — spending patterns from home — to curate personalised lifestyle intelligence.”*
 
-That is the usual first-time flow. On first backend start, if wallet.db does not exist yet, tables are created and seed accounts Alex, Sarah, and Cheng are loaded.
+Pipeline on slide 17:
 
-Open the app at http://localhost:8100. Log in with any seed account (see Seed accounts below).
+```
+User Spending Data  →  DNA Analysis Engine  →  Personalised Experiences
+```
 
-Optional: regenerate receipt images and JSON catalogs (only needed if you change scripts/ or catalog data):
+### Slide 18 — Eron’s Travel Concierge pillars
 
-  npm run generate:assets
+| Pillar | Slide description | In code today |
+|--------|-------------------|---------------|
+| **DNA Discovery** | Match SG lifestyle habits to regional gems | ✅ Traits + `travelHints` from `buildDnaProfile()` |
+| **FX Strike Price** | AI predicts currency dips, Smart Buy alerts | ❌ Not built yet — future Travel tab work |
+| **Smart Budgeting** | Real-time spend vs trip duration | ⚠️ Partial — monthly spend totals exist; trip-specific budgeting not built |
+| **Zero-Friction Booking** | Venues accepting regional QR/NETS | ❌ Not built yet — future integration |
 
+### Important clarification
 
-GitHub — Path A (clone team repo)
----------------------------------
+There is **no real AI/LLM** in the current DNA engine. “User DNA” and “Smart Insights” are **rule-based**: they read the user’s **NETS transaction history** and apply **thresholds and templates**. That matches the slide problem statement — we avoid **generic, repetitive AI** by grounding recommendations in **actual local spend**.
 
-Use this when the team repo already exists on GitHub and you start from Calvin's template instead of pushing your old folder directly.
+Hypothesis (slide 14) Eron’s feature depends on:
 
-Team repo: https://github.com/CalvinCode115/BIPJ-NETS.git
+> *Personalizing features based on User DNA will increase user engagement.*  
+> *Gen Z users are more likely to use NETS overseas if travel recommendations are trustworthy and actionable.*
 
-Rules from the team README:
-  Never commit directly to main — always work on your own branch.
-  Branch name format: yourname/feature-description (e.g. junjie/home-and-pay).
+Your Travel tab should consume **computed DNA** (trustworthy because it comes from real NETS spend), not invent a second DNA system.
 
-Prerequisites on your PC
-  Node.js 22+ (this project needs 22 for backend SQLite)
-  Git — https://git-scm.com/ (during install, choose "Git from the command line and also from 3rd-party software")
-  Ionic CLI (optional): npm install -g @ionic/cli
+---
 
-If git is not recognized in Cursor terminal after installing Git:
-  1. Fully quit Cursor (File → Exit), reopen the project, open a new terminal.
-  2. Or run once in PowerShell:
-       $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-  3. Or use full path: & "C:\Program Files\Git\bin\git.exe" --version
+## 2. Where the data comes from
 
-Step 1 — Clone the team repo (Path A)
+All DNA and insights come from **Firestore transactions** — one document per spend, top-up, PayNow, salary credit, etc.
 
-  cd C:\Users\junji\OneDrive\Documents\ionicapp
-  git clone https://github.com/CalvinCode115/BIPJ-NETS.git
-  cd BIPJ-NETS
+```
+users/{userId}/transactions/{transactionId}
+```
 
-This creates a new folder BIPJ-NETS separate from your local bipj_jie work folder.
+Typical spend row:
 
-Step 2 — Open the cloned repo in Cursor
+| Field | Example |
+|-------|---------|
+| `merchant` | Starbucks Raffles Place |
+| `category` | Coffee |
+| `amount` | `-6.50` (negative = money out) |
+| `occurred_at` | ISO date/time |
+| `card_id` | linked card used |
 
-  File → Open Folder → ...\ionicapp\BIPJ-NETS
+Demo data is seeded from `backend/seed-data.js` (Alex, Sarah, Cheng, Adam). Reseed:
 
-Do Git work from BIPJ-NETS, not from the old bipj_jie folder.
+```bash
+cd backend
+npm run db:seed        # merge
+npm run db:seed:reset  # full reset (careful)
+```
 
-Step 3 — Create your branch (do not stay on main)
+**There is no `dna_profiles` table.** DNA is **recomputed on every API call** from transactions. When the user pays or scans a receipt, a new transaction is saved → next API call reflects updated DNA.
 
-  git checkout main
-  git pull origin main
-  git checkout -b junjie/home-and-pay
+---
 
-In Cursor: click branch name bottom-left → Create new branch → junjie/home-and-pay.
+## 3. The derivation pipeline (overview)
 
-Step 4 — Copy Jun Jie's work from bipj_jie into BIPJ-NETS
+```
+Firestore: users/{id}/transactions
+        │
+        ▼
+  Filter by month (optional ?month=&year=)
+        │
+        ▼
+  Lifestyle expenses only
+  (amount < 0, category ≠ Transfer)
+        │
+        ▼
+  merchant-tags.js — tag each row
+  (Starbucks → drink_coffee, Agoda → travel_hotel, …)
+        │
+        ├──────────────────────────────┐
+        ▼                              ▼
+  deriveDnaTraits()              pickSmartInsights()
+  (Spending DNA labels)          (narrative insight cards)
+  insight-engine.js              insight-engine.js
+        │                              │
+        └──────────┬───────────────────┘
+                   ▼
+            buildDnaProfile()     buildInsights()
+            (Travel profile)      (full Insights page)
+            dna.js                dna.js
+                   │                    │
+                   ▼                    ▼
+     GET /users/:id/dna-profile   GET /users/:id/insights
+     (Eron — Travel tab)          (Home + Insights UI)
+```
 
-Folder names in bipj_jie now match the team layout (home/, pay/, not tab1/tab2). Copy these into the cloned repo, replacing template files where they overlap:
+---
 
-  From bipj_jie                          Into BIPJ-NETS
-  --------------------------------       ----------------
-  src/app/home/                          src/app/home/
-  src/app/home-*/                        src/app/home-*/
-  src/app/pay/                           src/app/pay/
-  src/app/pay-scan-qr/                   src/app/pay-scan-qr/
-  src/app/tabs/                          src/app/tabs/          (if routing changed — coordinate with team lead)
-  src/app/services/                      src/app/services/
-  src/app/utils/                         src/app/utils/
-  src/app/core/                          src/app/core/
-  src/app/login/                         src/app/login/           (if you own auth)
-  src/app/signup/                        src/app/signup/
-  backend/                               backend/
-  scripts/                               scripts/
-  shared/                                shared/
-  proxy.conf.json                        proxy.conf.json
-  package.json                           package.json             (merge carefully — do not drop teammates' scripts)
-  guide.md                               guide.md                 (optional — or keep team README + this guide)
+## 4. Step-by-step: how Spending DNA (traits) is derived
 
-Also copy if present:
-  src/assets/demo-receipts/
-  src/assets/demo-qr/
-  src/assets/nets-logo.png               (team README asks for this in src/assets/)
+**Code:** `backend/services/insight-engine.js` → `deriveDnaTraits()`
 
-Do not overwrite other teammates' tab folders unless agreed:
-  src/app/tab3/   (Travel — Eron)
-  src/app/tab4/   (Rewards)
-  src/app/tab5/   (Payogotchi)
+### Step A — Lifestyle filter
 
-Step 5 — Install and test in BIPJ-NETS
+Only transactions where:
 
-  npm install
-  cd backend
-  npm install
-  cd ..
-  npm run generate:assets
-  npm start
+- `amount < 0` (spending out)
+- `category !== 'Transfer'` (PayNow / top-ups excluded from lifestyle DNA)
 
-Open http://localhost:8100 — log in with a seed account (see Seed accounts below).
+Incoming salary and PayNow **received** are ignored for traits but still stored.
 
-Step 6 — Commit and push your branch
+### Step B — Merchant tagging
 
-  git status
-  git add .
-  git commit -m "Add home and pay tabs with backend API"
-  git push -u origin junjie/home-and-pay
+**Code:** `backend/services/merchant-tags.js`
 
-Step 7 — Open a Pull Request on GitHub
+Each expense gets tags:
 
-  Go to https://github.com/CalvinCode115/BIPJ-NETS
-  Click Compare & pull request for junjie/home-and-pay → main
-  Ask Calvin / team lead to review and merge
+1. Match merchant name against `backend/data/pay-qr-merchants.json` tags  
+2. Else match static list (Grab → `transport_ride`, Agoda → `travel_hotel`, …)  
+3. Else fall back to category (Dining → `food_casual`, Travel → `travel_other`, …)
 
-Do not merge into main yourself unless the team lead says so.
+Tags are aggregated per month: **total dollars** and **visit count** per tag.
 
-Cursor / VS Code Git shortcuts
-  Source Control: Ctrl+Shift+G
-  Sign in to GitHub: account icon bottom-left
-  Pull: Sync or git pull origin main (while on your branch, rebase/merge as team prefers)
-  Push: Publish Branch after first commit on a new branch
+Examples: `drink_coffee`, `drink_bubble_tea`, `food_hawker`, `groceries`, `retail_fashion`, `travel_flight`, `travel_hotel`, `travel_activity`, `transport_ride`, `health_wellness`
 
-Two folders on your PC (normal during Path A)
+### Step C — Score candidate traits
 
-  bipj_jie/     Your original working copy — reference or copy from
-  BIPJ-NETS/    Team GitHub clone — use this for commits and PRs
+Each trait gets a **score** from the month’s spend. Traits with score > 0 are ranked; **top 4** are returned. If none match → **`Balanced Spender`**.
 
-After your PR is merged, you can delete the extra folder or keep working only in BIPJ-NETS.
+| Trait | Rule (must exceed threshold) |
+|-------|------------------------------|
+| **Travel Explorer** | flight + hotel tag spend ≥ **$80** |
+| **Wellness Focused** | pharmacy tag + Health category ≥ **$35** |
+| **Home Chef** | Groceries ≥ **22%** of lifestyle spend |
+| **Savvy Shopper** | fashion tag ≥ **$40** OR Retail ≥ **28%** of spend |
+| **Active Lifestyle** | sports retail tag ≥ **$30** |
+| **Food Explorer** | Dining ≥ **22%** of lifestyle spend |
+| **Coffee Lover** | coffee ≥ **$18** OR ≥ **3** coffee visits |
+| **Bubble Tea Fan** | bubble tea ≥ **$12** OR ≥ **2** visits |
+| **Kopitiam Regular** | milo + hawker tags ≥ **$35** |
+| **On-the-go Commuter** | Transport ≥ **18%** of lifestyle spend |
+| **Budget Conscious** | total lifestyle spend ≤ **$300** |
 
-Firebase (later — frontend hosting)
-  Firebase Hosting serves the built app (www/ after ng build).
-  The Express + SQLite backend still needs a separate host (e.g. Render, Railway).
-  Team lead sets up Firebase project and GitHub deploy; ask to be added in Firebase Console → Users and permissions.
+These labels appear as:
 
-Quick Path A checklist
-  [ ] Git works (git --version)
-  [ ] Cloned BIPJ-NETS
-  [ ] Branch junjie/home-and-pay created (not main)
-  [ ] Copied home/, pay/, backend/, scripts/ from bipj_jie
-  [ ] npm install + npm start works locally
-  [ ] Pushed branch and opened PR
+- **DNA trait pills** on Home and Insights pages  
+- Input to **Smart Insights** (4th card is often the top trait)  
+- **`traits`** array in `dna-profile` for Travel
 
+---
 
-Every other time (returning to the project)
--------------------------------------------
+## 5. Step-by-step: Smart Insights
 
-From the project root:
+**Code:** `backend/services/insight-engine.js` → `pickSmartInsights()`
 
-  npm start
+Smart Insights are **short narrative cards** (title, message, icon, colours) — e.g. *“Trip Planner — Travel bookings total $765…”* on Home.
 
-You do not need to reinstall unless package.json changed or node_modules was deleted.
+### How templates work
 
-Backend only (separate terminal):
+Each template in `INSIGHT_TEMPLATES` has:
 
-  cd backend
-  npm start
+- **`score(ctx)`** — returns `0` if the pattern does not apply, else a positive number  
+- **`build(ctx)`** — returns `{ title, message, icon, color, bg }` with **real dollar amounts** from the user’s month
 
-Frontend only (backend must already be running):
+| Template | Theme | Activates when (summary) |
+|----------|-------|---------------------------|
+| bubble_tea | drinks | bubble tea spend ≥ $6 |
+| coffee | drinks | coffee ≥ $8 and beats bubble tea |
+| local_drinks | drinks | milo + soy + juice ≥ $6 |
+| dining | food | Dining category ≥ $15 |
+| groceries | groceries | Groceries ≥ $25 |
+| fashion | retail | fashion tag ≥ $20 |
+| pharmacy | retail | pharmacy tag ≥ $12 |
+| **travel** | travel | flight + hotel + activity ≥ **$50** |
+| wellness | wellness | Health + clinic ≥ $20 |
+| transport | transport | Transport ≥ $12 |
+| sports | retail | sports retail ≥ $25 |
 
-  npm run start:app or ionic serve
+### Picking logic
 
-Normal restarts do not wipe your database. Linked cards, new signups, transactions, and notifications are kept.
+1. Score every template for the selected month  
+2. Drop score 0; sort highest first  
+3. Take up to **3 cards**, **one per theme** (drinks, food, retail, travel, …) — avoids repetition  
+4. Append a **4th card**: user’s top DNA trait (trophy icon), unless already used  
+5. Return at most **4 cards**
 
+### Where they appear in the app
 
-What wipes data
----------------
+| Place | How |
+|-------|-----|
+| **Home teaser** | First card only — `smartInsights[0]` via dashboard/insights load |
+| **Insights page** | All cards — `/tabs/home/home-ai-insights` |
+| **Eron’s Travel pitch** | If user has travel spend, **“Trip Planner”** card often surfaces — same engine |
 
-| Action                         | Data lost? |
-|--------------------------------|------------|
-| npm start (normal restart)     | No         |
-| npm run db:seed (in backend/)  | No — merges seed accounts only |
-| npm run db:seed:reset          | Yes — full wipe, fresh Alex/Sarah/Cheng |
-| Delete backend/data/wallet.db  | Yes — next start recreates DB + seed |
+Message text is **templated**, not LLM-generated — e.g. *“You spent $24.50 on coffee in Jun 2026.”*
 
-Backup wallet.db:
+---
 
-  cd backend
-  copy data\wallet.db data\wallet.backup.db
+## 6. User DNA Profile (what Eron consumes for Travel)
 
+**Code:** `backend/services/dna.js` → `buildDnaProfile()`
 
-These are real rows in wallet.db
+This is the main API shape for **NETS Beyond / Travel Concierge**. It reuses the same traits engine plus travel-specific hints.
 
-| User          | Phone    | PIN    |
-|---------------|----------|--------|
-| Alex Tan      | 91234567 | 123456 |
-| Sarah Lim     | 87654321 | 123456 |
-| Cheng Wen Mao | 80680505 | 123456 |
-| Adam Liew     | 84688831 | 123456 |
+### Endpoint
 
-All four seed accounts are loaded when the database is seeded (npm run db:seed:reset in backend/).
+```
+GET /users/:userId/dna-profile?month=6&year=2026
+```
 
+### Response fields
 
-SQLite database (wallet.db)
----------------------------
+```json
+{
+  "userId": "user_1",
+  "traits": ["Travel Explorer", "Coffee Lover"],
+  "topCategories": [
+    { "category": "Dining", "amount": 124.5, "share": 0.21 }
+  ],
+  "topMerchants": ["Starbucks Raffles Place", "Grab"],
+  "avgDailySpend": 8.5,
+  "travelHints": {
+    "preferredCuisines": ["Coffee", "Local Dining", "Regional Travel"],
+    "budgetStyle": "moderate",
+    "typicalTripSpend": 612.0
+  },
+  "updatedAt": "2026-06-23T12:00:00.000Z"
+}
+```
 
-The backend stores all live user data in a single SQLite file:
+### How each field is derived
 
-  backend/data/wallet.db
+| Field | Derivation |
+|-------|------------|
+| **traits** | Same as Section 4 — `deriveDnaTraits()` |
+| **topCategories** | Sum spend per category; sort by amount; include **share** of total lifestyle spend |
+| **topMerchants** | Top **5 merchants by visit count** (not dollar amount) |
+| **avgDailySpend** | Total lifestyle spend for month ÷ **30** |
+| **travelHints.preferredCuisines** | Signals from categories/merchants: Japanese, Coffee, Local Dining, Regional Travel |
+| **travelHints.budgetStyle** | `budget` if spend ≤ $400; `moderate` if ≤ $800; else `premium` |
+| **travelHints.typicalTripSpend** | Monthly lifestyle spend × **1.2** (rough trip budget estimate) |
 
-This file is gitignored — each developer has their own local copy. It is created automatically on first npm start if it does not exist.
+**`updatedAt`** is when the profile was **computed**, not when a DNA record was saved — there is no persisted DNA document.
 
-Requirements: Node 22+ uses the built-in node:sqlite module (no extra native install on Windows).
+### Mapping to slide 18 (DNA Discovery)
 
-Schema and migrations
-  backend/db/migrations/001_init.sql   — creates tables
-  backend/db/migrations/002_transfer_fields.sql — adds PayNow transfer columns on transactions
+| Slide concept | Use in Travel UI |
+|---------------|------------------|
+| Match SG lifestyle to regional gems | Use `traits` + `travelHints.preferredCuisines` to filter/prioritise destinations and activities |
+| Trustworthy, not generic AI | Copy explains *“Because you spend on coffee and regional travel locally…”* — cite real `topCategories` / traits |
+| Smart Budgeting (future) | Start with `budgetStyle` + `typicalTripSpend` + live trip spend from transactions |
 
-Migrations run automatically when the server starts (via backend/db/sqlite.js). You rarely need to run npm run db:migrate manually.
+---
 
-Tables in wallet.db
+## 7. Full Insights API (related — Jun Jie’s UI)
 
-| Table           | What it stores |
-|-----------------|----------------|
-| users           | id, name, phone, pin, tier, points, email |
-| cards           | linked NETS cards per user (prepaid, cashcard, others), balance, credit limit |
-| transactions    | every spend, top-up, salary credit, PayNow in/out — merchant, category, amount, date |
-| notifications   | in-app alerts (e.g. PayNow received) |
-| app_meta        | internal flags (e.g. seed version) |
+Eron does not own this page, but the **same engine** powers it.
 
-There is no dna_profiles or insights table. DNA and insights are computed from the transactions table at request time.
+```
+GET /users/:userId/insights?month=6&year=2026
+```
 
-Transaction row (typical spend)
-  id, user_id, card_id, merchant, category, subtitle, amount (negative = spend),
-  txn_type, icon, icon_color, occurred_at
+**Code:** `backend/services/dna.js` → `buildInsights()`
 
-PayNow rows also use transfer_direction, counterparty_phone, counterparty_name, transfer_id (from migration 002).
+Also returns:
 
-What is NOT in SQLite
-  home-receipts.json and pay-qr-merchants.json in backend/data/ are static scan catalogs (receipt images, QR merchants). They are JSON files, not SQL tables. Regenerate with npm run generate:assets from the project root.
+- `summaryStats` — total spent, transaction count, avg/day  
+- `deepDives` — food / retail / travel sub-charts (`insight-deep-dives.js`)  
+- `topSpots` — favourite merchants by **dollar spend** (`top-spots.js`)  
+- `transportAnalysis` — Grab/transit patterns  
+- `smartInsights` + `traits` — as above  
+- `availablePeriods` — months with data (month picker)
 
-How data gets written
-  Seed: backend/seed-data.js loaded on empty DB (Alex, Sarah, Cheng + sample history)
-  Runtime: pay, receipt scan, QR pay, card link, P2P transfer — all call db.addTransaction() or similar in backend/db.js
+---
 
-Useful SQL examples (run in SQLite Viewer or DB Browser)
+## 8. Code map (where everything lives)
 
-  -- All users
-  SELECT id, name, phone FROM users;
+### Backend — DNA & insights engine (Jun Jie maintains)
 
-  -- One user's recent spends
-  SELECT merchant, category, amount, occurred_at
-  FROM transactions
-  WHERE user_id = 'user_1' AND amount < 0
-  ORDER BY occurred_at DESC
-  LIMIT 20;
+| File | Responsibility |
+|------|----------------|
+| `backend/services/insight-engine.js` | **Traits** + **Smart Insight** templates |
+| `backend/services/merchant-tags.js` | Merchant → lifestyle tags |
+| `backend/services/dna.js` | `buildDnaProfile()`, `buildInsights()`, dashboard |
+| `backend/services/insight-deep-dives.js` | Food / retail / travel chart buckets |
+| `backend/services/top-spots.js` | Top merchants by spend |
+| `backend/routes/api.js` | Routes: `/insights`, `/dna-profile`, `/dashboard` |
+| `backend/seed-data.js` | Demo users + transaction history |
 
-  -- Monthly spend by category
-  SELECT category, SUM(ABS(amount)) AS total
-  FROM transactions
-  WHERE user_id = 'user_1' AND amount < 0
-  GROUP BY category
-  ORDER BY total DESC;
+### Frontend — Insights UI (Jun Jie)
 
-Viewing wallet.db
-  Cursor / VS Code: install the SQLite Viewer extension, open backend/data/wallet.db
-  Or: DB Browser for SQLite (https://sqlitebrowser.org/)
+| File | Responsibility |
+|------|----------------|
+| `src/app/home-ai-insights/` | Full Insights page |
+| `src/app/home/home.page.ts` | Home teaser (`loadOverallInsight`) |
+| `src/app/services/transactions.service.ts` | `getInsights()` HTTP client |
 
-Backup before a reset
-  cd backend
-  copy data\wallet.db data\wallet.backup.db
+### Frontend — Travel (Eron — your tab)
 
+| File | Responsibility |
+|------|----------------|
+| `src/app/travel/` | Travel tab UI (**mostly empty template today**) |
+| `shared/api-contract.ts` | TypeScript types — extend `DnaProfile` if needed |
 
-Project structure
------------------
+---
 
-bipj_jie/
-  guide.md                 This file
-  package.json             Root scripts; npm start runs backend + Ionic together
-  proxy.conf.json          Dev proxy so the app calls localhost:3000/api
-  scripts/                 Build-time asset generators (not runtime)
-    home-receipts-data.mjs
-    pay-qr-data.mjs
-    generate-home-pay-assets.mjs
-    home-receipt-image-hash.mjs
-  shared/
-    api-contract.ts        Shared TypeScript types for frontend ↔ backend
-  src/                     Ionic / Angular app
-    app/
-      home/                Home tab (route: /tabs/home)
-      home-card-management/
-      home-full-report/
-      home-ai-insights/
-      home-all-transactions/
-      home-more/
-      home-security-privacy/
-      home-qr-code/
-      pay/                 Pay tab (route: /tabs/pay)
-      pay-scan-qr/
-      tab3/                Travel tab — Eron’s area (route: /tabs/travel)
-      tab4/                Rewards tab (route: /tabs/rewards)
-      tab5/                Payogotchi tab (route: /tabs/payogotchi)
-      login/ signup/
-      services/            HTTP clients (auth, cards, transactions, receipts, QR pay, …)
-      core/api.config.ts   API base URL
-    assets/
-      demo-receipts/       Receipt PNGs for Home scan
-      demo-qr/             Merchant QR PNGs for Pay
-  backend/
-    server.js              Express entry
-    db.js                  Data access layer
-    data/
-      wallet.db            Live SQLite DB (gitignored)
-      home-receipts.json   Home receipt scan catalog
-      pay-qr-merchants.json Pay QR merchant catalog
-    db/migrations/         SQL schema
-    seed-data.js           Alex / Sarah / Cheng seed content
-    routes/                auth, api
-    services/              DNA, insights, payments, transfers, notifications, …
+## 9. What Eron should build (Travel tab)
 
+Current `travel.page.html` is a blank shell. Recommended approach:
 
-Team areas
-----------
+1. **Call `GET /users/:userId/dna-profile`** after login (same month as Home or let user pick month).  
+2. **Display DNA Discovery** using `traits`, `topCategories`, `travelHints`.  
+3. **Personalise copy** — e.g. *“As a Travel Explorer who spends on Coffee locally, consider…”*  
+4. **Layer slide 18 features** on top when ready:
+   - FX Strike — new service + UI (not in repo yet)  
+   - Smart Budgeting — trip budget vs `typicalTripSpend`  
+   - Booking — external APIs / merchant QR catalog (`backend/data/pay-qr-merchants.json` has travel merchants)
 
-| Area              | Owner        | Main code / routes |
-|-------------------|--------------|--------------------|
-| Home, cards, pay  | Jun Jie      | home/*, pay/*, transactions, dashboard |
-| Insights UI       | Jun Jie      | home-ai-insights, GET /users/:id/insights |
-| Travel concierge  | Eron         | tab3/*, GET /users/:id/dna-profile |
-| Payogotchi        | Calvin/Yunen | tab5/* (optional: points from transactions) |
+### Optional richer data
 
-API base URL (local): http://localhost:3000/api
+```
+GET /users/:userId/insights?month=&year=
+```
 
+Use if Travel needs `deepDives` (flights vs hotels split) or `topSpots`.
 
-How User DNA and Smart Insights are derived
--------------------------------------------
+### Raw transactions (custom logic only if needed)
 
-Both come from the same pipeline in the backend. There is no AI model — only rules over transaction rows in wallet.db.
-
-Source code
-  backend/services/dna.js           — buildDnaProfile, buildInsights
-  backend/services/insight-engine.js — deriveDnaTraits, pickSmartInsights
-  backend/services/merchant-tags.js  — merchant → tag mapping
-  backend/services/insight-deep-dives.js — food / retail / travel chart buckets
-  backend/services/top-spots.js      — favourite merchants by spend
-
-Step 1 — Load transactions
-  The API loads all rows for the user from the transactions table.
-  Optional query params month and year (default: current month) select which calendar month to analyse.
-
-Step 2 — Lifestyle expenses only
-  Rows are kept only if:
-    amount is negative (money out)
-    category is not Transfer (PayNow / top-ups are excluded from lifestyle DNA)
-
-  Credits (salary, incoming PayNow) are ignored for traits and insights but still exist in the DB.
-
-Step 3 — Merchant tags
-  Each expense row gets one or more tags from backend/services/merchant-tags.js:
-
-  1. Match merchant name against pay-qr-merchants.json tags (e.g. Starbucks → drink_coffee)
-  2. Else match a static list (Grab → transport_ride, Agoda → travel_hotel, …)
-  3. Else fall back to category (Coffee → drink_coffee, Dining → food_casual, Travel → travel_other, …)
-
-  Tags are aggregated per month: total dollars and visit count per tag.
-  Examples: drink_coffee, drink_bubble_tea, food_hawker, groceries, retail_fashion,
-  travel_flight, travel_hotel, travel_activity, transport_ride, health_wellness
-
-Step 4 — DNA traits (deriveDnaTraits)
-  Each possible trait gets a score from the month’s spend. Traits with score > 0 are ranked
-  by score descending. Up to 4 labels are returned. If none match, the user gets Balanced Spender.
-
-  | Trait              | Rough rule (must exceed threshold) |
-  |--------------------|-------------------------------------|
-  | Travel Explorer    | flight + hotel tag spend ≥ $80 |
-  | Wellness Focused   | pharmacy tag + Health category ≥ $35 |
-  | Home Chef          | Groceries ≥ 22% of lifestyle spend |
-  | Savvy Shopper      | fashion tag ≥ $40 OR Retail ≥ 28% of spend |
-  | Active Lifestyle   | retail_sports tag ≥ $30 |
-  | Food Explorer      | Dining ≥ 22% of lifestyle spend |
-  | Coffee Lover       | drink_coffee ≥ $18 OR ≥ 3 coffee visits |
-  | Bubble Tea Fan     | drink_bubble_tea ≥ $12 OR ≥ 2 visits |
-  | Kopitiam Regular   | drink_milo + food_hawker tags ≥ $35 |
-  | On-the-go Commuter | Transport ≥ 18% of lifestyle spend |
-  | Budget Conscious   | total lifestyle spend ≤ $300 |
+```
+GET /users/:userId/transactions?category=Travel
+```
 
-  The same trait list is used for Home (dnaTraits), Insights page, and dna-profile.
+---
 
-Step 5 — DNA profile fields (buildDnaProfile)
-  Used by GET /users/:userId/dna-profile and partially by /insights.
+## 10. How to test locally
 
-  topCategories
-    Sum absolute amount per category (Coffee, Dining, Travel, …), sort highest first.
-    Each row includes share = category amount ÷ total lifestyle spend.
+1. From project root: `npm start` (backend `:3000` + app `:8100`).  
+2. Place `backend/firebase/service-account.json` (see `START-FIREBASE.md`).  
+3. Log in as **Alex** — `91234567`, PIN `123456` (richest travel + lifestyle history).  
+4. Hit APIs directly:
 
-  topMerchants
-    Count visits per merchant name, take top 5 by visit count (not dollar amount).
+```
+http://localhost:3000/api/users/user_1/dna-profile?month=6&year=2026
+http://localhost:3000/api/users/user_1/insights?month=6&year=2026
+```
 
-  avgDailySpend
-    Total lifestyle spend for the month ÷ 30.
+5. Firestore Console → `users/user_1/transactions` to inspect raw rows.  
+6. Home tab → yellow insight card + trait pills (Jun Jie’s UI) — same data you will use.
 
-  travelHints.preferredCuisines
-    Built from category/merchant signals:
-      Japanese — if Japanese category or Ichiban Sushi visits
-      Coffee — if any coffee category spend
-      Local Dining — if any Dining spend
-      Regional Travel — if any Travel category spend
-    Default: Local Dining if nothing else matches.
+---
 
-  travelHints.budgetStyle
-    total lifestyle spend ≤ $400  → budget
-    total lifestyle spend ≤ $800  → moderate
-    above $800                    → premium
+## 11. Wallet-wide scope & card filters
 
-  travelHints.typicalTripSpend
-    total lifestyle spend × 1.2 (simple estimate, not a saved user preference).
+- **All card types** (prepaid, cashcard, debit/credit) feed DNA and insights.  
+- Home **card carousel filter** only changes dashboard categories and recent tx — **not** traits or smart insights (wallet-wide analysis).
 
-Step 6 — Smart insights (pickSmartInsights)
-  Used by GET /users/:userId/insights and the Home dashboard teaser (first card only).
+---
 
-  Each insight template has:
-    a score function — returns 0 if the pattern does not apply, otherwise a positive number
-    a build function — title, message, icon, colour for the UI
+## 12. What we do NOT extract today
 
-  Templates (backend/services/insight-engine.js):
+| Not available | Notes |
+|---------------|-------|
+| GPS / location | — |
+| Real airline/hotel booking APIs | Slide goal for Eron |
+| LLM-generated insight text | All rule-based templates |
+| Persisted DNA snapshot | Always live from transactions |
+| FX Strike / currency prediction | Slide goal — not implemented |
+| Cross-user comparisons | — |
 
-  | Template id   | Theme     | Activates when (summary) |
-  |---------------|-----------|---------------------------|
-  | bubble_tea    | drinks    | bubble tea tag spend ≥ $6 |
-  | coffee        | drinks    | coffee ≥ $8 and beats bubble tea |
-  | local_drinks  | drinks    | milo + soy + juice tags ≥ $6 |
-  | dining        | food      | Dining category ≥ $15 |
-  | groceries     | groceries | Groceries ≥ $25 |
-  | fashion       | retail    | retail_fashion tag ≥ $20 |
-  | pharmacy      | retail    | retail_pharmacy tag ≥ $12 |
-  | travel        | travel    | flight + hotel + activity tags ≥ $50 |
-  | wellness      | wellness  | Health category + clinic tag ≥ $20 |
-  | transport     | transport | Transport category ≥ $12 |
-  | sports        | retail    | retail_sports tag ≥ $25 |
+---
 
-  Picking logic:
-    1. Score every template against the month’s context.
-    2. Drop templates with score 0, sort by score highest first.
-    3. Take up to 3 cards, but only one per theme (drinks, food, retail, …) so the UI is not repetitive.
-    4. Always append a 4th card: the user’s top DNA trait (trophy icon), unless that trait title
-       was already used as a card title.
-    5. Return at most 4 cards total.
+## 13. When data updates
 
-  Message text is templated with real numbers from the user’s month (e.g. “You spent $24.50 on coffee in Jun 2026”).
+```
+User pays / scans receipt / QR pay / P2P
+        → new Firestore transaction
+        → next GET /dna-profile or /insights recomputes everything
+```
 
-Step 7 — Rest of the Insights response (buildInsights)
-  Alongside smartInsights and traits, /insights also builds:
+No background job. No manual “refresh DNA” step.
 
-  summaryStats — total spent, transaction count, average per day for the month
-  foodDonut / shoppingDonut — pie segments from category totals
-  deepDives — sub-buckets (Coffee vs Bubble Tea vs Japanese, Flights vs Hotels, …)
-              using merchant name maps in insight-deep-dives.js
-  topSpots — top merchants by dollar spend (excludes top-ups and PayNow)
-  transportAnalysis — transport category total and top transport merchant
-  availablePeriods — list of months that have any transactions (for month picker)
+---
 
-Step 8 — Wallet-wide scope
-  All card types (prepaid, cashcard, others) feed DNA and insights.
-  Card filters on the Home carousel only change dashboard categories and recent transactions —
-  they do not change traits or smart insights.
+## 14. Coordination
 
-When data updates
-  New pay / receipt scan / QR payment → new transaction row → next API call recomputes everything.
-  No background job and no dna_profiles table.
+| Topic | Owner |
+|-------|-------|
+| Change trait rules or insight templates | Jun Jie — `insight-engine.js` |
+| Change merchant → tag mapping | Jun Jie — `merchant-tags.js`, QR catalog |
+| Travel UI, FX, budgeting, booking | **Eron** — `travel/*` |
+| Home, Pay, cards | Jun Jie |
+| Payogotchi | Calvin / Yunen |
 
+Before changing `deriveDnaTraits()` or `travelHints` logic, sync with Jun Jie — Travel and Home/Insights share the same engine.
 
-How Insights appear in the app (Home tab)
------------------------------------------
+---
 
-  GET /users/:userId/insights?month=&year=  — full Insights page (home-ai-insights)
-  GET /users/:userId/dashboard              — Home teaser uses smartInsights[0] + dnaTraits
+## 15. Quick API reference
 
+| Method | Route | Primary consumer |
+|--------|-------|------------------|
+| GET | `/users/:userId/dna-profile?month=&year=` | **Eron — Travel** |
+| GET | `/users/:userId/insights?month=&year=` | Home + Insights page |
+| GET | `/users/:userId/dashboard` | Home dashboard teaser |
+| GET | `/users/:userId/transactions` | Optional raw history |
 
-How User DNA is exposed for Travel (Eron)
------------------------------------------
+Base URL (local): `http://localhost:3000/api`
 
-Eron’s main integration point:
+---
 
-  GET /users/:userId/dna-profile?month=&year=
+## 16. Team setup
 
-Returns the Step 5 fields (traits, topCategories, topMerchants, avgDailySpend, travelHints).
-See example shape below. Types: shared/api-contract.ts → DnaProfile.
+Firebase, Git, and service account setup: see **`START-FIREBASE.md`**.
 
-Example response:
-
-  {
-    "userId": "user_1",
-    "traits": ["Food Explorer", "Coffee Lover"],
-    "topCategories": [{ "category": "Dining", "amount": 24, "share": 0.21 }],
-    "topMerchants": ["Starbucks Raffles Place", "Grab"],
-    "avgDailySpend": 8.5,
-    "travelHints": {
-      "preferredCuisines": ["Coffee", "Local Dining"],
-      "budgetStyle": "budget",
-      "typicalTripSpend": 102
-    },
-    "updatedAt": "2026-06-23T12:00:00.000Z"
-  }
-
-Eron can call this from tab3 without reimplementing trait or travelHints logic.
-
-
-What information can be extracted (for Travel / Eron)
------------------------------------------------------
-
-All of this comes from wallet transaction history (SQLite). Nothing is a separate saved “DNA record” — it is computed when you call the API.
-
-Primary endpoint for Travel
-
-  GET /users/:userId/dna-profile?month=6&year=2026
-
-Returns:
-  traits — up to 4 lifestyle labels (e.g. Travel Explorer, Coffee Lover, Savvy Shopper, Wellness Focused)
-  topCategories — category name, dollar amount, share of wallet (0–1)
-  topMerchants — top 5 merchants by visit count
-  avgDailySpend — monthly lifestyle spend ÷ 30
-  travelHints.preferredCuisines — e.g. Coffee, Local Dining, Regional Travel, Japanese
-  travelHints.budgetStyle — budget | moderate | premium (from monthly spend tiers)
-  travelHints.typicalTripSpend — rough trip budget (monthly spend × 1.2)
-
-Richer endpoint (optional — same engine, more UI-oriented fields)
-
-  GET /users/:userId/insights?month=&year=
-
-Also includes:
-  summaryStats — total spent, transaction count, average per day
-  foodDonut / shoppingDonut — category breakdown charts
-  deepDives — food vs retail sub-breakdowns (coffee, hawker, fashion, flights, hotels, etc.)
-  topSpots — favourite merchants by spend (excludes top-ups and transfers)
-  transportAnalysis — Grab / transit style patterns
-  smartInsights — short narrative cards (coffee habit, bubble tea, travel spend, …)
-  availablePeriods — which months have data (for a month picker)
-
-Raw history (if Travel needs its own logic)
-
-  GET /users/:userId/transactions
-  Filters: ?category=Travel, ?search=agoda, ?cardType=prepaid, ?type=expenditure
-
-Merchant tags (used internally for traits — not a separate API today)
-  Examples: travel_flight, travel_hotel, travel_activity, drink_coffee, food_hawker,
-  groceries, retail_fashion, transport_ride, health_wellness
-  Mapped from merchant name + category in backend/services/merchant-tags.js
-
-Trait labels the engine can produce
-  Travel Explorer, Wellness Focused, Home Chef, Savvy Shopper, Active Lifestyle,
-  Food Explorer, Coffee Lover, Bubble Tea Fan, Kopitiam Regular, On-the-go Commuter,
-  Budget Conscious, Balanced Spender (fallback)
-
-What we do not extract today
-  GPS / location coordinates
-  Real airline or hotel booking APIs
-  Cross-user comparisons or cohort stats
-  LLM-generated text (insights are rule-based templates)
-  A persisted DNA snapshot — always live from transactions
-
-When the user pays or scans a receipt, a new transaction row is saved and DNA / travelHints change on the next API call.
-
-
-Is User DNA saved in the database?
-----------------------------------
-
-There is no dna_profiles table. DNA is not stored as a separate saved profile.
-
-What is saved: every transaction (merchant, category, amount, date, card) in wallet.db. Pay, receipt scan, QR pay, and P2P transfer all append rows via db.addTransaction().
-
-What is computed on each request: traits, travelHints, smart insights, and category breakdowns are recalculated from those transactions when you hit /insights, /dna-profile, or /dashboard.
-
-So when a user spends more, their DNA updates automatically on the next API call — because the underlying transactions changed, not because something wrote a DNA row. The updatedAt field in dna-profile is the time the profile was computed, not a stored “last saved DNA” record.
-
-If you wipe wallet.db or run db:seed:reset, transaction history resets and DNA resets with it.
-
-
-Useful backend commands (from backend/)
----------------------------------------
-
-  npm start              Run API (safe; keeps data)
-  npm run db:seed        Refresh seed accounts without wiping other users
-  npm run db:seed:reset  Full database reset
-
-
-Key API routes (quick reference)
---------------------------------
-
-  GET  /health
-  POST /auth/login
-  GET  /auth/me
-  GET  /users/:userId/cards
-  GET  /users/:userId/transactions
-  GET  /users/:userId/dashboard
-  GET  /users/:userId/insights
-  GET  /users/:userId/dna-profile
-  GET  /home/receipts
-  GET  /pay/qr-merchants
-  POST /users/:userId/payments/qr
-  POST /users/:userId/receipts/scan
-
-View wallet.db: see SQLite database section above.
+Demo logins (PIN `123456`): Alex `91234567`, Sarah `87654321`, Cheng `80680505`, Adam `84688331`.

@@ -54,7 +54,14 @@
             </button>
           </div>
         } @else {
-        <div #cameraPreview class="camera-preview" [class.is-live]="cameraActive" [class.is-loading]="cameraStarting">
+        <div
+          #cameraPreview
+          class="camera-preview"
+          [class.is-live]="cameraActive"
+          [class.is-loading]="cameraStarting"
+          [class.is-tappable]="!cameraActive && !cameraStarting && !isProcessing && !pendingPayment && !pendingReceive && !receiptResult"
+          (click)="onCameraPreviewTap()"
+        >
           <video #videoElement class="camera-video" playsinline muted></video>
 
           @if (!cameraActive) {
@@ -66,8 +73,11 @@
                 <ion-icon name="camera"></ion-icon>
                 <p class="viewfinder-title">Scan QR code or receipt</p>
                 <p class="viewfinder-subtitle">{{ scanHint }}</p>
+                @if (!cameraStarting) {
+                  <p class="viewfinder-tap-hint">Tap to start camera</p>
+                }
                 @if (cameraError) {
-                  <button type="button" class="restart-camera-btn" (click)="restartCamera()">Restart camera</button>
+                  <button type="button" class="restart-camera-btn" (click)="restartCamera(); $event.stopPropagation()">Restart camera</button>
                 }
               }
             </div>
@@ -157,7 +167,7 @@
               </div>
             }
             <p class="field-label">Amount</p>
-            <div class="transfer-amount-box">
+            <div class="transfer-amount-box" [class.exceeded]="transferAmountExceedsBalance">
               <span class="transfer-currency">$</span>
               <ion-input
                 class="transfer-amount-input"
@@ -168,6 +178,11 @@
                 (ionInput)="onTransferAmountInput($event)"
               ></ion-input>
             </div>
+            @if (activeCard) {
+              <p class="transfer-balance-hint" [class.exceeded]="transferAmountExceedsBalance">
+                {{ transferBalanceHint }}
+              </p>
+            }
             <p class="field-label">Pay from</p>
             @if (activeCard) {
               <div class="pay-from-readonly">
@@ -181,7 +196,7 @@
               <p class="error-text">{{ paymentError }}</p>
             }
             <div class="payment-actions">
-              <ion-button expand="block" class="confirm-btn" (click)="confirmTransfer()" [disabled]="isProcessing || !selectedPayCardId || transferAmount < 0.01">
+              <ion-button expand="block" class="confirm-btn" (click)="confirmTransfer()" [disabled]="isProcessing || !selectedPayCardId || transferAmount < 0.01 || transferAmountExceedsBalance">
                 Transfer
               </ion-button>
               <button type="button" class="text-btn" (click)="cancelPayment()">Cancel</button>

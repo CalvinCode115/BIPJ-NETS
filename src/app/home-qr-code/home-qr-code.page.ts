@@ -108,6 +108,29 @@ export class QrCodePage implements OnDestroy {
     return this.activeCard ? formatCardFundsLabel(this.activeCard) : '';
   }
 
+  get payFromBalance(): number {
+    return this.activeCard?.balance ?? 0;
+  }
+
+  get transferBalanceLeft(): number {
+    return Math.round((this.payFromBalance - this.transferAmount) * 100) / 100;
+  }
+
+  get transferAmountExceedsBalance(): boolean {
+    return this.transferAmount >= 0.01 && this.transferAmount > this.payFromBalance + 0.001;
+  }
+
+  get transferBalanceHint(): string {
+    if (this.transferAmountExceedsBalance) {
+      const over = Math.round((this.transferAmount - this.payFromBalance) * 100) / 100;
+      return `Exceeds balance by $${over.toFixed(2)} (available $${this.payFromBalance.toFixed(2)})`;
+    }
+    if (this.transferAmount >= 0.01) {
+      return `Balance left: $${Math.max(0, this.transferBalanceLeft).toFixed(2)}`;
+    }
+    return `Available balance: $${this.payFromBalance.toFixed(2)}`;
+  }
+
   get maskedRecipientName(): string {
     return this.pendingReceive?.name ? maskDisplayName(this.pendingReceive.name) : '';
   }
@@ -236,13 +259,28 @@ export class QrCodePage implements OnDestroy {
     } catch {
       this.cameraStarting = false;
       this.cameraError =
-        'Could not access the camera. Allow camera permission, then tap Restart camera below.';
+        'Could not access the camera. Allow camera permission, then tap the viewfinder to try again.';
     }
   }
 
   restartCamera(): void {
     this.cameraError = '';
     this.startCamera();
+  }
+
+  onCameraPreviewTap(): void {
+    if (
+      this.cameraActive ||
+      this.cameraStarting ||
+      this.isProcessing ||
+      this.pendingPayment ||
+      this.pendingReceive ||
+      this.receiptResult ||
+      !this.canPayWithQr
+    ) {
+      return;
+    }
+    this.restartCamera();
   }
 
   private async requestCameraStream(): Promise<MediaStream> {
@@ -423,6 +461,11 @@ export class QrCodePage implements OnDestroy {
 
     if (this.transferAmount < 0.01) {
       this.paymentError = 'Enter an amount of at least $0.01.';
+      return;
+    }
+
+    if (this.transferAmountExceedsBalance) {
+      this.paymentError = `Amount exceeds available balance ($${this.payFromBalance.toFixed(2)}).`;
       return;
     }
 

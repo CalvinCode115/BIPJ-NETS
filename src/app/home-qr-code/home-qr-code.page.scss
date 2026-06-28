@@ -56,6 +56,10 @@
   &.is-live {
     background: #000;
   }
+
+  &.is-tappable {
+    cursor: pointer;
+  }
 }
 
 .camera-video {
@@ -135,6 +139,13 @@
   font-size: 12px;
   opacity: 0.85;
   max-width: 240px;
+}
+
+.viewfinder-tap-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
 }
 
 .scan-frame {
@@ -432,9 +443,28 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #e8e8ed;
-  border-radius: 12px;
-  padding: 12px 14px;
+  border: none;
+  border-bottom: 2px solid #e8e8ed;
+  border-radius: 0;
+  padding: 8px 2px 10px;
+  background: transparent;
+  transition: border-color 0.2s ease;
+
+  &.exceeded {
+    border-bottom-color: #eb5757;
+  }
+}
+
+.transfer-balance-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8e8e93;
+
+  &.exceeded {
+    color: #eb5757;
+    font-weight: 600;
+  }
 }
 
 .transfer-currency {
