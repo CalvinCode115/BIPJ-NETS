@@ -589,3 +589,310 @@
   padding: 2px 8px;
   border-radius: 10px;
 }
+// Budget Widget
+.budget-widget {
+  background: white;
+  border-radius: 16px;
+  margin: 0 16px 16px;
+  padding: 16px;
+  box-shadow: var(--nets-card-shadow);
+
+  .budget-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+
+    ion-icon {
+      font-size: 18px;
+    }
+
+    .budget-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--nets-text);
+      flex: 1;
+    }
+
+    .budget-amount {
+      font-size: 14px;
+      color: #666;
+    }
+  }
+
+  .budget-bar-bg {
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+
+    .budget-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease, background 0.4s ease;
+    }
+  }
+
+  .budget-remaining {
+    font-size: 13px;
+    color: #888;
+    margin: 0 0 12px;
+  }
+
+  // Transaction History
+  .transaction-list {
+    border-top: 1px solid #f0f0f0;
+    padding-top: 10px;
+
+    .transaction-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+
+      .t-left {
+        display: flex;
+        flex-direction: column;
+
+        .t-venue {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--nets-text);
+        }
+
+        .t-time {
+          font-size: 11px;
+          color: #999;
+        }
+      }
+
+      .t-amount {
+        font-size: 13px;
+        font-weight: 600;
+        color: #d71920;
+      }
+    }
+  }
+}
+
+// Pay Buttons
+.pay-btn {
+  --color: var(--nets-red);
+  --padding-start: 0;
+  --padding-end: 0;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+
+  ion-icon {
+    font-size: 16px;
+  }
+}
+
+.pay-btn-small {
+  --color: var(--nets-red);
+  --padding-start: 0;
+  --padding-end: 0;
+  margin-top: 4px;
+  font-size: 12px;
+  height: 28px;
+}
+
+// Payment Modal
+.payment-panel {
+  padding: 20px;
+  background: white;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .payment-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--nets-text);
+      margin: 0;
+    }
+  }
+
+  .payment-card-display {
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: white;
+    background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+    box-shadow: 0 4px 12px rgba(215, 25, 32, 0.3);
+
+    &.theme-prepaid {
+      background: linear-gradient(135deg, #d71920 0%, #bd161c 100%);
+    }
+
+    &.theme-cashcard {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1e3a8a 100%);
+    }
+
+    .payment-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .payment-card-label {
+        font-size: 12px;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .payment-card-badge {
+        font-size: 11px;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 10px;
+        border-radius: 12px;
+      }
+    }
+
+    .payment-card-balance {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 4px;
+    }
+
+    .payment-card-number {
+      font-size: 13px;
+      opacity: 0.8;
+      margin: 0;
+    }
+  }
+
+  .payment-no-card {
+    text-align: center;
+    padding: 30px;
+    color: #888;
+
+    ion-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+
+  .payment-field-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .payment-amount-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+
+    .payment-currency {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--nets-text);
+    }
+
+    ion-input {
+      --padding-start: 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--nets-text);
+    }
+  }
+
+  .payment-quick-chips {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+
+    button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      background: white;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--nets-text);
+      transition: all 0.2s ease;
+
+      &.selected {
+        background: var(--nets-red);
+        color: white;
+        border-color: var(--nets-red);
+      }
+    }
+  }
+
+  .payment-confirm-btn {
+    --background: var(--nets-red);
+    --border-radius: 12px;
+    --box-shadow: none;
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: auto;
+  }
+}
+// Circular Load More — carousel style
+.load-more-circle {
+  min-width: 100px;
+  max-width: 100px;
+  height: 140px; // Match approximate card height
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  .load-more-circle-inner {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(215, 25, 32, 0.3);
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 6px 16px rgba(215, 25, 32, 0.4);
+    }
+
+    ion-icon {
+      font-size: 20px;
+      color: white;
+      margin-bottom: 2px;
+    }
+
+    .load-more-count {
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+    }
+  }
+}

@@ -159,7 +159,7 @@ export class TravelService {
 private searchNearby(keyword: string): Observable<GooglePlace[]> {
     return this.http.post<any>('http://localhost:8000/api/places/nearby', {
       includedTypes: [keyword],
-      maxResultCount: 5,
+      maxResultCount: 9,
       lat: this.DESTINATION.lat,
       lng: this.DESTINATION.lng,
       radius: this.DESTINATION.radius
@@ -175,7 +175,7 @@ private searchNearby(keyword: string): Observable<GooglePlace[]> {
   private searchText(query: string): Observable<GooglePlace[]> {
     return this.http.post<any>('http://localhost:8000/api/places/text', {
       textQuery: `${query} in ${this.DESTINATION.name}`,
-      maxResultCount: 5,
+      maxResultCount: 9,
       lat: this.DESTINATION.lat,
       lng: this.DESTINATION.lng,
       radius: this.DESTINATION.radius
@@ -371,7 +371,7 @@ private callGemini(prompt: string): Observable<GeminiResponse> {
 
     Object.entries(grouped).forEach(([category, categoryPlaces]) => {
       const config = categoryConfig[category] || { title: category, icon: 'compass' };
-      const cards: RecommendationCard[] = categoryPlaces.slice(0, 3).map((p, i) => ({
+      const cards: RecommendationCard[] = categoryPlaces.slice(0, 9).map((p, i) => ({
         title: i === 0 ? `Top Pick` : p.name,
         description: i === 0
           ? `Your DNA says you're a ${trait}. ${p.name} is a top-rated ${category} spot — ${p.rating}★ with ${p.user_ratings_total} reviews.`
@@ -386,7 +386,7 @@ private callGemini(prompt: string): Observable<GeminiResponse> {
       }));
 
       if (cards.length > 0) {
-        sections.push({ title: config.title, icon: config.icon, cards });
+        sections.push({ title: config.title, icon: config.icon, cards, visibleCount: 3 });
       }
     });
 

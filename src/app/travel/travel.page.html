@@ -39,12 +39,24 @@
     <div class="budget-header">
       <ion-icon name="wallet-outline" style="color: var(--nets-red);"></ion-icon>
       <span class="budget-title">Trip Budget</span>
-      <span class="budget-amount">${{ budget.spentSoFar }} / ${{ budget.typicalTripSpend }}</span>
+      <span class="budget-amount">${{ budget.spentSoFar | number:'1.2-2' }} / ${{ budget.typicalTripSpend |
+        number:'1.2-2' }}</span>
     </div>
     <div class="budget-bar-bg">
       <div class="budget-bar-fill" [style.width.%]="budget.percentage" [style.background]="getBudgetColor()"></div>
     </div>
-    <p class="budget-remaining">${{ budget.remaining }} remaining</p>
+    <p class="budget-remaining">${{ budget.remaining | number:'1.2-2' }} remaining</p>
+
+    <!-- Transaction History -->
+    <div class="transaction-list" *ngIf="transactions.length > 0">
+      <div class="transaction-item" *ngFor="let t of transactions">
+        <div class="t-left">
+          <span class="t-venue">{{ t.venueName }}</span>
+          <span class="t-time">{{ formatTimeAgo(t.timestamp) }}</span>
+        </div>
+        <span class="t-amount">-${{ t.amount | number:'1.2-2' }}</span>
+      </div>
+    </div>
   </div>
 
   <!-- Loading State -->
@@ -58,45 +70,54 @@
   <div class="error-container" *ngIf="error && !isLoading">
     <ion-icon name="alert-circle-outline" color="danger" class="error-icon"></ion-icon>
     <p class="error-text">{{ error }}</p>
-    <ion-button fill="outline" size="small" (click)="refresh()" style="--border-color: var(--nets-red); --color: var(--nets-red);">
+    <ion-button fill="outline" size="small" (click)="refresh()"
+      style="--border-color: var(--nets-red); --color: var(--nets-red);">
       Try Again
     </ion-button>
   </div>
 
   <!-- DNA Picks Section -->
-  <div class="dna-section" *ngIf="!isLoading && !error && dnaPicks.length > 0">
+  <div class="dna-section" *ngIf="!isLoading && !error && recommendations.length > 0">
     <div class="section-header dna-header">
       <h2>🎯 Your DNA Picks</h2>
       <p class="section-sub">AI-personalized for your spending habits</p>
     </div>
 
     <!-- Hero Card -->
-    <div class="hero-card" *ngIf="dnaPicks[0]" (click)="openInMaps(dnaPicks[0])">
-      <div class="hero-image" *ngIf="dnaPicks[0].photoUrl" [style.backgroundImage]="'url(' + dnaPicks[0].photoUrl + ')'">
+    <div class="hero-card" *ngIf="recommendations[0]" (click)="openInMaps(recommendations[0])">
+      <div class="hero-image" *ngIf="recommendations[0].photoUrl"
+        [style.backgroundImage]="'url(' + recommendations[0].photoUrl + ')'">
         <div class="hero-badge">Top Pick</div>
       </div>
-      <div class="hero-image placeholder" *ngIf="!dnaPicks[0].photoUrl">
+      <div class="hero-image placeholder" *ngIf="!recommendations[0].photoUrl">
         <div class="hero-badge">Top Pick</div>
         <ion-icon name="restaurant-outline" class="placeholder-icon"></ion-icon>
       </div>
       <div class="hero-content">
-        <h3 class="hero-title">{{ dnaPicks[0].title }}</h3>
-        <p class="hero-description">{{ dnaPicks[0].description }}</p>
+        <h3 class="hero-title">{{ recommendations[0].title }}</h3>
+        <p class="hero-description">{{ recommendations[0].description }}</p>
         <div class="hero-meta">
-          <span class="venue-name">{{ dnaPicks[0].venueName }}</span>
+          <span class="venue-name">{{ recommendations[0].venueName }}</span>
           <div class="rating-row">
-            <span class="stars">{{ getStars(dnaPicks[0].rating) }}</span>
-            <span class="rating-text" *ngIf="dnaPicks[0].rating">{{ dnaPicks[0].rating }} · {{ dnaPicks[0].reviewCount }} reviews</span>
+            <span class="stars">{{ getStars(recommendations[0].rating) }}</span>
+            <span class="rating-text" *ngIf="recommendations[0].rating">{{ recommendations[0].rating }} · {{
+              recommendations[0].reviewCount }} reviews</span>
           </div>
-          <span class="price-level" *ngIf="dnaPicks[0].priceLevel">{{ getPriceLevel(dnaPicks[0].priceLevel) }}</span>
-          <p class="address"><ion-icon name="location-outline"></ion-icon> {{ dnaPicks[0].address }}</p>
+          <span class="price-level" *ngIf="recommendations[0].priceLevel">{{
+            getPriceLevel(recommendations[0].priceLevel) }}</span>
+          <p class="address"><ion-icon name="location-outline"></ion-icon> {{ recommendations[0].address }}</p>
+          <ion-button fill="clear" size="small" class="pay-btn"
+            (click)="openPaymentModal(recommendations[0]); $event.stopPropagation()">
+            <ion-icon name="card-outline" slot="start"></ion-icon>
+            Pay with NETS
+          </ion-button>
         </div>
       </div>
     </div>
 
-    <!-- DNA Grid (4 cards in 2x2) -->
+    <!-- DNA Grid -->
     <div class="dna-grid">
-      <div class="dna-grid-card" *ngFor="let card of dnaPicks.slice(1)" (click)="openInMaps(card)">
+      <div class="dna-grid-card" *ngFor="let card of recommendations.slice(1)" (click)="openInMaps(card)">
         <div class="dna-grid-image" *ngIf="card.photoUrl" [style.backgroundImage]="'url(' + card.photoUrl + ')'"></div>
         <div class="dna-grid-image placeholder" *ngIf="!card.photoUrl">
           <ion-icon name="compass-outline"></ion-icon>
@@ -108,43 +129,54 @@
             <span class="stars-small">{{ getStars(card.rating) }}</span>
             <span *ngIf="card.rating">{{ card.rating }}</span>
           </div>
+          <ion-button fill="clear" size="small" class="pay-btn-small"
+            (click)="openPaymentModal(card); $event.stopPropagation()">
+            <ion-icon name="card-outline" slot="start"></ion-icon>
+            Pay
+          </ion-button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Category Sections -->
-  <div class="category-sections" *ngIf="!isLoading && !error && categories.length > 0">
-    <div class="category-section" *ngFor="let cat of categories.slice(0, loadedCategories)">
-      <div class="category-header">
-        <h3 class="category-title">{{ cat.title }}</h3>
-        <span class="category-count">{{ cat.cards.length }} spots</span>
-      </div>
-      <div class="category-scroll">
-        <div class="category-card" *ngFor="let card of cat.cards" (click)="openInMaps(card)">
-          <div class="category-card-image" *ngIf="card.photoUrl" [style.backgroundImage]="'url(' + card.photoUrl + ')'"></div>
-          <div class="category-card-image placeholder" *ngIf="!card.photoUrl">
-            <ion-icon name="storefront-outline"></ion-icon>
-          </div>
-          <div class="category-card-content">
-            <h4 class="category-card-title">{{ card.title }}</h4>
-            <p class="category-card-desc">{{ card.description }}</p>
-            <div class="category-card-meta">
-              <span class="stars-small">{{ getStars(card.rating) }}</span>
-              <span *ngIf="card.rating">{{ card.rating }}</span>
-              <span class="price-small" *ngIf="card.priceLevel">{{ getPriceLevel(card.priceLevel) }}</span>
-            </div>
+<!-- Category Sections -->
+<div class="category-sections" *ngIf="!isLoading && !error && categories.length > 0">
+  <div class="category-section" *ngFor="let cat of categories; let i = index">
+    
+    <div class="category-header">
+      <h3 class="category-title">{{ cat.title }}</h3>
+      <span class="category-count">{{ cat.cards.length }} spots</span>
+    </div>
+    
+    <div class="category-scroll">
+      <!-- Visible cards -->
+      <div class="category-card" *ngFor="let card of cat.cards.slice(0, cat.visibleCount)" (click)="openInMaps(card)">
+        <div class="category-card-image" *ngIf="card.photoUrl" [style.backgroundImage]="'url(' + card.photoUrl + ')'"></div>
+        <div class="category-card-image placeholder" *ngIf="!card.photoUrl">
+          <ion-icon name="storefront-outline"></ion-icon>
+        </div>
+        <div class="category-card-content">
+          <h4 class="category-card-title">{{ card.title }}</h4>
+          <p class="category-card-desc">{{ card.description }}</p>
+          <div class="category-card-meta">
+            <span class="stars-small">{{ getStars(card.rating) }}</span>
+            <span *ngIf="card.rating">{{ card.rating }}</span>
+            <span class="price-small" *ngIf="card.priceLevel">{{ getPriceLevel(card.priceLevel) }}</span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Load More Button -->
-    <ion-button expand="block" fill="outline" class="load-more-btn" *ngIf="hasMoreCategories && categories.length > loadedCategories" (click)="loadMoreCategories()">
-      <ion-icon name="chevron-down-outline" slot="start"></ion-icon>
-      Load More Categories
-    </ion-button>
+      <!-- Circular "Load More" card — at the end of the scroll -->
+      <div class="load-more-circle" *ngIf="cat.cards.length > cat.visibleCount" (click)="loadMoreCards(cat)">
+        <div class="load-more-circle-inner">
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+          <span class="load-more-count">+{{ cat.cards.length - cat.visibleCount }}</span>
+        </div>
+      </div>
+    </div>
+    
   </div>
+</div>
 
   <!-- DNA Footer -->
   <div class="dna-footer">
@@ -157,7 +189,7 @@
 
 </ion-content>
 
-<!-- FX FAB — Fixed floating button -->
+<!-- FX FAB -->
 <div class="fx-fab-container" (click)="goToFxTracker()">
   <div class="fx-fab" *ngIf="fxInsight" [style.border-color]="getFxTrendColor()">
     <div class="fx-fab-inner">
@@ -171,3 +203,54 @@
   </div>
   <span class="fx-fab-label">FX</span>
 </div>
+
+<!-- Payment Modal -->
+<ion-modal [isOpen]="isPaymentModalOpen" (didDismiss)="closePaymentModal()">
+  <ng-template>
+    <div class="payment-panel">
+      <div class="payment-header">
+        <h2>Pay at {{ selectedVenue?.venueName }}</h2>
+        <ion-button fill="clear" (click)="closePaymentModal()">
+          <ion-icon slot="icon-only" name="close"></ion-icon>
+        </ion-button>
+      </div>
+
+      <!-- Card Display -->
+      <div class="payment-card-display" [ngClass]="cardThemeClass" *ngIf="activeCard">
+        <div class="payment-card-header">
+          <span class="payment-card-label">{{ cardFundsLabel }}</span>
+          <span class="payment-card-badge" *ngIf="cardBrandBadge">{{ cardBrandBadge }}</span>
+        </div>
+        <h1 class="payment-card-balance">{{ displayedCardBalance }}</h1>
+        <p class="payment-card-number">{{ cardDisplayNumber }}</p>
+      </div>
+
+      <div class="payment-no-card" *ngIf="!activeCard">
+        <ion-icon name="card-outline"></ion-icon>
+        <p>No card selected. Go to Home to select a card.</p>
+      </div>
+
+      <!-- Amount -->
+      <p class="payment-field-label">Amount</p>
+      <div class="payment-amount-box">
+        <span class="payment-currency">$</span>
+        <ion-input type="text" inputmode="decimal" [value]="paymentAmountText"
+          (ionInput)="onPaymentAmountInput($event)"></ion-input>
+      </div>
+
+      <!-- Quick Chips -->
+      <div class="payment-quick-chips">
+        <button type="button" *ngFor="let amt of quickPayAmounts" (click)="selectPaymentAmount(amt)"
+          [class.selected]="paymentAmount === amt">
+          ${{ amt }}
+        </button>
+      </div>
+
+      <!-- Confirm -->
+      <ion-button expand="block" class="payment-confirm-btn" (click)="confirmPayment()"
+        [disabled]="paymentAmount < 0.01 || isPaying || !activeCard">
+        {{ isPaying ? 'Processing...' : 'Confirm Payment' }}
+      </ion-button>
+    </div>
+  </ng-template>
+</ion-modal>

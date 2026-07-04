@@ -89,3 +89,25 @@ export interface CategorySection {
   icon: string;
   cards: RecommendationCard[];
 }
+
+export interface TravelTransaction {
+  id: string;
+  venueName: string;
+  amount: number;
+  timestamp: string;
+  cardLabel: string;
+}
+
+// BudgetTracker already exists — keep it
+export interface BudgetTracker {
+  spentSoFar: number;
+  typicalTripSpend: number;
+  remaining: number;
+  percentage: number;
+}
+
+export interface CategorySection {
+  title: string;
+  cards: RecommendationCard[];
+  visibleCount: number;  // ← ADD THIS
+}
