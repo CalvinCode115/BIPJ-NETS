@@ -3,20 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import {
-  DnaProfile, GooglePlace, RecommendationCard, GeminiResponse,
+  DnaProfile, GooglePlace, RecommendationCard,
   CategorySection, BudgetTracker
 } from './travel.model';
-
-export interface TravelRequest {
-  destination: string;
-  days: number;
-  interests: string;
-}
-
-export interface TravelResponse {
-  itinerary: string;
-  status: string;
-}
 
 @Injectable({
   providedIn: 'root'
@@ -33,12 +22,9 @@ export class TravelService {
   private readonly BACKEND_URL = 'http://localhost:3000/api';
   private readonly CACHE_KEY = 'nets_travel_recs';
   private readonly CACHE_TTL_MS = 5 * 60 * 1000;
-  private readonly apiUrl = 'http://localhost:8000/api/travel-plan';
 
   constructor(private http: HttpClient) { }
-  generatePlan(request: TravelRequest): Observable<TravelResponse> {
-    return this.http.post<TravelResponse>(this.apiUrl, request);
-  }
+
   // ========== MAIN PIPELINE ==========
 
   getDnaProfile(userId: string, month?: number, year?: number): Observable<DnaProfile> {
@@ -68,19 +54,17 @@ export class TravelService {
 
     return this.getDnaProfile(userId, month, year).pipe(
       switchMap(dna => {
-        // Fetch all category searches in parallel
         const allQueries = this.buildAllQueries(dna);
         const placesCalls = allQueries.map(q => this.searchPlaces(q.query, q.category));
 
         return forkJoin(placesCalls).pipe(
           map(results => {
-            // Flatten all places
+            // Flatten and deduplicate
             const allPlaces: { place: GooglePlace; category: string }[] = [];
             results.forEach((places, i) => {
               places.forEach(p => allPlaces.push({ place: p, category: allQueries[i].category }));
             });
 
-            // Deduplicate
             const seen = new Set<string>();
             const uniquePlaces = allPlaces.filter(({ place }) => {
               if (seen.has(place.place_id)) return false;
@@ -88,22 +72,22 @@ export class TravelService {
               return true;
             });
 
-            // Split: top 5 for Gemini, rest for templates
-            const geminiPlaces = uniquePlaces.slice(0, 5).map(p => p.place);
-            const templatePlaces = uniquePlaces.slice(5);
-
-            return { dna, geminiPlaces, templatePlaces };
+            return { dna, uniquePlaces };
           }),
-          switchMap(({ dna, geminiPlaces, templatePlaces }) =>
-            this.getGeminiRecommendations(dna, geminiPlaces).pipe(
-              map(dnaPicks => {
-                // Build category sections from template places
-                const categories = this.buildCategorySections(templatePlaces, dna);
-                const budget = this.buildBudgetTracker(dna);
-                return { dnaPicks, categories, budget };
-              })
-            )
-          )
+          map(({ dna, uniquePlaces }) => {
+            // Score and rank all places
+            const scored = this.scoreAndRankPlaces(uniquePlaces, dna);
+
+            // Top 5 become DNA Picks (hero + 4)
+            const dnaPicks = this.buildDnaPicks(scored.slice(0, 5), dna);
+
+            // Rest go to categories
+            const categories = this.buildCategorySections(scored.slice(5), dna);
+
+            const budget = this.buildBudgetTracker(dna);
+
+            return { dnaPicks, categories, budget };
+          })
         );
       }),
       map(result => {
@@ -126,7 +110,7 @@ export class TravelService {
     const hasShopper = traits.some(t => t.includes('shopper'));
     const hasWellness = traits.some(t => t.includes('wellness'));
 
-    // DNA-matched queries (for Gemini picks)
+    // DNA-matched queries
     if (hasCoffee || cuisines.includes('coffee')) {
       queries.push({ query: 'cafe', category: 'coffee' });
     }
@@ -139,7 +123,7 @@ export class TravelService {
     if (hasShopper) queries.push({ query: 'shopping mall', category: 'shopping' });
     if (hasWellness) queries.push({ query: 'spa', category: 'wellness' });
 
-    // Always add these categories for variety
+    // Always add variety
     queries.push({ query: 'museum', category: 'culture' });
     queries.push({ query: 'night market', category: 'nightlife' });
     queries.push({ query: 'hawker centre', category: 'food' });
@@ -156,10 +140,10 @@ export class TravelService {
     return this.searchNearby(query);
   }
 
-private searchNearby(keyword: string): Observable<GooglePlace[]> {
+  private searchNearby(keyword: string): Observable<GooglePlace[]> {
     return this.http.post<any>('http://localhost:8000/api/places/nearby', {
       includedTypes: [keyword],
-      maxResultCount: 9,
+      maxResultCount: 10,
       lat: this.DESTINATION.lat,
       lng: this.DESTINATION.lng,
       radius: this.DESTINATION.radius
@@ -175,7 +159,7 @@ private searchNearby(keyword: string): Observable<GooglePlace[]> {
   private searchText(query: string): Observable<GooglePlace[]> {
     return this.http.post<any>('http://localhost:8000/api/places/text', {
       textQuery: `${query} in ${this.DESTINATION.name}`,
-      maxResultCount: 9,
+      maxResultCount: 10,
       lat: this.DESTINATION.lat,
       lng: this.DESTINATION.lng,
       radius: this.DESTINATION.radius
@@ -202,7 +186,12 @@ private searchNearby(keyword: string): Observable<GooglePlace[]> {
           lat: p.location?.latitude || 0,
           lng: p.location?.longitude || 0
         }
-      }
+      },
+      regularOpeningHours: p.regularOpeningHours ? {
+        openNow: p.regularOpeningHours.openNow,
+        periods: p.regularOpeningHours.periods
+      } : undefined,
+      types: p.types || []
     };
   }
 
@@ -211,150 +200,212 @@ private searchNearby(keyword: string): Observable<GooglePlace[]> {
     return match ? parseInt(match[0]) : 0;
   }
 
-  // ========== GEMINI (1 CALL ONLY) ==========
+  // ========== SMART RANKING ENGINE ==========
 
-  private getGeminiRecommendations(dna: DnaProfile, places: GooglePlace[]): Observable<RecommendationCard[]> {
-    if (places.length === 0) {
-      return of([this.getFallbackCard(dna)]);
-    }
-
-    const prompt = this.buildGeminiPrompt(dna, places);
-
-    return this.callGemini(prompt).pipe(
-      map(response => this.mergeGeminiWithPlaces(response, places)),
-      catchError(err => {
-        console.warn('Gemini failed, using template fallback:', err);
-        return of(this.buildFallbackCards(dna, places));
-      })
-    );
-  }
-
-  private buildGeminiPrompt(dna: DnaProfile, places: GooglePlace[]): string {
-    const topCats = dna.topCategories.map(c => `${c.category} ($${c.amount.toFixed(2)}, ${(c.share * 100).toFixed(0)}%)`).join(', ');
-    const budget = dna.travelHints.budgetStyle;
-    const cuisines = dna.travelHints.preferredCuisines.join(', ');
-
-    const placesText = places.map((p, i) =>
-      `${i + 1}. ${p.name} - ${p.rating}★, ${p.user_ratings_total} reviews, price level ${p.price_level || 'unknown'}, address: ${p.vicinity}`
-    ).join('\n');
-
-    return `You are NETS Beyond, a witty Gen Z travel concierge for Singaporeans visiting Malaysia.
-
-A user with this spending DNA is visiting Johor Bahru:
-- Traits: ${dna.traits.join(', ')}
-- Top spending: ${topCats}
-- Budget style: ${budget}
-- Preferred cuisines: ${cuisines}
-- Typical trip budget: $${dna.travelHints.typicalTripSpend.toFixed(0)}
-
-Here are real venues from Google Places:
-${placesText}
-
-Pick the 5 best matches for this user's DNA and write personalized recommendations.
-
-Return ONLY a JSON object in this exact format:
-{
-  "hero": {
-    "title": "catchy headline, max 6 words",
-    "description": "2 sentences, reference their actual spending habits. Tone: fun, confident, not cringe. Start with 'Your DNA says...'",
-    "venueName": "exact name from the list"
-  },
-  "cards": [
-    {
-      "title": "short headline, max 5 words",
-      "description": "1-2 sentences, personalized",
-      "venueName": "exact name from the list"
-    },
-    {
-      "title": "short headline, max 5 words",
-      "description": "1-2 sentences, personalized",
-      "venueName": "exact name from the list"
-    },
-    {
-      "title": "short headline, max 5 words",
-      "description": "1-2 sentences, personalized",
-      "venueName": "exact name from the list"
-    },
-    {
-      "title": "short headline, max 5 words",
-      "description": "1-2 sentences, personalized",
-      "venueName": "exact name from the list"
-    }
-  ]
-}
-
-Rules:
-- Each description must reference at least one real trait or category from their DNA
-- If they're budget-conscious, highlight value. If premium, highlight quality.
-- Do not invent venues. Use exact names from the list above.
-- Keep descriptions under 140 characters each.
-- Return valid JSON only, no markdown.`;
-  }
-
-private callGemini(prompt: string): Observable<GeminiResponse> {
-  // Now talks to YOUR backend, not Google directly
-  return this.http.post<any>('http://localhost:8000/api/gemini', { prompt }).pipe(
-    map(res => {
-      const text = res.text || '{}';
-      const clean = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-      return JSON.parse(clean) as GeminiResponse;
-    }),
-    catchError(err => {
-      console.error('Backend Gemini error:', err);
-      return throwError(() => err);
-    })
-  );
-}
-
-  private mergeGeminiWithPlaces(gemini: GeminiResponse, places: GooglePlace[]): RecommendationCard[] {
-    const cards: RecommendationCard[] = [];
-    const heroPlace = places.find(p => p.name === gemini.hero.venueName) || places[0];
-    if (heroPlace && gemini.hero) {
-      cards.push({
-        title: gemini.hero.title,
-        description: gemini.hero.description,
-        venueName: heroPlace.name,
-        rating: heroPlace.rating,
-        reviewCount: heroPlace.user_ratings_total,
-        priceLevel: heroPlace.price_level || 0,
-        address: heroPlace.vicinity,
-        photoUrl: this.getPhotoUrl(heroPlace),
-        isHero: true
-      });
-    }
-    gemini.cards?.forEach(card => {
-      const place = places.find(p => p.name === card.venueName);
-      if (place) {
-        cards.push({
-          title: card.title,
-          description: card.description,
-          venueName: place.name,
-          rating: place.rating,
-          reviewCount: place.user_ratings_total,
-          priceLevel: place.price_level || 0,
-          address: place.vicinity,
-          photoUrl: this.getPhotoUrl(place),
-          isHero: false
-        });
-      }
-    });
-    return cards;
-  }
-
-  // ========== TEMPLATE ENGINE (FREE, SCALABLE) ==========
-
-  private buildCategorySections(
+  private scoreAndRankPlaces(
     places: { place: GooglePlace; category: string }[],
     dna: DnaProfile
+  ): { place: GooglePlace; category: string; score: number; whyMatch: string[]; distance: number }[] {
+
+    const budgetStyle = dna.travelHints.budgetStyle;
+    const targetPrice = this.getTargetPriceLevel(budgetStyle);
+    const usualSpend = dna.travelHints.usualMealSpend || this.estimateUsualSpend(budgetStyle);
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentDay = now.getDay();
+
+    const scored = places.map(({ place, category }) => {
+      let score = 0;
+      const whyMatch: string[] = [];
+
+      // 1. PRICE MATCH (0-40 points)
+      const priceDiff = Math.abs((place.price_level || 2) - targetPrice);
+      if (priceDiff === 0) {
+        score += 40;
+        whyMatch.push('💰 Perfect price match');
+      } else if (priceDiff === 1) {
+        score += 25;
+        whyMatch.push('💰 Good value');
+      } else if (priceDiff === 2) {
+        score += 10;
+      }
+
+      // 2. RATING QUALITY (0-25 points)
+      if (place.rating >= 4.5) {
+        score += 25;
+        whyMatch.push('⭐ Top rated');
+      } else if (place.rating >= 4.0) {
+        score += 20;
+        whyMatch.push('⭐ Highly rated');
+      } else if (place.rating >= 3.5) {
+        score += 12;
+      }
+
+      // 3. REVIEW POPULARITY (0-15 points)
+      if (place.user_ratings_total > 500) {
+        score += 15;
+        whyMatch.push('🔥 Local favorite');
+      } else if (place.user_ratings_total > 100) {
+        score += 10;
+      } else if (place.user_ratings_total > 20) {
+        score += 5;
+      }
+
+      // 4. OPENING HOURS MATCH (0-15 points)
+      const hoursMatch = this.checkHoursMatch(place, currentDay, currentHour);
+      if (hoursMatch === 'open_now') {
+        score += 15;
+        whyMatch.push('🕐 Open now');
+      } else if (hoursMatch === 'opens_soon') {
+        score += 8;
+        whyMatch.push('🕐 Opens soon');
+      }
+
+      // 5. DISTANCE (0-5 points) — closer is better
+      const dist = this.calculateDistance(
+        this.DESTINATION.lat, this.DESTINATION.lng,
+        place.geometry.location.lat, place.geometry.location.lng
+      );
+      if (dist < 1000) score += 5;
+      else if (dist < 2500) score += 3;
+      else if (dist < 5000) score += 1;
+
+      return { place, category, score, whyMatch, distance: dist };
+    });
+
+    // Sort by score descending
+    return scored.sort((a, b) => b.score - a.score);
+  }
+
+  private getTargetPriceLevel(budgetStyle: string): number {
+    switch (budgetStyle) {
+      case 'budget': return 1;
+      case 'premium': return 4;
+      default: return 2; // moderate
+    }
+  }
+
+  private estimateUsualSpend(budgetStyle: string): number {
+    switch (budgetStyle) {
+      case 'budget': return 8;
+      case 'premium': return 45;
+      default: return 18; // moderate
+    }
+  }
+
+  private checkHoursMatch(place: GooglePlace, day: number, hour: number): string {
+    if (!place.regularOpeningHours?.periods) return 'unknown';
+
+    // Check if open now
+    if (place.regularOpeningHours.openNow) return 'open_now';
+
+    // Check if opens within 2 hours
+    const todayPeriods = place.regularOpeningHours.periods.filter(
+      p => p.open.day === day
+    );
+
+    for (const period of todayPeriods) {
+      const openHour = period.open.hour;
+      if (hour < openHour && openHour - hour <= 2) return 'opens_soon';
+    }
+
+    return 'closed';
+  }
+
+  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371000; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // ========== BUILD DNA PICKS (Top 5) ==========
+
+  private buildDnaPicks(
+    topScored: { place: GooglePlace; category: string; score: number; whyMatch: string[]; distance: number }[],
+    dna: DnaProfile
+  ): RecommendationCard[] {
+
+    const trait = dna.traits[0] || 'traveller';
+    const budget = dna.travelHints.budgetStyle;
+
+    return topScored.map((item, index) => {
+      const place = item.place;
+      const isHero = index === 0;
+
+      // Generate smart title
+      let title: string;
+      if (isHero) {
+        if (item.whyMatch.includes('⭐ Top rated')) title = `Top Pick for ${trait}s`;
+        else if (item.whyMatch.includes('🔥 Local favorite')) title = `Local Favorite`;
+        else if (item.whyMatch.includes('💰 Perfect price match')) title = `Best Value Match`;
+        else title = `Perfect for ${trait}s`;
+      } else {
+        if (place.rating >= 4.5) title = `Rated ${place.rating}★`;
+        else if (item.whyMatch.includes('🕐 Open now')) title = `Open Now`;
+        else title = place.name;
+      }
+
+      // Generate description with DNA context
+      const descParts: string[] = [];
+
+      // DNA hook
+      if (isHero) {
+        descParts.push(`Your DNA shows you're a ${trait}.`);
+      }
+
+      // Venue facts
+      const priceText = place.price_level ? '💰'.repeat(place.price_level) : '';
+      descParts.push(`${place.name} scores ${place.rating}★ with ${place.user_ratings_total} reviews${priceText ? ` · ${priceText}` : ''}.`);
+
+      // Why this matches
+      const topReasons = item.whyMatch.filter(r => !r.includes('⭐') || place.rating < 4.5).slice(0, 2);
+      if (topReasons.length > 0 && !isHero) {
+        descParts.push(topReasons.join(' · '));
+      }
+
+      // Distance
+      if (item.distance < 1000) {
+        descParts.push(`Only ${Math.round(item.distance)}m away.`);
+      }
+
+      return {
+        title,
+        description: descParts.join(' '),
+        venueName: place.name,
+        rating: place.rating,
+        reviewCount: place.user_ratings_total,
+        priceLevel: place.price_level || 0,
+        address: place.vicinity,
+        photoUrl: this.getPhotoUrl(place),
+        isHero,
+        distance: item.distance,
+        openNow: item.whyMatch.includes('🕐 Open now'),
+        dnaMatchScore: item.score,
+        whyMatch: item.whyMatch
+      };
+    });
+  }
+
+  // ========== BUILD CATEGORY SECTIONS ==========
+
+  private buildCategorySections(
+    remaining: { place: GooglePlace; category: string; score: number; whyMatch: string[]; distance: number }[],
+    dna: DnaProfile
   ): CategorySection[] {
+
     const trait = dna.traits[0] || 'traveller';
     const budget = dna.travelHints.budgetStyle;
 
     // Group by category
-    const grouped: { [key: string]: GooglePlace[] } = {};
-    places.forEach(({ place, category }) => {
-      if (!grouped[category]) grouped[category] = [];
-      grouped[category].push(place);
+    const grouped: { [key: string]: typeof remaining } = {};
+    remaining.forEach(item => {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
     });
 
     const categoryConfig: { [key: string]: { title: string; icon: string } } = {
@@ -369,35 +420,75 @@ private callGemini(prompt: string): Observable<GeminiResponse> {
 
     const sections: CategorySection[] = [];
 
-    Object.entries(grouped).forEach(([category, categoryPlaces]) => {
+    Object.entries(grouped).forEach(([category, items]) => {
       const config = categoryConfig[category] || { title: category, icon: 'compass' };
-      const cards: RecommendationCard[] = categoryPlaces.slice(0, 9).map((p, i) => ({
-        title: i === 0 ? `Top Pick` : p.name,
-        description: i === 0
-          ? `Your DNA says you're a ${trait}. ${p.name} is a top-rated ${category} spot — ${p.rating}★ with ${p.user_ratings_total} reviews.`
-          : `${p.name} — ${p.rating}★, ${p.user_ratings_total} reviews. Fits your ${budget} budget.`,
-        venueName: p.name,
-        rating: p.rating,
-        reviewCount: p.user_ratings_total,
-        priceLevel: p.price_level || 0,
-        address: p.vicinity,
-        photoUrl: this.getPhotoUrl(p),
-        category
-      }));
+
+      const cards: RecommendationCard[] = items.slice(0, 9).map((item, i) => {
+        const place = item.place;
+        const isTopPick = i === 0;
+
+        // Generate contextual description
+        const descParts: string[] = [];
+
+        if (isTopPick) {
+          descParts.push(`Top match for your ${trait} DNA.`);
+        }
+
+        descParts.push(`${place.rating}★ · ${place.user_ratings_total} reviews`);
+
+        // Add match reasons
+        const reasons = item.whyMatch.filter(r => r !== '🕐 Open now').slice(0, 2);
+        if (reasons.length > 0) {
+          descParts.push(reasons.join(' · '));
+        }
+
+        // Price context
+        const estimatedSpend = this.estimateSpendAtVenue(place.price_level, budget);
+        if (estimatedSpend) {
+          descParts.push(`~$${estimatedSpend} per person`);
+        }
+
+        return {
+          title: isTopPick ? `Best ${config.title.split(' ')[1] || 'Pick'}` : place.name,
+          description: descParts.join(' · '),
+          venueName: place.name,
+          rating: place.rating,
+          reviewCount: place.user_ratings_total,
+          priceLevel: place.price_level || 0,
+          address: place.vicinity,
+          photoUrl: this.getPhotoUrl(place),
+          distance: item.distance,
+          openNow: item.whyMatch.includes('🕐 Open now'),
+          dnaMatchScore: item.score,
+          whyMatch: item.whyMatch
+        };
+      });
 
       if (cards.length > 0) {
         sections.push({ title: config.title, icon: config.icon, cards, visibleCount: 3 });
       }
     });
 
-    return sections;
+    // Sort sections by average DNA match score
+    return sections.sort((a, b) => {
+      const avgA = a.cards.reduce((sum, c) => sum + (c.dnaMatchScore || 0), 0) / a.cards.length;
+      const avgB = b.cards.reduce((sum, c) => sum + (c.dnaMatchScore || 0), 0) / b.cards.length;
+      return avgB - avgA;
+    });
+  }
+
+  private estimateSpendAtVenue(priceLevel?: number, budgetStyle?: string): number | null {
+    if (!priceLevel) return null;
+    const base = priceLevel * 8; // rough estimate
+    if (budgetStyle === 'budget') return Math.round(base * 0.7);
+    if (budgetStyle === 'premium') return Math.round(base * 1.5);
+    return base;
   }
 
   // ========== BUDGET TRACKER ==========
 
   private buildBudgetTracker(dna: DnaProfile): BudgetTracker {
     const typical = dna.travelHints.typicalTripSpend;
-    // Mock: simulate user has spent 35-65% of budget
     const spentRatio = 0.35 + Math.random() * 0.3;
     const spent = Math.round(typical * spentRatio);
     return {
@@ -408,45 +499,12 @@ private callGemini(prompt: string): Observable<GeminiResponse> {
     };
   }
 
-  // ========== FALLBACKS ==========
-
-  private buildFallbackCards(dna: DnaProfile, places: GooglePlace[]): RecommendationCard[] {
-    const trait = dna.traits[0] || 'traveller';
-    return places.slice(0, 5).map((p, i) => ({
-      title: i === 0 ? `Perfect for ${trait}s` : p.name,
-      description: i === 0
-        ? `Your DNA says you're a ${trait}. ${p.name} matches your vibe.`
-        : `${p.name} — ${p.rating}★, ${p.user_ratings_total} reviews.`,
-      venueName: p.name,
-      rating: p.rating,
-      reviewCount: p.user_ratings_total,
-      priceLevel: p.price_level || 0,
-      address: p.vicinity,
-      photoUrl: this.getPhotoUrl(p),
-      isHero: i === 0
-    }));
-  }
-
-  private getFallbackCard(dna: DnaProfile): RecommendationCard {
-    return {
-      title: 'Explore Johor Bahru',
-      description: `Your DNA says you're a ${dna.traits[0] || 'curious traveller'}.`,
-      venueName: 'Johor Bahru',
-      rating: 0,
-      reviewCount: 0,
-      priceLevel: 0,
-      address: 'Malaysia',
-      isHero: true
-    };
-  }
-
   // ========== HELPERS ==========
 
-private getPhotoUrl(place: GooglePlace): string | undefined {
+  private getPhotoUrl(place: GooglePlace): string | undefined {
     if (place.photos && place.photos.length > 0) {
       const photoName = (place.photos[0] as any).name;
       if (photoName) {
-        // Proxy through backend — key is hidden
         return `http://localhost:8000/api/photo?photo_name=${encodeURIComponent(photoName)}`;
       }
     }

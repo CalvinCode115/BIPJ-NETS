@@ -2,14 +2,13 @@ export interface DnaProfile {
   userId: string;
   traits: string[];
   topCategories: { category: string; amount: number; share: number }[];
-  topMerchants: string[];
-  avgDailySpend: number;
   travelHints: {
     preferredCuisines: string[];
     budgetStyle: 'budget' | 'moderate' | 'premium';
     typicalTripSpend: number;
+    usualMealSpend?: number; // NEW: average spend per meal
+    preferredTime?: string; // NEW: morning/afternoon/evening/night
   };
-  updatedAt: string;
 }
 
 export interface GooglePlace {
@@ -23,6 +22,14 @@ export interface GooglePlace {
   geometry: {
     location: { lat: number; lng: number };
   };
+  regularOpeningHours?: {
+    openNow?: boolean;
+    periods?: {
+      open: { day: number; hour: number; minute: number };
+      close: { day: number; hour: number; minute: number };
+    }[];
+  };
+  types?: string[];
 }
 
 export interface RecommendationCard {
@@ -35,22 +42,31 @@ export interface RecommendationCard {
   address: string;
   photoUrl?: string;
   isHero?: boolean;
+  distance?: number; // meters from center
+  openNow?: boolean;
+  dnaMatchScore?: number;
+  whyMatch: string[]; // badges like ["💰 Fits budget", "☕ Coffee DNA", "🕐 Open now"]
+}
+
+export interface CategorySection {
+  title: string;
+  icon: string;
+  cards: RecommendationCard[];
+  visibleCount: number;
+}
+
+export interface BudgetTracker {
+  spentSoFar: number;
+  typicalTripSpend: number;
+  remaining: number;
+  percentage: number;
 }
 
 export interface GeminiResponse {
-  hero: {
-    title: string;
-    description: string;
-    venueName: string;
-  };
-  cards: {
-    title: string;
-    description: string;
-    venueName: string;
-  }[];
+  hero: { title: string; description: string; venueName: string };
+  cards: { title: string; description: string; venueName: string }[];
 }
 
-// FX Tracker types (used by Travel page FX circle)
 export interface FxRate {
   date: string;
   rate: number;
@@ -67,47 +83,18 @@ export interface FxInsight {
   rates: FxRate[];
 }
 
-// Weather
-export interface WeatherData {
-  temp: number;
-  condition: string;
-  icon: string;
-  humidity: number;
-}
-
-// Budget
-export interface BudgetTracker {
-  typicalTripSpend: number;
-  spentSoFar: number;
-  remaining: number;
-  percentage: number;
-}
-
-// Category Section
-export interface CategorySection {
-  title: string;
-  icon: string;
-  cards: RecommendationCard[];
-}
-
 export interface TravelTransaction {
   id: string;
   venueName: string;
   amount: number;
   timestamp: string;
   cardLabel: string;
+  category?: string;
 }
-
-// BudgetTracker already exists — keep it
-export interface BudgetTracker {
-  spentSoFar: number;
-  typicalTripSpend: number;
-  remaining: number;
-  percentage: number;
-}
-
-export interface CategorySection {
-  title: string;
-  cards: RecommendationCard[];
-  visibleCount: number;  // ← ADD THIS
+// Weather
+export interface WeatherData {
+  temp: number;
+  condition: string;
+  icon: string;
+  humidity: number;
 }
