@@ -1,0 +1,52 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" aria-label="Back to More">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>App Settings</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="settings-content">
+  <div class="settings-page">
+    <section>
+      <h2>Home</h2>
+      <div class="segment-card">
+        <p class="segment-label">Default spending view</p>
+        <ion-segment [value]="spendingPeriod" (ionChange)="onSpendingPeriodChange($event.detail.value)">
+          <ion-segment-button value="Monthly">
+            <ion-label>Monthly</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="Weekly">
+            <ion-label>Weekly</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+      </div>
+    </section>
+
+    <section>
+      <h2>Preferences</h2>
+      @for (setting of toggles; track setting.id) {
+        <article class="setting-row">
+          <div class="setting-copy">
+            <h3>{{ setting.label }}</h3>
+            <p>{{ setting.detail }}</p>
+          </div>
+          <ion-toggle
+            [checked]="setting.enabled"
+            (ionChange)="onToggleChange(setting, $event.detail.checked)"
+            mode="ios"
+          ></ion-toggle>
+        </article>
+      }
+    </section>
+
+    @if (savedMessage) {
+      <p class="saved-message">{{ savedMessage }}</p>
+    }
+
+    <p class="settings-note">Preferences are saved on this device for your account.</p>
+  </div>
+</ion-content>

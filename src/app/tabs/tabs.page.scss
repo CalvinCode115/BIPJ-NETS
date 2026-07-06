@@ -1,8 +1,24 @@
-ion-tab-bar {
-  --color: #9E9E9E;
-  --color-selected: #1E3A8A;
+.nets-tab-bar {
   --background: #ffffff;
-  border-top: 1px solid #E8E8E8;
-  height: 80px;
-  padding-bottom: 10px;
+  border-top: 1px solid #e8e8e8;
+  padding-top: 6px;
+  padding-bottom: env(safe-area-inset-bottom);
+
+  ion-tab-button {
+    --color: #8e8e93;
+    --color-selected: #1e3a8a;
+    --padding-top: 2px;
+    --padding-bottom: 4px;
+
+    ion-icon {
+      font-size: 22px;
+      margin-bottom: 2px;
+    }
+
+    ion-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0;
+    }
+  }
 }

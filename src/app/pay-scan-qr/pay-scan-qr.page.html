@@ -1,0 +1,105 @@
+<ion-header class="scan-header">
+  <ion-toolbar>
+    <ion-title>Scan Receipt</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeScanner()" aria-label="Close scanner">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="scan-content">
+  <div class="scan-page">
+    <p class="scan-intro">
+      Upload a receipt photo from your gallery or take a new photo. Scanning starts automatically once you pick an image.
+    </p>
+
+    <div class="scan-actions">
+      <ion-button expand="block" class="gallery-btn" (click)="chooseFromGallery()" [disabled]="isScanning || isSaving">
+        Choose from Gallery
+      </ion-button>
+      <ion-button expand="block" fill="outline" class="take-photo-btn" (click)="takePhoto()" [disabled]="isScanning || isSaving">
+        Take Photo
+      </ion-button>
+    </div>
+
+    <div class="camera-preview" [class.has-image]="selectedImage">
+      @if (selectedImage) {
+        <img [src]="selectedImage" alt="Selected receipt" class="preview-image" />
+      } @else {
+        <div class="viewfinder">
+          <ion-icon name="images"></ion-icon>
+          <p class="viewfinder-title">Your receipt preview</p>
+          <p class="viewfinder-subtitle">Pick a photo to scan</p>
+        </div>
+      }
+
+      @if (isScanning || isSaving) {
+        <div class="scanning-overlay">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>{{ isSaving ? 'Adding to transactions...' : 'Scanning receipt...' }}</p>
+        </div>
+      }
+    </div>
+
+    @if (scanError) {
+      <p class="scan-error">{{ scanError }}</p>
+    }
+
+    @if (scanResult) {
+      <div class="scan-result">
+        <h3>Receipt detected</h3>
+        @if (scanMessage) {
+          <p class="scan-message">{{ scanMessage }}</p>
+        }
+        <div class="result-row">
+          <span>Merchant</span>
+          <strong>{{ scanResult.merchant }}</strong>
+        </div>
+        <div class="result-row">
+          <span>Amount</span>
+          <strong>${{ scanResult.amount | number: '1.2-2' }}</strong>
+        </div>
+        <div class="result-row">
+          <span>Date</span>
+          <strong>{{ scanResult.date }}</strong>
+        </div>
+        <div class="result-row">
+          <span>Category</span>
+          <strong>{{ scanResult.category }}</strong>
+        </div>
+        <div class="result-row">
+          <span>Payment</span>
+          <strong>{{ scanResult.paymentMethod }}</strong>
+        </div>
+        @if (scanResult.cardNumber) {
+          <div class="result-row">
+            <span>Card used</span>
+            <strong>{{ maskCardNumber(scanResult.cardNumber) }}</strong>
+          </div>
+        }
+        @if (saveSuccess) {
+          <p class="save-success">{{ saveSuccess }}</p>
+        }
+        <button type="button" class="reset-btn" (click)="resetScan()">Scan another receipt</button>
+      </div>
+    }
+
+    <input
+      id="camera-input"
+      type="file"
+      accept="image/*"
+      capture="environment"
+      hidden
+      (change)="onImageSelected($event)"
+    />
+    <input
+      id="gallery-input"
+      type="file"
+      accept="image/*"
+      hidden
+      (change)="onImageSelected($event)"
+    />
+  </div>
+</ion-content>

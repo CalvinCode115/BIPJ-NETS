@@ -20,6 +20,10 @@ const routes: Routes = [
         loadChildren: () => import('../travel/travel.module').then(m => m.TravelPageModule)
       },
       {
+        path: 'fx-tracker',
+        loadChildren: () => import('../fx-tracker/fx-tracker.module').then(m => m.FxTrackerPageModule)
+      },
+      {
         path: 'rewards',
         loadChildren: () => import('../rewards/rewards.module').then(m => m.RewardsPageModule)
       },

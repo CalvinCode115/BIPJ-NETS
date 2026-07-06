@@ -1,0 +1,75 @@
+<ion-header class="more-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="closeMore()" aria-label="Close more menu">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>More</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="more-content">
+  <div class="more-page">
+    <div class="profile-card">
+      <div class="profile-avatar">{{ profile.initials }}</div>
+      <div class="profile-info">
+        <p class="profile-name">{{ profile.name }}</p>
+        <p class="profile-phone">{{ profile.phone }}</p>
+        <p class="profile-tier">{{ profile.tier }} &bull; {{ profile.points | number }} points</p>
+      </div>
+    </div>
+
+    <div class="menu-list">
+      @for (item of menuItems; track item.title) {
+        <button type="button" class="menu-item" (click)="onMenuItemClick(item)">
+          <div class="menu-icon" [style.background]="item.iconBg" [style.color]="item.iconColor">
+            <ion-icon [name]="item.icon"></ion-icon>
+          </div>
+          <div class="menu-text">
+            <p class="menu-title">{{ item.title }}</p>
+            <p class="menu-subtitle">{{ item.subtitle }}</p>
+          </div>
+          <ion-icon name="chevron-forward" class="menu-chevron"></ion-icon>
+        </button>
+      }
+    </div>
+
+    <button type="button" class="logout-btn" (click)="logOut()">
+      <ion-icon name="log-out-outline"></ion-icon>
+      Log Out
+    </button>
+
+    <p class="app-version">NETS Wallet v0.0.1</p>
+  </div>
+</ion-content>
+
+@if (isHelpOpen) {
+  <ion-modal [isOpen]="true" (didDismiss)="closeHelp()">
+    <ng-template>
+      <div class="info-modal">
+        <h2>Help Center</h2>
+        <ul>
+          <li>Link cards from Home → Add card on any tab.</li>
+          <li>PayNow: enter 8-digit mobile or use Saved Contacts.</li>
+          <li>Incoming transfers go to your default linked debit card.</li>
+          <li>Manage cards and receive settings under Card Management.</li>
+        </ul>
+        <ion-button expand="block" (click)="closeHelp()">Close</ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
+}
+
+@if (isTermsOpen) {
+  <ion-modal [isOpen]="true" (didDismiss)="closeTerms()">
+    <ng-template>
+      <div class="info-modal">
+        <h2>Terms &amp; Conditions</h2>
+        <p>This is a student demo app simulating NETS wallet features. No real money or bank connections are used.</p>
+        <p>By using this app you agree that all data is stored locally or in a demo backend for testing only.</p>
+        <ion-button expand="block" (click)="closeTerms()">Close</ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
+}

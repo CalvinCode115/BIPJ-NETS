@@ -1,0 +1,275 @@
+// FX Tracker Page Styles
+
+.fx-content {
+  --background: #f5f5f7;
+}
+
+// Loading State
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+
+  ion-spinner {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+  }
+
+  .loading-text {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+  }
+}
+
+// Error State
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  .error-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+
+  .error-text {
+    font-size: 16px;
+    color: #666;
+    margin: 0 0 16px;
+  }
+}
+
+// Main Container
+.fx-container {
+  padding: 16px;
+}
+
+// Currency Pair Header
+.currency-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 0 20px;
+
+  .currency-from,
+  .currency-to {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .currency-flag {
+    font-size: 32px;
+  }
+
+  .currency-code {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--nets-text);
+  }
+
+  .arrow-icon {
+    font-size: 20px;
+    color: var(--nets-muted);
+  }
+}
+
+// Rate Card
+.rate-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--nets-card-shadow);
+  text-align: center;
+
+  .rate-main {
+    margin-bottom: 12px;
+
+    .rate-value {
+      display: block;
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--nets-text);
+      line-height: 1.2;
+    }
+
+    .rate-unit {
+      font-size: 13px;
+      color: #888;
+      margin-top: 4px;
+      display: block;
+    }
+  }
+
+  .rate-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.04);
+
+    ion-icon {
+      font-size: 18px;
+    }
+
+    .trend-percent {
+      font-weight: 700;
+    }
+  }
+}
+
+// Stats Grid
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+
+  .stat-item {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--nets-card-shadow);
+    text-align: center;
+
+    .stat-label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--nets-text);
+    }
+  }
+}
+
+// Chart Section
+.chart-section {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--nets-card-shadow);
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--nets-text);
+      margin: 0;
+    }
+
+    .chart-subtitle {
+      font-size: 13px;
+      color: #888;
+    }
+  }
+
+  .chart-wrapper {
+    height: 220px;
+    position: relative;
+  }
+
+  .demo-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: #fff8e1;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #856404;
+
+    ion-icon {
+      font-size: 14px;
+    }
+  }
+}
+
+// Insight Card
+.insight-card {
+  background: linear-gradient(135deg, var(--nets-insight-bg) 0%, #fff 100%);
+  border: 1px solid var(--nets-insight-border);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+
+  .insight-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--nets-red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    ion-icon {
+      font-size: 20px;
+      color: white;
+    }
+  }
+
+  .insight-content {
+    flex: 1;
+
+    h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--nets-text);
+      margin: 0 0 6px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.5;
+      margin: 0;
+    }
+  }
+}
+
+// DNA Footer
+.dna-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px 0 24px;
+  font-size: 12px;
+  color: #999;
+
+  ion-icon {
+    font-size: 14px;
+  }
+}

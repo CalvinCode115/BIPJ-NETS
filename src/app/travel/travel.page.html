@@ -1,15 +1,734 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <img src="assets/nets-logo.png" alt="NETS" class="nets-logo" />
-    </ion-buttons>
+<ion-header class="ion-no-border nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-title>
+      <ion-icon name="airplane" class="title-icon" style="color: var(--nets-red);"></ion-icon>
+      NETS Beyond
+    </ion-title>
     <ion-buttons slot="end">
-      <ion-button fill="clear">
-        <ion-icon name="notifications-outline" slot="icon-only" color="dark"></ion-icon>
+      <ion-button (click)="refresh()" [disabled]="isLoading">
+        <ion-icon name="refresh-outline" style="color: var(--nets-red);"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content class="travel-content scroll-content-visible">
+
+  <!-- Destination Header -->
+  <div class="destination-bar">
+    <ion-icon name="location-outline"></ion-icon>
+    <span class="destination-text">{{ destination }}</span>
+  </div>
+
+  <!-- Weather Widget -->
+  <div class="weather-widget" *ngIf="weather">
+    <div class="weather-main">
+      <ion-icon [name]="getWeatherIcon()" class="weather-icon"></ion-icon>
+      <div class="weather-info">
+        <span class="weather-temp">{{ weather.temp }}°C</span>
+        <span class="weather-condition">{{ weather.condition }}</span>
+      </div>
+    </div>
+    <div class="weather-detail">
+      <span class="weather-humidity">💧 {{ weather.humidity }}%</span>
+    </div>
+  </div>
+
+  <!-- Trip Mode Toggle -->
+  <div class="trip-toggle-bar">
+    <div class="trip-toggle-label">
+      <ion-icon [name]="isTripMode ? 'airplane' : 'home'"></ion-icon>
+      <span>{{ isTripMode ? '✈️ In JB · Day ' + tripDay + ' of ' + tripTotalDays : '🏠 Planning at Home' }}</span>
+    </div>
+    <ion-toggle #tripToggle [checked]="isTripMode" (ionChange)="toggleTripMode()"></ion-toggle>
+  </div>
+
+  <!-- Budget Widget -->
+  <div class="budget-widget" *ngIf="budget && isTripMode">
+    <div class="budget-header">
+      <ion-icon name="wallet-outline" style="color: var(--nets-red);"></ion-icon>
+      <span class="budget-title">{{ isTripMode ? 'Trip Budget' : 'Planned Budget' }}</span>
+      <span class="budget-amount">${{ budget.spentSoFar | number:'1.2-2' }} / ${{ budget.typicalTripSpend |
+        number:'1.2-2' }}</span>
+    </div>
+    <div class="budget-bar-bg">
+      <div class="budget-bar-fill" [style.width.%]="budget.percentage" [style.background]="getBudgetColor()"></div>
+    </div>
+    <p class="budget-remaining">${{ budget.remaining | number:'1.2-2' }} remaining</p>
+
+    <!-- Simulator Button (Trip Mode Only) -->
+    <ion-button *ngIf="isTripMode" expand="block" fill="clear" size="small" class="simulator-btn"
+      (click)="openSimulator()">
+      <ion-icon name="options-outline" slot="start"></ion-icon>
+      Budget Simulator
+    </ion-button>
+
+
+    <!-- Smart Advisor (Trip Mode Only) -->
+    <div class="smart-advisor" *ngIf="isTripMode">
+      <div class="advisor-card pace-card">
+        <div class="pace-header">
+          <span class="pace-label" [style.color]="paceColor">{{ paceLabel }}</span>
+          <span class="pace-value">{{ paceVsHome > 0 ? '+' : '' }}{{ paceVsHome | number:'1.0-0' }}%</span>
+        </div>
+        <div class="pace-bar-bg">
+          <div class="pace-bar-fill" [style.width.%]="getPaceBarWidth()" [style.background]="paceColor"></div>
+        </div>
+        <p class="pace-sub">vs. your ${{ homeDailySpend | number:'1.0-0' }}/day Singapore average</p>
+      </div>
+
+      <div class="advisor-card forecast-card">
+        <div class="forecast-row">
+          <span class="forecast-label">Projected</span>
+          <span class="forecast-value" [style.color]="forecastColor">${{ projectedTotal | number:'1.0-0' }}</span>
+        </div>
+        <div class="forecast-row">
+          <span class="forecast-label">vs. Budget</span>
+          <span class="forecast-badge" [style.background]="forecastColor + '20'" [style.color]="forecastColor">{{
+            forecastLabel }}</span>
+        </div>
+      </div>
+
+      <div class="advisor-card allowance-card" *ngIf="daysRemaining > 0">
+        <ion-icon name="calendar-outline"></ion-icon>
+        <div class="allowance-text">
+          <span class="allowance-label">{{ daysRemaining }} days left</span>
+          <span class="allowance-value">${{ dailyAllowanceRemaining | number:'1.0-0' }}/day to stay on track</span>
+        </div>
+      </div>
+
+      <div class="advisor-card tip-card">
+        <ion-icon name="bulb-outline" style="color: var(--nets-red);"></ion-icon>
+        <p class="tip-text">{{ advisorTip }}</p>
+      </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="transaction-list" *ngIf="transactions.length > 0">
+      <div class="transaction-item" *ngFor="let t of transactions">
+        <div class="t-left">
+          <span class="t-venue">{{ t.venueName }}</span>
+          <span class="t-time">{{ formatTimeAgo(t.timestamp) }}</span>
+        </div>
+        <span class="t-amount">-${{ t.amount | number:'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+  <!-- Plan Section (Planning Mode — shown separately) -->
+<div class="plan-section plan-mode" *ngIf="!isTripMode && plannedVenues.length > 0">
+  <div class="plan-header">
+    <ion-icon name="list-outline"></ion-icon>
+    <span>Your Plan ({{ plannedVenues.length }})</span>
+    <span class="plan-header-sub">Tap to view details</span>
+  </div>
+  <div class="plan-list">
+    <div class="plan-item" *ngFor="let venue of plannedVenues" (click)="openDetailModal(venue)">
+      <div class="plan-image" *ngIf="venue.photoUrl" [style.backgroundImage]="'url(' + venue.photoUrl + ')'"></div>
+      <div class="plan-image placeholder" *ngIf="!venue.photoUrl">
+        <ion-icon name="compass-outline"></ion-icon>
+      </div>
+      <div class="plan-info">
+        <span class="plan-name">{{ venue.venueName }}</span>
+        <span class="plan-meta">{{ getStars(venue.rating) }} {{ venue.rating }} · {{ getPriceLevel(venue.priceLevel) }}</span>
+      </div>
+      <ion-button fill="clear" size="small" (click)="removeFromPlan(venue); $event.stopPropagation()">
+        <ion-icon name="close-circle" color="danger"></ion-icon>
+      </ion-button>
+    </div>
+  </div>
+</div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary" style="color: var(--nets-red);"></ion-spinner>
+    <p class="loading-text">Analyzing your DNA...</p>
+    <p class="loading-sub">Curating spots in Johor Bahru just for you</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="error && !isLoading">
+    <ion-icon name="alert-circle-outline" color="danger" class="error-icon"></ion-icon>
+    <p class="error-text">{{ error }}</p>
+    <ion-button fill="outline" size="small" (click)="refresh()"
+      style="--border-color: var(--nets-red); --color: var(--nets-red);">
+      Try Again
+    </ion-button>
+  </div>
+
+  <!-- DNA Picks Section -->
+  <div class="dna-section" *ngIf="!isLoading && !error && recommendations.length > 0">
+    <div class="section-header dna-header">
+      <h2>🎯 Your DNA Picks</h2>
+      <p class="section-sub">AI-personalized for your spending habits</p>
+    </div>
+
+    <!-- Hero Card -->
+    <div class="hero-card" *ngIf="recommendations[0]" (click)="openDetailModal(recommendations[0])">
+      <div class="hero-image" *ngIf="recommendations[0].photoUrl"
+        [style.backgroundImage]="'url(' + recommendations[0].photoUrl + ')'">
+        <div class="hero-badge">Top Pick</div>
+      </div>
+      <div class="hero-image placeholder" *ngIf="!recommendations[0].photoUrl">
+        <div class="hero-badge">Top Pick</div>
+        <ion-icon name="restaurant-outline" class="placeholder-icon"></ion-icon>
+      </div>
+      <div class="hero-content">
+        <h3 class="hero-title">{{ recommendations[0].title }}</h3>
+        <p class="hero-description">{{ recommendations[0].description }}</p>
+        <div class="hero-meta">
+          <div class="dna-badges" *ngIf="recommendations[0]?.whyMatch?.length">
+            <span class="dna-badge" *ngFor="let badge of recommendations[0].whyMatch.slice(0, 2)">{{ badge }}</span>
+          </div>
+          <span class="venue-name">{{ recommendations[0].venueName }}</span>
+          <div class="rating-row">
+            <span class="stars">{{ getStars(recommendations[0].rating) }}</span>
+            <span class="rating-text" *ngIf="recommendations[0].rating">{{ recommendations[0].rating }} · {{
+              recommendations[0].reviewCount }} reviews</span>
+          </div>
+          <span class="price-level" *ngIf="recommendations[0].priceLevel">{{
+            getPriceLevel(recommendations[0].priceLevel) }}</span>
+          <p class="address"><ion-icon name="location-outline"></ion-icon> {{ recommendations[0].address }}</p>
+
+          <ion-button *ngIf="!isTripMode" fill="clear" size="small" class="plan-btn"
+            (click)="addToPlan(recommendations[0]); $event.stopPropagation()">
+            <ion-icon [name]="isPlanned(recommendations[0]) ? 'checkmark-circle' : 'add-circle-outline'"
+              slot="start"></ion-icon>
+            {{ isPlanned(recommendations[0]) ? 'Saved' : 'Add to Plan' }}
+          </ion-button>
+
+          <ion-button *ngIf="isTripMode" fill="clear" size="small" class="pay-btn"
+            (click)="openPaymentModal(recommendations[0]); $event.stopPropagation()">
+            <ion-icon name="card-outline" slot="start"></ion-icon>
+            Pay with NETS
+          </ion-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DNA Grid -->
+    <div class="dna-grid">
+      <div class="dna-grid-card" *ngFor="let card of recommendations.slice(1)" (click)="openDetailModal(card)">
+        <div class="dna-grid-image" *ngIf="card.photoUrl" [style.backgroundImage]="'url(' + card.photoUrl + ')'"></div>
+        <div class="dna-grid-image placeholder" *ngIf="!card.photoUrl">
+          <ion-icon name="compass-outline"></ion-icon>
+        </div>
+        <div class="dna-grid-content">
+          <h4 class="dna-grid-title">{{ card.title }}</h4>
+          <p class="dna-grid-desc">{{ card.description }}</p>
+          <div class="dna-grid-meta">
+            <div class="dna-badges" *ngIf="card.whyMatch?.length">
+              <span class="dna-badge" *ngFor="let badge of card.whyMatch.slice(0, 2)">{{ badge }}</span>
+            </div>
+            <span class="stars-small">{{ getStars(card.rating) }}</span>
+            <span *ngIf="card.rating">{{ card.rating }}</span>
+          </div>
+          <!-- Category budget indicator (Trip Mode only) -->
+          <div class="cat-budget-indicator" *ngIf="isTripMode && categoryBudgets[getCategoryFromCard(card)] > 0">
+            <div class="cat-budget-bar">
+              <div class="cat-budget-fill" [style.width.%]="getCategoryBudgetPercent(card)"
+                [style.background]="isCategoryOverBudget(getCategoryFromCard(card)) ? '#d71920' : '#34c759'">
+              </div>
+            </div>
+            <span class="cat-budget-text" [class.over]="isCategoryOverBudget(getCategoryFromCard(card))">
+              ${{ getSpentInCategory(getCategoryFromCard(card)) | number:'1.0-0' }} / ${{
+              categoryBudgets[getCategoryFromCard(card)] | number:'1.0-0' }}
+              <span *ngIf="isCategoryOverBudget(getCategoryFromCard(card))"> · Over by ${{
+                getCategoryOverspendAmount(getCategoryFromCard(card)) | number:'1.0-0' }}</span>
+            </span>
+          </div>
+
+          <ion-button *ngIf="!isTripMode" fill="clear" size="small" class="plan-btn-small"
+            (click)="addToPlan(card); $event.stopPropagation()">
+            <ion-icon [name]="isPlanned(card) ? 'checkmark' : 'add'"></ion-icon>
+          </ion-button>
+
+          <ion-button *ngIf="isTripMode" fill="clear" size="small" class="pay-btn-small"
+            (click)="openPaymentModal(card); $event.stopPropagation()">
+            <ion-icon name="card-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="category-sections" *ngIf="!isLoading && !error && categories.length > 0">
+    <div class="category-section" *ngFor="let cat of categories; let i = index">
+      <div class="category-header">
+        <div class="category-header-left">
+          <h3 class="category-title">{{ cat.title }}</h3>
+          <span class="category-budget" *ngIf="isTripMode && getCategoryBudgetDisplay(cat.title)"
+            [style.color]="getCategoryBudgetColor(cat.title)">
+            {{ getCategoryBudgetDisplay(cat.title) }}
+          </span>
+        </div>
+        <span class="category-count">{{ cat.cards.length }} spots</span>
+      </div>
+      <div class="category-scroll">
+        <div class="category-card" *ngFor="let card of cat.cards.slice(0, cat.visibleCount)"
+          (click)="openDetailModal(card)">
+          <div class="category-card-image" *ngIf="card.photoUrl" [style.backgroundImage]="'url(' + card.photoUrl + ')'">
+          </div>
+          <div class="category-card-image placeholder" *ngIf="!card.photoUrl">
+            <ion-icon name="storefront-outline"></ion-icon>
+          </div>
+          <div class="category-card-content">
+            <h4 class="category-card-title">{{ card.title }}</h4>
+            <p class="category-card-desc">{{ card.description }}</p>
+            <div class="category-card-meta" style="margin-top: 6px;">
+              <span class="match-badge" *ngIf="card.openNow">🕐 Open</span>
+              <span class="match-badge" *ngIf="card.distance && card.distance < 1000">📍 {{ card.distance |
+                number:'1.0-0' }}m</span>
+            </div>
+            <div class="category-card-meta">
+              <span class="stars-small">{{ getStars(card.rating) }}</span>
+              <span *ngIf="card.rating">{{ card.rating }}</span>
+              <span class="price-small" *ngIf="card.priceLevel">{{ getPriceLevel(card.priceLevel) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="load-more-circle" *ngIf="cat.cards.length > cat.visibleCount" (click)="loadMoreCards(cat)">
+          <div class="load-more-circle-inner">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+            <span class="load-more-count">+{{ cat.cards.length - cat.visibleCount }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DNA Footer -->
+  <div class="dna-footer">
+    <ion-icon name="information-circle-outline"></ion-icon>
+    <span>Recommendations based on your NETS spending DNA</span>
+  </div>
+
+  <div style="height: 100px;"></div>
+
 </ion-content>
+
+<!-- Detail Bottom Sheet -->
+<ion-modal [isOpen]="isDetailModalOpen" (didDismiss)="closeDetailModal()" class="detail-bottom-sheet"
+  [breakpoints]="[0, 0.75, 1]" [initialBreakpoint]="0.75">
+  <ng-template>
+    <div class="detail-sheet" *ngIf="selectedDetailCard">
+      <div class="detail-drag-handle"></div>
+      <div class="detail-photo-gallery">
+        <div class="detail-photo" *ngIf="selectedDetailCard.photoUrl"
+          [style.backgroundImage]="'url(' + selectedDetailCard.photoUrl + ')'"></div>
+        <div class="detail-photo placeholder" *ngIf="!selectedDetailCard.photoUrl">
+          <ion-icon name="restaurant-outline"></ion-icon>
+        </div>
+        <div class="photo-dots" *ngIf="selectedDetailCard.photoUrl">
+          <span class="dot active"></span>
+        </div>
+      </div>
+
+      <div class="detail-content">
+        <h2 class="detail-title">{{ selectedDetailCard.venueName }}</h2>
+        <div class="detail-rating-row">
+          <span class="detail-stars">{{ getStars(selectedDetailCard.rating) }}</span>
+          <span class="detail-rating-text">{{ selectedDetailCard.rating }} · {{ selectedDetailCard.reviewCount }}
+            reviews</span>
+          <span class="detail-price">{{ getPriceLevel(selectedDetailCard.priceLevel) }}</span>
+        </div>
+
+        <div class="detail-badges" *ngIf="selectedDetailCard.whyMatch?.length">
+          <span class="detail-badge" *ngFor="let badge of selectedDetailCard.whyMatch.slice(0, 3)">{{ badge }}</span>
+        </div>
+
+        <div class="detail-info-cards">
+          <div class="detail-info-card" *ngIf="selectedDetailCard.address">
+            <ion-icon name="location-outline"></ion-icon>
+            <div class="detail-info-text">
+              <span class="detail-info-label">Address</span>
+              <span class="detail-info-value">{{ selectedDetailCard.address }}</span>
+            </div>
+          </div>
+          <div class="detail-info-card">
+            <ion-icon name="time-outline"></ion-icon>
+            <div class="detail-info-text">
+              <span class="detail-info-label">Hours</span>
+              <span class="detail-info-value" [class.open]="selectedDetailCard.openNow">
+                {{ getOpeningHoursText(selectedDetailCard) }}
+                <span *ngIf="selectedDetailCard.openNow"> · Closes 10PM</span>
+              </span>
+            </div>
+          </div>
+          <div class="detail-info-card" *ngIf="selectedDetailCard.distance">
+            <ion-icon name="navigate-outline"></ion-icon>
+            <div class="detail-info-text">
+              <span class="detail-info-label">Distance</span>
+              <span class="detail-info-value">{{ getSmartDistance(selectedDetailCard) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-dna-context" *ngIf="selectedDetailCard.description">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          <p>{{ selectedDetailCard.description }}</p>
+        </div>
+      </div>
+
+      <ion-button *ngIf="!isTripMode" expand="block" class="detail-btn-plan"
+        (click)="addToPlan(selectedDetailCard!); closeDetailModal()">
+        <ion-icon [name]="isPlanned(selectedDetailCard!) ? 'checkmark' : 'add'" slot="start"></ion-icon>
+        {{ isPlanned(selectedDetailCard!) ? 'Saved to Plan' : 'Add to Plan' }}
+      </ion-button>
+
+      <div class="detail-actions" *ngIf="isTripMode">
+        <ion-button expand="block" class="detail-btn-maps" (click)="goToMapsFromDetail()">
+          <ion-icon name="navigate-circle-outline" slot="start"></ion-icon>
+          Get Directions
+        </ion-button>
+        <ion-button expand="block" class="detail-btn-pay" (click)="payFromDetail()">
+          <ion-icon name="card-outline" slot="start"></ion-icon>
+          Pay with NETS
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- Budget Simulator Modal -->
+<ion-modal [isOpen]="isSimulatorOpen" (didDismiss)="closeSimulator()" class="simulator-modal">
+  <ng-template>
+    <div class="simulator-sheet">
+      <div class="detail-drag-handle"></div>
+      <h2 class="simulator-title">💡 Budget Allocator</h2>
+      <p class="simulator-sub">Drag to set your spending limit per category</p>
+
+      <div class="sim-total-budget">
+        <span class="sim-total-label">Trip Budget</span>
+        <span class="sim-total-value">${{ budget?.typicalTripSpend | number:'1.0-0' }}</span>
+      </div>
+
+      <div class="sim-allocated-bar">
+        <div class="sim-allocated-fill" [style.width.%]="(simulatorTotal / (budget?.typicalTripSpend || 1)) * 100"
+          [class.over]="simulatorTotal > (budget?.typicalTripSpend || 0)"></div>
+      </div>
+      <p class="sim-allocated-text" [class.over]="simulatorTotal > (budget?.typicalTripSpend || 0)">
+        ${{ simulatorTotal | number:'1.0-0' }} allocated
+        <span *ngIf="simulatorTotal > (budget?.typicalTripSpend || 0)">· Over by ${{ (simulatorTotal -
+          (budget?.typicalTripSpend || 0)) | number:'1.0-0' }}</span>
+        <span *ngIf="simulatorTotal <= (budget?.typicalTripSpend || 0)">· ${{ (budget?.typicalTripSpend || 0) -
+          simulatorTotal | number:'1.0-0' }} left to allocate</span>
+      </p>
+
+      <div class="simulator-categories">
+        <div class="sim-cat-row" *ngFor="let cat of simulatorCategories">
+          <div class="sim-cat-header">
+            <span class="sim-cat-name" [style.color]="cat.color">{{ cat.name }}</span>
+            <span class="sim-cat-budget">${{ cat.adjusted | number:'1.0-0' }}</span>
+          </div>
+
+          <div class="sim-slider-wrap">
+            <span class="sim-slider-min">$0</span>
+            <input type="range" class="sim-slider" [min]="0" [max]="budget?.typicalTripSpend || 500" [step]="5"
+              [(ngModel)]="cat.adjusted" [style.accentColor]="cat.color" />
+            <span class="sim-slider-max">${{ budget?.typicalTripSpend | number:'1.0-0' }}</span>
+          </div>
+
+          <!-- Show if already spent in this category -->
+          <div class="sim-cat-spent" *ngIf="cat.current > 0">
+            Already spent: ${{ cat.current | number:'1.0-0' }} ·
+            <span [class.over]="cat.current > cat.adjusted">
+              {{ cat.current > cat.adjusted ? 'Over by $' + (cat.current - cat.adjusted).toFixed(0) : '$' +
+              (cat.adjusted - cat.current).toFixed(0) + ' left' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <ion-button expand="block" class="sim-apply-btn" (click)="applySimulatorPlan()"
+        [disabled]="simulatorTotal > (budget?.typicalTripSpend || 0)">
+        <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+        {{ simulatorTotal > (budget?.typicalTripSpend || 0) ? 'Over Budget — Adjust First' : 'Apply Budget Plan' }}
+      </ion-button>
+
+      <ion-button expand="block" fill="clear" class="sim-close-btn" (click)="closeSimulator()">
+        Cancel
+      </ion-button>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- Post-Trip Report Modal -->
+<ion-modal [isOpen]="isReportOpen" (didDismiss)="closeReport()" class="report-modal" [breakpoints]="[0, 0.9, 1]"
+  [initialBreakpoint]="0.9">
+  <ng-template>
+    <div class="report-sheet" *ngIf="tripReport">
+      <div class="detail-drag-handle"></div>
+
+      <div class="report-header">
+        <div class="report-badge">🛫 Trip Complete</div>
+        <h2 class="report-title">Johor Bahru</h2>
+        <p class="report-subtitle">{{ tripReport.days }} days · {{ tripReport.venuesVisited }} venues</p>
+      </div>
+
+      <div class="report-hero">
+        <div class="report-hero-stat">
+          <span class="report-hero-value">${{ tripReport.totalSpent | number:'1.0-0' }}</span>
+          <span class="report-hero-label">Total Spent</span>
+        </div>
+        <div class="report-hero-divider"></div>
+        <div class="report-hero-stat">
+          <span class="report-hero-value" [style.color]="getReportOverUnderColor()">{{ getReportOverUnderLabel()
+            }}</span>
+          <span class="report-hero-label">vs. ${{ tripReport.typical | number:'1.0-0' }} typical</span>
+        </div>
+      </div>
+
+      <div class="report-bar-wrap">
+        <div class="report-bar-bg">
+          <div class="report-bar-fill" [style.width.%]="tripReport.percentageUsed"
+            [style.background]="tripReport.percentageUsed > 100 ? '#d71920' : tripReport.percentageUsed > 75 ? '#ff9500' : '#34c759'">
+          </div>
+        </div>
+        <span class="report-bar-text">{{ tripReport.percentageUsed }}% of budget used</span>
+      </div>
+
+      <div class="report-categories">
+        <h3 class="report-section-title">Spending Breakdown</h3>
+        <div class="report-cat-row" *ngFor="let cat of tripReport.categoryBreakdown">
+          <div class="report-cat-info">
+            <span class="report-cat-dot" [style.background]="cat.color"></span>
+            <span class="report-cat-name">{{ cat.name }}</span>
+            <span class="report-cat-pct">{{ cat.percentage }}%</span>
+          </div>
+          <div class="report-cat-bar-bg">
+            <div class="report-cat-bar-fill" [style.width.%]="cat.percentage" [style.background]="cat.color"></div>
+          </div>
+          <span class="report-cat-amount">${{ cat.amount | number:'1.0-0' }}</span>
+        </div>
+      </div>
+
+      <div class="report-insights" *ngIf="tripReport.vsHome !== 0">
+        <div class="insight-card">
+          <ion-icon name="pulse-outline"></ion-icon>
+          <div class="insight-text">
+            <span class="insight-label">Pace vs. Home</span>
+            <span class="insight-value">{{ tripReport.vsHome > 0 ? '+' : '' }}{{ tripReport.vsHome | number:'1.0-0' }}%
+              {{ tripReport.vsHome > 0 ? 'faster' : 'slower' }} than your Singapore average</span>
+          </div>
+        </div>
+        <div class="insight-card">
+          <ion-icon name="cash-outline"></ion-icon>
+          <div class="insight-text">
+            <span class="insight-label">Daily Average</span>
+            <span class="insight-value">${{ tripReport.avgDaily | number:'1.0-0' }} / day</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-venues" *ngIf="tripReport.venueNames.length > 0">
+        <h3 class="report-section-title">Places Visited</h3>
+        <div class="report-venue-tags">
+          <span class="report-venue-tag" *ngFor="let v of tripReport.venueNames">{{ v }}</span>
+        </div>
+      </div>
+
+      <div class="report-actions">
+        <ion-button expand="block" class="report-download-btn" (click)="downloadReport()">
+          <ion-icon name="download-outline" slot="start"></ion-icon>
+          Save to Gallery
+        </ion-button>
+        <ion-button expand="block" fill="clear" class="report-copy-btn" (click)="copyReportText()">
+          <ion-icon name="copy-outline" slot="start"></ion-icon>
+          Copy Summary
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+<!-- End Trip Confirmation Modal -->
+<ion-modal [isOpen]="isConfirmingEndTrip" (didDismiss)="cancelEndTrip()" class="confirm-modal"
+  [backdropDismiss]="false">
+  <ng-template>
+    <div class="confirm-sheet" *ngIf="tripToEndSummary">
+
+      <div class="confirm-icon">
+        <ion-icon name="airplane-outline"></ion-icon>
+        <div class="confirm-plane-trail"></div>
+        <ion-icon name="home-outline" class="confirm-home"></ion-icon>
+      </div>
+
+      <h2 class="confirm-title">Arrive Home?</h2>
+      <p class="confirm-sub">You're about to end your JB trip</p>
+
+      <div class="confirm-stats">
+        <div class="confirm-stat">
+          <span class="confirm-stat-value">${{ tripToEndSummary.totalSpent | number:'1.0-0' }}</span>
+          <span class="confirm-stat-label">Spent</span>
+        </div>
+        <div class="confirm-stat">
+          <span class="confirm-stat-value">{{ tripToEndSummary.day }}</span>
+          <span class="confirm-stat-label">Days</span>
+        </div>
+        <div class="confirm-stat">
+          <span class="confirm-stat-value">{{ tripToEndSummary.venueCount }}</span>
+          <span class="confirm-stat-label">Venues</span>
+        </div>
+      </div>
+
+      <div class="confirm-bar-wrap">
+        <div class="confirm-bar-bg">
+          <div class="confirm-bar-fill" [style.width.%]="tripToEndSummary.percentageUsed"
+            [style.background]="tripToEndSummary.percentageUsed > 100 ? '#d71920' : tripToEndSummary.percentageUsed > 75 ? '#ff9500' : '#34c759'">
+          </div>
+        </div>
+        <span class="confirm-bar-text">{{ tripToEndSummary.percentageUsed }}% of budget used</span>
+      </div>
+
+      <p class="confirm-warning" *ngIf="tripToEndSummary.overUnder > 0">
+        <ion-icon name="warning-outline"></ion-icon>
+        You went ${{ tripToEndSummary.overUnder | number:'1.0-0' }} over budget
+      </p>
+      <p class="confirm-saving" *ngIf="tripToEndSummary.overUnder <= 0">
+        <ion-icon name="trending-down-outline"></ion-icon>
+        You saved ${{ tripToEndSummary.overUnder <= 0 ? (tripToEndSummary.overUnder * -1 | number:'1.0-0') : 0 }}! </p>
+
+          <div class="confirm-actions">
+            <ion-button expand="block" class="confirm-end-btn" (click)="confirmEndTrip()">
+              <ion-icon name="home" slot="start"></ion-icon>
+              Yes, Arrive Home
+            </ion-button>
+            <ion-button expand="block" fill="clear" class="confirm-cancel-btn" (click)="cancelEndTrip()">
+              Keep Exploring
+            </ion-button>
+          </div>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- Budget Picker Modal -->
+<ion-modal [isOpen]="isBudgetPickerOpen" (didDismiss)="closeBudgetPicker()" class="budget-picker-modal"
+  [backdropDismiss]="false">
+  <ng-template>
+    <div class="budget-picker-sheet">
+      <div class="detail-drag-handle"></div>
+
+      <div class="budget-picker-header">
+        <ion-icon name="airplane-outline"></ion-icon>
+        <h2>Ready for JB?</h2>
+        <p>Set your trip budget</p>
+      </div>
+
+      <!-- DNA Recommendation -->
+      <div class="dna-recommendation" *ngIf="dnaBudgetRecommendation > 0">
+        <div class="dna-rec-badge">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          <span>Based on your DNA</span>
+        </div>
+        <p class="dna-rec-text">
+          Your 4-day spending pattern suggests <strong>${{ dnaBudgetRecommendation | number:'1.0-0' }}</strong>
+        </p>
+        <p class="dna-rec-sub" *ngIf="dnaDailyAverage > 0">
+          That's about ${{ dnaDailyAverage * 4 | number:'1.0-0' }} for 4 days (${{ dnaDailyAverage | number:'1.0-0'
+          }}/day)
+        </p>
+      </div>
+
+      <!-- Quick Options -->
+      <div class="budget-options">
+        <button *ngFor="let opt of budgetOptions" (click)="selectBudgetOption(opt)"
+          [class.selected]="selectedBudgetOption === opt && !customBudget"
+          [class.dna-match]="opt === dnaBudgetRecommendation">
+          <span class="budget-opt-amount">${{ opt }}</span>
+          <span class="budget-opt-label" *ngIf="opt === dnaBudgetRecommendation">DNA Match</span>
+          <span class="budget-opt-label" *ngIf="opt !== dnaBudgetRecommendation">${{ opt / 4 | number:'1.0-0'
+            }}/day</span>
+        </button>
+      </div>
+
+      <!-- Custom Input -->
+      <div class="budget-custom">
+        <span class="budget-custom-label">Or enter your own:</span>
+        <div class="budget-custom-input-wrap">
+          <span class="budget-custom-currency">$</span>
+          <input type="number" class="budget-custom-input" placeholder="500" [(ngModel)]="customBudget"
+            (input)="onCustomBudgetInput($event)" />
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="budget-summary">
+        <span class="budget-summary-label">Trip Budget</span>
+        <span class="budget-summary-value">${{ selectedBudgetOption | number:'1.0-0' }}</span>
+        <span class="budget-summary-daily">~${{ selectedBudgetOption / 4 | number:'1.0-0' }} per day</span>
+      </div>
+
+      <!-- Actions -->
+      <ion-button expand="block" class="budget-start-btn" (click)="confirmBudgetAndStartTrip()">
+        <ion-icon name="airplane" slot="start"></ion-icon>
+        Start Trip
+      </ion-button>
+
+      <ion-button expand="block" fill="clear" class="budget-cancel-btn" (click)="closeBudgetPicker()">
+        Cancel
+      </ion-button>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- FX FAB -->
+<div class="fx-fab-container" (click)="goToFxTracker()">
+  <div class="fx-fab" *ngIf="fxInsight" [style.border-color]="getFxTrendColor()">
+    <div class="fx-fab-inner">
+      <span class="fx-fab-rate">{{ fxInsight.currentRate | number:'1.3-3' }}</span>
+      <span class="fx-fab-unit">MYR</span>
+      <ion-icon [name]="getFxTrendIcon()" [style.color]="getFxTrendColor()"></ion-icon>
+    </div>
+  </div>
+  <div class="fx-fab-loading" *ngIf="!fxInsight">
+    <ion-spinner name="crescent" style="color: white;"></ion-spinner>
+  </div>
+  <span class="fx-fab-label">FX</span>
+</div>
+
+<!-- Payment Modal -->
+<ion-modal [isOpen]="isPaymentModalOpen" (didDismiss)="closePaymentModal()">
+  <ng-template>
+    <div class="payment-panel">
+      <div class="payment-header">
+        <h2>Pay at {{ selectedVenue?.venueName }}</h2>
+        <ion-button fill="clear" (click)="closePaymentModal()">
+          <ion-icon slot="icon-only" name="close"></ion-icon>
+        </ion-button>
+      </div>
+
+      <div class="payment-card-display" [ngClass]="cardThemeClass" *ngIf="activeCard">
+        <div class="payment-card-header">
+          <span class="payment-card-label">{{ cardFundsLabel }}</span>
+          <span class="payment-card-badge" *ngIf="cardBrandBadge">{{ cardBrandBadge }}</span>
+        </div>
+        <h1 class="payment-card-balance">{{ displayedCardBalance }}</h1>
+        <p class="payment-card-number">{{ cardDisplayNumber }}</p>
+      </div>
+
+      <div class="payment-no-card" *ngIf="!activeCard">
+        <ion-icon name="card-outline"></ion-icon>
+        <p>No card selected. Go to Home to select a card.</p>
+      </div>
+
+      <p class="payment-field-label">Amount</p>
+      <div class="payment-amount-box">
+        <span class="payment-currency">$</span>
+        <ion-input type="text" inputmode="decimal" [value]="paymentAmountText"
+          (ionInput)="onPaymentAmountInput($event)"></ion-input>
+      </div>
+
+      <div class="payment-quick-chips">
+        <button type="button" *ngFor="let amt of quickPayAmounts" (click)="selectPaymentAmount(amt)"
+          [class.selected]="paymentAmount === amt">
+          ${{ amt }}
+        </button>
+      </div>
+
+      <ion-button expand="block" class="payment-confirm-btn" (click)="confirmPayment()"
+        [disabled]="paymentAmount < 0.01 || isPaying || !activeCard">
+        {{ isPaying ? 'Processing...' : 'Confirm Payment' }}
+      </ion-button>
+    </div>
+  </ng-template>
+</ion-modal>

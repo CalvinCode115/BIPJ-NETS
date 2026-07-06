@@ -1,0 +1,69 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" aria-label="Back to More">
+        <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Notifications</ion-title>
+    @if (unreadCount > 0) {
+      <ion-buttons slot="end">
+        <ion-button fill="clear" (click)="markAllRead()">Mark all read</ion-button>
+      </ion-buttons>
+    }
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="notifications-content">
+  <div class="notifications-page">
+    <section>
+      <h2>Alert preferences</h2>
+      @for (pref of preferences; track pref.id) {
+        <article class="pref-row">
+          <div class="pref-copy">
+            <h3>{{ pref.label }}</h3>
+            <p>{{ pref.detail }}</p>
+          </div>
+          <ion-toggle
+            [checked]="pref.enabled"
+            (ionChange)="onPreferenceChange(pref, $event.detail.checked)"
+            mode="ios"
+          ></ion-toggle>
+        </article>
+      }
+    </section>
+
+    <section>
+      <h2>Recent alerts</h2>
+      @if (isLoading) {
+        <p class="empty-text">Loading notifications...</p>
+      } @else if (!notifications.length) {
+        <p class="empty-text">No notifications yet. PayNow transfers and wallet activity will show here.</p>
+      } @else {
+        @for (item of notifications; track item.id) {
+          <article class="alert-row" [class.unread]="!item.read">
+            <div class="alert-icon">
+              <ion-icon name="notifications"></ion-icon>
+            </div>
+            <div class="alert-body">
+              <div class="alert-head">
+                <h3>{{ item.title }}</h3>
+                <span class="alert-time">{{ formatWhen(item.createdAt) }}</span>
+              </div>
+              @if (notificationAmount(item); as amount) {
+                <p class="alert-amount">{{ amount }}</p>
+              }
+              <p class="alert-detail">
+                @if (item.type === 'transfer_received') {
+                  from {{ notificationSender(item) }}
+                } @else {
+                  {{ item.message }}
+                }
+              </p>
+            </div>
+          </article>
+        }
+      }
+    </section>
+  </div>
+</ion-content>

@@ -1,0 +1,147 @@
+<ion-header class="tx-header">
+  <ion-toolbar>
+    <ion-title>All Transactions</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="closeTransactions()" aria-label="Close transactions">
+        <ion-icon slot="icon-only" name="close"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="tx-content">
+  <div class="tx-page">
+    <div class="search-row">
+      <div class="search-wrap">
+        <ion-icon name="search"></ion-icon>
+        <input
+          type="search"
+          placeholder="Search transactions..."
+          [(ngModel)]="searchQuery"
+          (ngModelChange)="onSearchChange()"
+          aria-label="Search transactions"
+        />
+      </div>
+      <button
+        type="button"
+        class="filter-btn"
+        [class.open]="isFilterOpen"
+        [class.has-filters]="hasActiveFilters"
+        (click)="toggleFilters()"
+        aria-label="Filter transactions"
+        [attr.aria-expanded]="isFilterOpen"
+      >
+        <ion-icon name="options-outline"></ion-icon>
+      </button>
+    </div>
+
+    @if (isFilterOpen) {
+      <div class="filter-panel">
+        <div class="filter-section">
+          <p class="filter-label">Filter by Type</p>
+          <div class="chip-row">
+            @for (filter of typeFilters; track filter.id) {
+              <button
+                type="button"
+                class="chip"
+                [class.active]="activeTypeFilter === filter.id"
+                (click)="setTypeFilter(filter.id)"
+              >
+                {{ filter.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <p class="filter-label">Filter by Category</p>
+          <div class="chip-row">
+            @for (category of categoryFilters; track category) {
+              <button
+                type="button"
+                class="chip"
+                [class.active]="activeCategoryFilter === category"
+                (click)="setCategoryFilter(category)"
+              >
+                {{ category }}
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    <div class="period-row">
+      <button type="button" class="change-period-btn" (click)="openPeriodSheet()">
+        {{ summary.monthLabel || 'Select period' }}
+      </button>
+    </div>
+
+    <div class="summary-banner">
+      <div>
+        <p class="summary-label">Total Spending ({{ summary.month }})</p>
+        <p class="summary-amount">${{ summary.totalSpending | number }}</p>
+      </div>
+      <div class="summary-meta">
+        <span>{{ summary.transactionCount }} transactions</span>
+        <span>Avg ${{ summary.avgPerDay }}/day</span>
+      </div>
+    </div>
+
+    @if (loadError) {
+      <p class="load-error">{{ loadError }}</p>
+    }
+
+    @if (isLoading) {
+      <div class="loading-state">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+    }
+
+    @for (group of filteredGroups; track group.date) {
+      <div class="date-group">
+        <div class="date-header">
+          <span>{{ group.date }}</span>
+          <span [class.positive]="getGroupTotal(group.items) >= 0" [class.negative]="getGroupTotal(group.items) < 0">
+            {{ formatAmount(getGroupTotal(group.items)) }}
+          </span>
+        </div>
+
+        @for (item of group.items; track item.id) {
+          <div class="tx-row">
+            <div class="tx-icon" [style.background]="item.iconColor + '18'" [style.color]="item.iconColor">
+              <ion-icon [name]="item.icon"></ion-icon>
+            </div>
+            <div class="tx-details">
+              <p class="tx-merchant">{{ item.merchant }}</p>
+              <p class="tx-meta">{{ item.metaLine }} · {{ item.time }}</p>
+            </div>
+            <span class="tx-amount" [class.income]="item.amount > 0" [class.expenditure]="item.amount < 0">
+              {{ formatAmount(item.amount) }}
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (filteredGroups.length === 0) {
+      <div class="empty-state">
+        <ion-icon name="search"></ion-icon>
+        <p>No transactions match your filters.</p>
+      </div>
+    }
+
+    @if (canLoadMore && filteredGroups.length > 0) {
+      <button type="button" class="load-more-btn" (click)="loadMore()">Load More Transactions</button>
+    }
+  </div>
+</ion-content>
+
+<app-period-select-sheet
+  [isOpen]="isPeriodSheetOpen"
+  title="Select Period"
+  [options]="periodSheetOptions"
+  [selectedId]="periodSelectValue"
+  (selected)="onPeriodSelected($event)"
+  (dismissed)="closePeriodSheet()"
+></app-period-select-sheet>
