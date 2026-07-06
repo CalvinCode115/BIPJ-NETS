@@ -1,0 +1,265 @@
+<div 
+  class="tapatchi-container" 
+  [class.animated]="animated"
+  [class.mood-happy]="mood === 'happy'"
+  [class.mood-normal]="mood === 'normal'"
+  [class.mood-sad]="mood === 'sad'"
+  [class.mood-starving]="mood === 'starving'"
+  [class.mood-sleeping]="mood === 'sleeping'"
+  [class.mood-excited]="mood === 'excited'"
+  [style.width.px]="size"
+  [style.height.px]="size"
+>
+  <svg 
+    viewBox="0 0 240 240" 
+    xmlns="http://www.w3.org/2000/svg"
+    class="tapatchi-svg"
+  >
+    <!-- ============================================ -->
+    <!-- SHADOW UNDER BODY -->
+    <!-- ============================================ -->
+    <ellipse 
+      cx="120" 
+      cy="220" 
+      rx="70" 
+      ry="8" 
+      fill="rgba(0,0,0,0.15)"
+      class="shadow"
+    />
+
+    <!-- ============================================ -->
+    <!-- SIDE EARS / ARMS (small bumps on sides) -->
+    <!-- ============================================ -->
+    <!-- Left ear/arm -->
+    <ellipse 
+      cx="35" 
+      cy="135" 
+      rx="14" 
+      ry="20" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="arm arm-left"
+    />
+
+    <!-- Right ear/arm -->
+    <ellipse 
+      cx="205" 
+      cy="135" 
+      rx="14" 
+      ry="20" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="arm arm-right"
+    />
+
+    <!-- ============================================ -->
+    <!-- FEET (chunky, visible) -->
+    <!-- ============================================ -->
+    <!-- Left foot -->
+    <ellipse 
+      cx="85" 
+      cy="210" 
+      rx="22" 
+      ry="14" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="leg leg-left"
+    />
+
+    <!-- Right foot -->
+    <ellipse 
+      cx="155" 
+      cy="210" 
+      rx="22" 
+      ry="14" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="leg leg-right"
+    />
+
+    <!-- ============================================ -->
+    <!-- MAIN BODY (Big, puffy, slightly squat) -->
+    <!-- ============================================ -->
+    <ellipse 
+      cx="120" 
+      cy="125" 
+      rx="88" 
+      ry="82" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="6"
+      stroke-linejoin="round"
+      class="body"
+    />
+
+    <!-- ============================================ -->
+    <!-- CHEEKS (Bigger, softer, peachy-yellow) -->
+    <!-- ============================================ -->
+    <!-- Left cheek -->
+    <ellipse 
+      cx="68" 
+      cy="145" 
+      rx="22" 
+      ry="18" 
+      fill="#FFE066"
+      opacity="0.85"
+      class="cheek cheek-left"
+    />
+
+    <!-- Right cheek -->
+    <ellipse 
+      cx="172" 
+      cy="145" 
+      rx="22" 
+      ry="18" 
+      fill="#FFE066"
+      opacity="0.85"
+      class="cheek cheek-right"
+    />
+
+    <!-- ============================================ -->
+    <!-- EYES GROUP -->
+    <!-- ============================================ -->
+    <g class="eyes">
+      <!-- Happy/Normal/Excited eyes (with shine) -->
+      <ng-container *ngIf="mood === 'happy' || mood === 'normal' || mood === 'excited'">
+        <!-- Left eye - outer black -->
+        <ellipse cx="93" cy="105" rx="10" ry="13" fill="#1E3A8A" class="eye-left"/>
+        <!-- Left eye - shine -->
+        <ellipse cx="97" cy="100" rx="3.5" ry="4.5" fill="#FFFFFF"/>
+        <!-- Left eye - small shine -->
+        <circle cx="91" cy="110" r="1.5" fill="#FFFFFF"/>
+        
+        <!-- Right eye - outer black -->
+        <ellipse cx="147" cy="105" rx="10" ry="13" fill="#1E3A8A" class="eye-right"/>
+        <!-- Right eye - shine -->
+        <ellipse cx="151" cy="100" rx="3.5" ry="4.5" fill="#FFFFFF"/>
+        <!-- Right eye - small shine -->
+        <circle cx="145" cy="110" r="1.5" fill="#FFFFFF"/>
+      </ng-container>
+
+      <!-- Sad eyes (droopy) -->
+      <g class="eyes-sad" *ngIf="mood === 'sad'">
+        <path d="M 83 110 Q 93 118 103 110" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M 137 110 Q 147 118 157 110" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- Starving eyes (worried, half-closed) -->
+      <g class="eyes-starving" *ngIf="mood === 'starving'">
+        <path d="M 83 105 Q 93 115 103 105" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M 137 105 Q 147 115 157 105" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- Sleeping eyes (closed peaceful curves) -->
+      <g class="eyes-sleeping" *ngIf="mood === 'sleeping'">
+        <path d="M 80 108 Q 93 100 106 108" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M 134 108 Q 147 100 160 108" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <!-- ============================================ -->
+    <!-- MOUTH (Thicker, more confident) -->
+    <!-- ============================================ -->
+    <g class="mouth">
+      <!-- Happy smile (big and confident) -->
+      <path 
+        *ngIf="mood === 'happy' || mood === 'excited'" 
+        d="M 90 155 Q 120 180 150 155" 
+        stroke="#1E3A8A" 
+        stroke-width="6" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+
+      <!-- Normal smile (smaller) -->
+      <path 
+        *ngIf="mood === 'normal'" 
+        d="M 100 158 Q 120 172 140 158" 
+        stroke="#1E3A8A" 
+        stroke-width="6" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+
+      <!-- Sad mouth (frown) -->
+      <path 
+        *ngIf="mood === 'sad'" 
+        d="M 100 170 Q 120 155 140 170" 
+        stroke="#1E3A8A" 
+        stroke-width="6" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+
+      <!-- Starving mouth (small worried o) -->
+      <ellipse 
+        *ngIf="mood === 'starving'" 
+        cx="120" 
+        cy="165" 
+        rx="7" 
+        ry="10" 
+        fill="#1E3A8A"
+      />
+
+      <!-- Sleeping mouth (tiny smile) -->
+      <path 
+        *ngIf="mood === 'sleeping'" 
+        d="M 110 162 Q 120 168 130 162" 
+        stroke="#1E3A8A" 
+        stroke-width="4" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+    </g>
+
+    <!-- ============================================ -->
+    <!-- SLEEP Z's -->
+    <!-- ============================================ -->
+    <g *ngIf="mood === 'sleeping'" class="sleep-zs">
+      <text x="175" y="65" font-family="Fredoka, sans-serif" font-size="28" font-weight="700" fill="#87CEEB" class="z z1">z</text>
+      <text x="195" y="50" font-family="Fredoka, sans-serif" font-size="22" font-weight="700" fill="#87CEEB" class="z z2">z</text>
+      <text x="212" y="38" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#87CEEB" class="z z3">z</text>
+    </g>
+
+    <!-- ============================================ -->
+    <!-- TEARS (for starving) -->
+    <!-- ============================================ -->
+    <g *ngIf="mood === 'starving'" class="tears">
+      <path d="M 85 125 Q 83 135 85 145 Q 87 135 85 125 Z" fill="#87CEEB" class="tear tear-left"/>
+      <path d="M 155 125 Q 153 135 155 145 Q 157 135 155 125 Z" fill="#87CEEB" class="tear tear-right"/>
+    </g>
+
+    <!-- ============================================ -->
+    <!-- SPARKLES / STARS (for excited mood) -->
+    <!-- ============================================ -->
+    <g *ngIf="mood === 'excited'" class="sparkles">
+      <!-- Top left star -->
+      <g class="sparkle s1" transform="translate(20, 50)">
+        <path d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+      </g>
+      
+      <!-- Top right star -->
+      <g class="sparkle s2" transform="translate(220, 60)">
+        <path d="M 0 -12 L 4 -4 L 12 0 L 4 4 L 0 12 L -4 4 L -12 0 L -4 -4 Z" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+      </g>
+      
+      <!-- Middle left small star -->
+      <g class="sparkle s3" transform="translate(15, 130)">
+        <path d="M 0 -7 L 2 -2 L 7 0 L 2 2 L 0 7 L -2 2 L -7 0 L -2 -2 Z" fill="#FFD700"/>
+      </g>
+      
+      <!-- Middle right small star -->
+      <g class="sparkle s4" transform="translate(225, 110)">
+        <path d="M 0 -7 L 2 -2 L 7 0 L 2 2 L 0 7 L -2 2 L -7 0 L -2 -2 Z" fill="#FFD700"/>
+      </g>
+    </g>
+  </svg>
+</div>

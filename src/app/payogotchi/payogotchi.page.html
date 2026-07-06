@@ -11,5 +11,33 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content [fullscreen]="true">
+  <div class="test-container">
+    <h2>Tapatchi Character Test</h2>
+    
+    <!-- The Tapatchi! -->
+    <div class="pet-display">
+      <app-tapatchi [mood]="currentMood" [size]="250"></app-tapatchi>
+    </div>
+
+    <!-- Mood selector buttons -->
+    <h3>Test Different Moods:</h3>
+    <div class="mood-buttons">
+      <ion-button 
+        *ngFor="let mood of moods"
+        [color]="currentMood === mood ? 'primary' : 'medium'"
+        (click)="setMood(mood)"
+      >
+        {{ mood }}
+      </ion-button>
+    </div>
+
+    <!-- Size test -->
+    <h3>Different Sizes:</h3>
+    <div class="size-test">
+      <app-tapatchi [mood]="'happy'" [size]="100"></app-tapatchi>
+      <app-tapatchi [mood]="'happy'" [size]="150"></app-tapatchi>
+      <app-tapatchi [mood]="'happy'" [size]="200"></app-tapatchi>
+    </div>
+  </div>
 </ion-content>

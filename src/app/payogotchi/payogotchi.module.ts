@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PayogotchiPage } from './payogotchi.page';
 import { PayogotchiPageRoutingModule } from './payogotchi-routing.module';
+import { TapatchiComponent } from '../components/tapatchi/tapatchi.component';
 
 @NgModule({
   imports: [
@@ -12,6 +13,6 @@ import { PayogotchiPageRoutingModule } from './payogotchi-routing.module';
     FormsModule,
     PayogotchiPageRoutingModule
   ],
-  declarations: [PayogotchiPage]
+  declarations: [PayogotchiPage, TapatchiComponent]
 })
 export class PayogotchiPageModule {}
