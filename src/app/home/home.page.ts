@@ -193,7 +193,7 @@ export class HomePage {
     { label: 'Payogotchi', icon: 'gift', color: '#f2994a' },
     { label: 'Tx History', icon: 'card', color: '#2f80ed', route: '/tabs/home/home-all-transactions' },
     { label: 'Rewards', icon: 'ribbon', color: '#f2c94c' },
-    { label: 'Exchange', icon: 'swap-horizontal', color: '#9b51e0' },
+    { label: 'Exchange', icon: 'swap-horizontal', color: '#9b51e0', route: '/tabs/fx-tracker' },
   ];
 
   ionViewWillEnter(): void {
