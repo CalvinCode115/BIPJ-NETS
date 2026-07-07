@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin, of, throwError } from 'rxjs';
 import { map, catchError, switchMap } from 'rxjs/operators';
+import { DestinationConfig } from '../services/destination.config';
+import { CacheService } from '../services/cache.service';
 import {
   DnaProfile, GooglePlace, RecommendationCard,
   CategorySection, BudgetTracker
@@ -12,20 +14,15 @@ import {
 })
 export class TravelService {
 
-  private readonly DESTINATION = {
-    name: 'Johor Bahru, Malaysia',
-    lat: 1.4927,
-    lng: 103.7414,
-    radius: 5000
-  };
-
   private readonly BACKEND_URL = 'http://localhost:3000/api';
-  private readonly CACHE_KEY = 'nets_travel_recs';
   private readonly CACHE_TTL_MS = 5 * 60 * 1000;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private cache: CacheService
+  ) { }
 
-  // ========== MAIN PIPELINE ==========
+  // ========== MAIN PIPELINE (now accepts destination) ==========
 
   getDnaProfile(userId: string, month?: number, year?: number): Observable<DnaProfile> {
     let url = `${this.BACKEND_URL}/users/${userId}/dna-profile`;
@@ -40,22 +37,30 @@ export class TravelService {
     );
   }
 
-  getTravelRecommendations(userId: string, month?: number, year?: number): Observable<{
-    dnaPicks: RecommendationCard[],
-    categories: CategorySection[],
-    budget: BudgetTracker
-  }> {
-    const cacheKey = `${this.CACHE_KEY}_${userId}_${month}_${year}`;
-    const cached = this.getCache(cacheKey);
-    if (cached) {
-      console.log('[Travel] Using cached recommendations');
-      return of(cached);
-    }
+getTravelRecommendations(
+  userId: string,
+  destination: DestinationConfig,
+  month?: number,
+  year?: number
+): Observable<{
+  dnaPicks: RecommendationCard[],
+  categories: CategorySection[],
+  budget: BudgetTracker,
+  places: GooglePlace[]
+}> {
+  // Change this: add _v2 to bust old cache
+  const cacheKey = `nets_travel_recs_v2_${destination.id}_${userId}_${month}_${year}`;
+  
+  const cached = this.cache.get<any>(cacheKey);
+  if (cached) {
+    console.log('[Travel] Using cached recommendations for', destination.name);
+    return of(cached);
+  }
 
     return this.getDnaProfile(userId, month, year).pipe(
       switchMap(dna => {
         const allQueries = this.buildAllQueries(dna);
-        const placesCalls = allQueries.map(q => this.searchPlaces(q.query, q.category));
+        const placesCalls = allQueries.map(q => this.searchPlaces(q.query, q.category, destination));
 
         return forkJoin(placesCalls).pipe(
           map(results => {
@@ -76,7 +81,7 @@ export class TravelService {
           }),
           map(({ dna, uniquePlaces }) => {
             // Score and rank all places
-            const scored = this.scoreAndRankPlaces(uniquePlaces, dna);
+            const scored = this.scoreAndRankPlaces(uniquePlaces, dna, destination);
 
             // Top 5 become DNA Picks (hero + 4)
             const dnaPicks = this.buildDnaPicks(scored.slice(0, 5), dna);
@@ -86,18 +91,21 @@ export class TravelService {
 
             const budget = this.buildBudgetTracker(dna);
 
-            return { dnaPicks, categories, budget };
+            // Extract raw places for weather itinerary
+            const places = uniquePlaces.map(up => up.place);
+
+            return { dnaPicks, categories, budget, places };
           })
         );
       }),
       map(result => {
-        this.setCache(cacheKey, result);
+        this.cache.set(cacheKey, result, destination.id);
         return result;
       })
     );
   }
 
-  // ========== PLACES API ==========
+  // ========== PLACES API (now dynamic per destination) ==========
 
   private buildAllQueries(dna: DnaProfile): { query: string; category: string }[] {
     const queries: { query: string; category: string }[] = [];
@@ -110,7 +118,6 @@ export class TravelService {
     const hasShopper = traits.some(t => t.includes('shopper'));
     const hasWellness = traits.some(t => t.includes('wellness'));
 
-    // DNA-matched queries
     if (hasCoffee || cuisines.includes('coffee')) {
       queries.push({ query: 'cafe', category: 'coffee' });
     }
@@ -132,21 +139,21 @@ export class TravelService {
     return queries;
   }
 
-  private searchPlaces(query: string, category: string): Observable<GooglePlace[]> {
+  private searchPlaces(query: string, category: string, destination: DestinationConfig): Observable<GooglePlace[]> {
     const useTextSearch = query.includes(' ');
     if (useTextSearch) {
-      return this.searchText(query);
+      return this.searchText(query, destination);
     }
-    return this.searchNearby(query);
+    return this.searchNearby(query, destination);
   }
 
-  private searchNearby(keyword: string): Observable<GooglePlace[]> {
+  private searchNearby(keyword: string, destination: DestinationConfig): Observable<GooglePlace[]> {
     return this.http.post<any>('http://localhost:8000/api/places/nearby', {
       includedTypes: [keyword],
       maxResultCount: 10,
-      lat: this.DESTINATION.lat,
-      lng: this.DESTINATION.lng,
-      radius: this.DESTINATION.radius
+      lat: destination.lat,
+      lng: destination.lon,
+      radius: 5000
     }).pipe(
       map(res => (res.places || []).map((p: any) => this.normalizePlace(p))),
       catchError(err => {
@@ -156,13 +163,13 @@ export class TravelService {
     );
   }
 
-  private searchText(query: string): Observable<GooglePlace[]> {
+  private searchText(query: string, destination: DestinationConfig): Observable<GooglePlace[]> {
     return this.http.post<any>('http://localhost:8000/api/places/text', {
-      textQuery: `${query} in ${this.DESTINATION.name}`,
+      textQuery: `${query} in ${destination.name}`,
       maxResultCount: 10,
-      lat: this.DESTINATION.lat,
-      lng: this.DESTINATION.lng,
-      radius: this.DESTINATION.radius
+      lat: destination.lat,
+      lng: destination.lon,
+      radius: 10000
     }).pipe(
       map(res => (res.places || []).map((p: any) => this.normalizePlace(p))),
       catchError(err => {
@@ -204,7 +211,8 @@ export class TravelService {
 
   private scoreAndRankPlaces(
     places: { place: GooglePlace; category: string }[],
-    dna: DnaProfile
+    dna: DnaProfile,
+    destination: DestinationConfig
   ): { place: GooglePlace; category: string; score: number; whyMatch: string[]; distance: number }[] {
 
     const budgetStyle = dna.travelHints.budgetStyle;
@@ -263,7 +271,7 @@ export class TravelService {
 
       // 5. DISTANCE (0-5 points) — closer is better
       const dist = this.calculateDistance(
-        this.DESTINATION.lat, this.DESTINATION.lng,
+        destination.lat, destination.lon,
         place.geometry.location.lat, place.geometry.location.lng
       );
       if (dist < 1000) score += 5;
@@ -273,7 +281,6 @@ export class TravelService {
       return { place, category, score, whyMatch, distance: dist };
     });
 
-    // Sort by score descending
     return scored.sort((a, b) => b.score - a.score);
   }
 
@@ -281,7 +288,7 @@ export class TravelService {
     switch (budgetStyle) {
       case 'budget': return 1;
       case 'premium': return 4;
-      default: return 2; // moderate
+      default: return 2;
     }
   }
 
@@ -289,17 +296,14 @@ export class TravelService {
     switch (budgetStyle) {
       case 'budget': return 8;
       case 'premium': return 45;
-      default: return 18; // moderate
+      default: return 18;
     }
   }
 
   private checkHoursMatch(place: GooglePlace, day: number, hour: number): string {
     if (!place.regularOpeningHours?.periods) return 'unknown';
-
-    // Check if open now
     if (place.regularOpeningHours.openNow) return 'open_now';
 
-    // Check if opens within 2 hours
     const todayPeriods = place.regularOpeningHours.periods.filter(
       p => p.open.day === day
     );
@@ -313,7 +317,7 @@ export class TravelService {
   }
 
   private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371000; // Earth radius in meters
+    const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -323,7 +327,7 @@ export class TravelService {
     return R * c;
   }
 
-  // ========== BUILD DNA PICKS (Top 5) ==========
+  // ========== BUILD DNA PICKS ==========
 
   private buildDnaPicks(
     topScored: { place: GooglePlace; category: string; score: number; whyMatch: string[]; distance: number }[],
@@ -337,7 +341,6 @@ export class TravelService {
       const place = item.place;
       const isHero = index === 0;
 
-      // Generate smart title
       let title: string;
       if (isHero) {
         if (item.whyMatch.includes('⭐ Top rated')) title = `Top Pick for ${trait}s`;
@@ -350,28 +353,14 @@ export class TravelService {
         else title = place.name;
       }
 
-      // Generate description with DNA context
       const descParts: string[] = [];
-
-      // DNA hook
-      if (isHero) {
-        descParts.push(`Your DNA shows you're a ${trait}.`);
-      }
-
-      // Venue facts
+      if (isHero) descParts.push(`Your DNA shows you're a ${trait}.`);
       const priceText = place.price_level ? '💰'.repeat(place.price_level) : '';
       descParts.push(`${place.name} scores ${place.rating}★ with ${place.user_ratings_total} reviews${priceText ? ` · ${priceText}` : ''}.`);
 
-      // Why this matches
       const topReasons = item.whyMatch.filter(r => !r.includes('⭐') || place.rating < 4.5).slice(0, 2);
-      if (topReasons.length > 0 && !isHero) {
-        descParts.push(topReasons.join(' · '));
-      }
-
-      // Distance
-      if (item.distance < 1000) {
-        descParts.push(`Only ${Math.round(item.distance)}m away.`);
-      }
+      if (topReasons.length > 0 && !isHero) descParts.push(topReasons.join(' · '));
+      if (item.distance < 1000) descParts.push(`Only ${Math.round(item.distance)}m away.`);
 
       return {
         title,
@@ -401,7 +390,6 @@ export class TravelService {
     const trait = dna.traits[0] || 'traveller';
     const budget = dna.travelHints.budgetStyle;
 
-    // Group by category
     const grouped: { [key: string]: typeof remaining } = {};
     remaining.forEach(item => {
       if (!grouped[item.category]) grouped[item.category] = [];
@@ -427,26 +415,15 @@ export class TravelService {
         const place = item.place;
         const isTopPick = i === 0;
 
-        // Generate contextual description
         const descParts: string[] = [];
-
-        if (isTopPick) {
-          descParts.push(`Top match for your ${trait} DNA.`);
-        }
-
+        if (isTopPick) descParts.push(`Top match for your ${trait} DNA.`);
         descParts.push(`${place.rating}★ · ${place.user_ratings_total} reviews`);
 
-        // Add match reasons
         const reasons = item.whyMatch.filter(r => r !== '🕐 Open now').slice(0, 2);
-        if (reasons.length > 0) {
-          descParts.push(reasons.join(' · '));
-        }
+        if (reasons.length > 0) descParts.push(reasons.join(' · '));
 
-        // Price context
         const estimatedSpend = this.estimateSpendAtVenue(place.price_level, budget);
-        if (estimatedSpend) {
-          descParts.push(`~$${estimatedSpend} per person`);
-        }
+        if (estimatedSpend) descParts.push(`~$${estimatedSpend} per person`);
 
         return {
           title: isTopPick ? `Best ${config.title.split(' ')[1] || 'Pick'}` : place.name,
@@ -469,7 +446,6 @@ export class TravelService {
       }
     });
 
-    // Sort sections by average DNA match score
     return sections.sort((a, b) => {
       const avgA = a.cards.reduce((sum, c) => sum + (c.dnaMatchScore || 0), 0) / a.cards.length;
       const avgB = b.cards.reduce((sum, c) => sum + (c.dnaMatchScore || 0), 0) / b.cards.length;
@@ -479,7 +455,7 @@ export class TravelService {
 
   private estimateSpendAtVenue(priceLevel?: number, budgetStyle?: string): number | null {
     if (!priceLevel) return null;
-    const base = priceLevel * 8; // rough estimate
+    const base = priceLevel * 8;
     if (budgetStyle === 'budget') return Math.round(base * 0.7);
     if (budgetStyle === 'premium') return Math.round(base * 1.5);
     return base;
@@ -509,30 +485,5 @@ export class TravelService {
       }
     }
     return undefined;
-  }
-
-  // ========== CACHE ==========
-
-  private getCache(key: string): any | null {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (Date.now() - parsed.timestamp > this.CACHE_TTL_MS) {
-        localStorage.removeItem(key);
-        return null;
-      }
-      return parsed.data;
-    } catch {
-      return null;
-    }
-  }
-
-  private setCache(key: string, data: any): void {
-    try {
-      localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data }));
-    } catch {
-      // Storage full
-    }
   }
 }

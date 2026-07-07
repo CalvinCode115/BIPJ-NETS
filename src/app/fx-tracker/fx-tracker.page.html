@@ -22,7 +22,7 @@
   <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
     <ion-spinner name="crescent" style="color: var(--nets-red);"></ion-spinner>
-    <p class="loading-text">Loading FX rates...</p>
+    <p class="loading-text">Analyzing FX rates & market sentiment...</p>
   </div>
 
   <!-- Error State -->
@@ -37,15 +37,31 @@
   <!-- Main Content -->
   <div class="fx-container" *ngIf="!isLoading && !error && insight">
 
+<!-- Direction Tabs -->
+<div class="direction-tabs">
+  <button class="tab-btn" [class.active]="!isReversed" (click)="setDirection(false)">
+    <span class="currency-flag">🇸🇬</span> 
+    {{ currentDestination.homeCurrencyCode }} → 
+    <span class="currency-flag">{{ currentDestination.flag }}</span> 
+    {{ currentDestination.currencyCode }}
+  </button>
+  <button class="tab-btn" [class.active]="isReversed" (click)="setDirection(true)">
+    <span class="currency-flag">{{ currentDestination.flag }}</span> 
+    {{ currentDestination.currencyCode }} → 
+    <span class="currency-flag">🇸🇬</span> 
+    {{ currentDestination.homeCurrencyCode }}
+  </button>
+</div>
+
     <!-- Currency Pair Header -->
     <div class="currency-pair">
       <div class="currency-from">
-        <span class="currency-flag">🇸🇬</span>
+        <span class="currency-flag">{{ isReversed ? '🇲🇾' : '🇸🇬' }}</span>
         <span class="currency-code">{{ baseCurrency }}</span>
       </div>
       <ion-icon name="arrow-forward" class="arrow-icon"></ion-icon>
       <div class="currency-to">
-        <span class="currency-flag">🇲🇾</span>
+        <span class="currency-flag">{{ isReversed ? '🇸🇬' : '🇲🇾' }}</span>
         <span class="currency-code">{{ targetCurrency }}</span>
       </div>
     </div>
@@ -54,7 +70,7 @@
     <div class="rate-card">
       <div class="rate-main">
         <span class="rate-value">{{ insight.currentRate | number:'1.4-4' }}</span>
-        <span class="rate-unit">MYR per 1 SGD</span>
+        <span class="rate-unit">{{ targetCurrency }} per 1 {{ baseCurrency }}</span>
       </div>
       <div class="rate-trend" [style.color]="getTrendColor()">
         <ion-icon [name]="getTrendIcon()"></ion-icon>
@@ -88,11 +104,36 @@
     <!-- Chart Section -->
     <div class="chart-section">
       <div class="chart-header">
-        <h3>30-Day Trend</h3>
+        <h3>30-Day Trend + 7-Day Forecast</h3>
         <span class="chart-subtitle">{{ destination }}</span>
+      </div>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="dot solid"></span> Historical</span>
+        <span class="legend-item"><span class="dot dotted"></span> Forecast</span>
+        <span class="legend-item"><span class="dot band"></span> Confidence</span>
       </div>
       <div class="chart-wrapper">
         <canvas #fxChart></canvas>
+      </div>
+    </div>
+
+    <!-- Prediction Signal Card -->
+    <div class="prediction-card" *ngIf="insight.prediction">
+      <div class="prediction-header">
+        <ion-icon [name]="getSignalIcon()" [style.color]="getSignalColor()"></ion-icon>
+        <div>
+          <h4>7-Day Forecast Signal</h4>
+          <span class="prediction-signal" [style.color]="getSignalColor()">
+            {{ insight.prediction.technicalSignal | titlecase }}
+          </span>
+        </div>
+      </div>
+      <div class="prediction-narrative">
+        <p>{{ insight.prediction.narrative }}</p>
+      </div>
+      <div class="prediction-meta" *ngIf="insight.prediction.sentiment.articleCount > 0">
+        <ion-icon name="newspaper-outline"></ion-icon>
+        <span>Based on {{ insight.prediction.sentiment.articleCount }} news articles</span>
       </div>
     </div>
 
@@ -104,10 +145,10 @@
       <div class="insight-content">
         <h4>Smart Insight</h4>
         <p *ngIf="insight.trend === 'down'">
-          SGD is strengthening against MYR. Good time to exchange before your trip to {{ destination }}.
+          {{ baseCurrency }} is strengthening against {{ targetCurrency }}. Good time to exchange before your trip to {{ destination }}.
         </p>
         <p *ngIf="insight.trend === 'up'">
-          SGD is weakening against MYR. Consider exchanging now before rates get worse for your {{ destination }} trip.
+          {{ baseCurrency }} is weakening against {{ targetCurrency }}. Consider exchanging now before rates get worse for your {{ destination }} trip.
         </p>
         <p *ngIf="insight.trend === 'flat'">
           Rates are stable. No urgency to exchange for your {{ destination }} trip.
@@ -118,7 +159,7 @@
     <!-- DNA Footer -->
     <div class="dna-footer">
       <ion-icon name="information-circle-outline"></ion-icon>
-      <span>Data from European Central Bank via Frankfurter API</span>
+      <span>Data from European Central Bank + TheNewsAPI. Forecast is model-based, not financial advice.</span>
     </div>
   </div>
 
