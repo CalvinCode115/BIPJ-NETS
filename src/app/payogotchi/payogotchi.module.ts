@@ -14,6 +14,6 @@ import { SharedModule } from '../shared/shared.module';
     PayogotchiPageRoutingModule,
     SharedModule,
   ],
-  declarations: [PayogotchiPageRoutingModule]
+  declarations: [PayogotchiPage]
 })
 export class PayogotchiPageModule {}

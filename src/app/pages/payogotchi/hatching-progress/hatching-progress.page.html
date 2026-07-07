@@ -1,0 +1,90 @@
+<ion-content [fullscreen]="true" class="hatch-content">
+  <div class="hatch-screen">
+    <!-- Header -->
+    <header class="hatch-header">
+      <button type="button" class="hatch-back" (click)="goBack()" aria-label="Back">‹</button>
+      <h1 class="hatch-title">Hatching Progress</h1>
+    </header>
+
+    <!-- Demo state switcher (1/5, 3/5, 5/5) -->
+    <div class="hatch-pills">
+      <button
+        *ngFor="let s of demoStates"
+        type="button"
+        class="hatch-pill"
+        [class.active]="transactionCount === s"
+        (click)="setDemoState(s)"
+      >
+        {{ s }}/5
+      </button>
+    </div>
+
+    <!-- Egg -->
+    <div class="hatch-egg-stage">
+      <div class="hatch-egg-glow" [style.opacity]="0.25 + progress * 0.6"></div>
+
+      <div class="hatch-egg" [class.ready]="isReady" [style.background]="eggGradient">
+        <span *ngIf="eggRare" class="hatch-egg-badge">RARE ✦</span>
+        <span *ngIf="eggEmoji" class="hatch-egg-emoji">{{ eggEmoji }}</span>
+
+        <!-- Cracks intensify with progress -->
+        <svg class="hatch-egg-cracks" [style.opacity]="progress" viewBox="0 0 100 130" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M50 6 L46 34 L57 52 L44 74 L54 96 L48 120" />
+          <path d="M46 34 L30 40 M46 34 L64 44" />
+          <path d="M44 74 L26 80 M54 96 L74 90" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Status copy -->
+    <h2 class="hatch-status">{{ heading }}</h2>
+
+    <!-- Progress bar -->
+    <div class="hatch-bar">
+      <span
+        *ngFor="let i of [0, 1, 2, 3, 4]"
+        class="hatch-seg"
+        [class.filled]="i < transactionCount"
+      ></span>
+    </div>
+
+    <p class="hatch-line-primary">{{ primaryLine }}</p>
+    <p class="hatch-line-secondary">{{ secondaryLine }}</p>
+
+    <!-- Tip card -->
+    <div class="hatch-card hatch-tip">
+      <span class="hatch-tip-icon">💡</span>
+      <div>
+        <p class="hatch-tip-title">Tip</p>
+        <p class="hatch-tip-text">{{ tipText }}</p>
+      </div>
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="hatch-card hatch-txns">
+      <p class="hatch-txns-title">Recent Transactions</p>
+
+      <div
+        *ngFor="let row of rows; let last = last"
+        class="hatch-txn"
+        [class.no-border]="last"
+      >
+        <div class="hatch-txn-icon" [class.done]="row.done">{{ row.done ? '✓' : '○' }}</div>
+        <div class="hatch-txn-info">
+          <p class="hatch-txn-name" [class.pending]="!row.done">
+            {{ row.done ? row.merchant : 'Next transaction' }}
+          </p>
+          <p class="hatch-txn-time">{{ row.done ? row.time : 'Pending' }}</p>
+        </div>
+        <span class="hatch-txn-xp" [class.done]="row.done">+{{ row.xp }} XP</span>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="hatch-cta">
+      <button type="button" class="hatch-btn" [disabled]="!isReady" (click)="hatch()">
+        Hatch Now! 🐣
+      </button>
+    </div>
+  </div>
+</ion-content>

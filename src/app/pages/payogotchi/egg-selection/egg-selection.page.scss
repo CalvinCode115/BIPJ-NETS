@@ -1,0 +1,275 @@
+.egg-selection-content {
+  // Soft pink gradient from the Figma frame (4781:444).
+  --background: linear-gradient(143deg, var(--payogotchi-cream) 8%, #ffe4e1 92%);
+}
+
+.egg-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 20px 24px;
+}
+
+/* ---- Header ---- */
+.egg-header {
+  width: 100%;
+  text-align: center;
+}
+
+.egg-title {
+  margin: 0;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--text-accent);
+}
+
+.egg-subtitle {
+  margin: 6px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ---- Egg grid ---- */
+.egg-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 358px;
+  margin-top: 20px;
+}
+
+.egg-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 8px;
+  background: #ffffff;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &.selected {
+    border-color: var(--tapatchi-outline);
+    box-shadow: 0 6px 14px rgba(30, 58, 138, 0.25);
+  }
+}
+
+/* ---- Egg body ---- */
+.egg {
+  position: relative;
+  // Size is variable-driven so the same artwork renders larger in the popup.
+  width: var(--egg-w, 58px);
+  height: var(--egg-h, 72px);
+  // Classic egg silhouette: rounder at the bottom, tapered at the top.
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  overflow: hidden;
+  box-shadow: inset -4px -6px 10px rgba(0, 0, 0, 0.12),
+    inset 3px 3px 8px rgba(255, 255, 255, 0.5);
+
+  &.rare {
+    box-shadow: inset -4px -6px 10px rgba(0, 0, 0, 0.35),
+      0 0 10px rgba(255, 215, 0, 0.35);
+  }
+}
+
+.egg-emoji {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.egg-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: #ffd35a;
+  color: #1a1a1a;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 7px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+/* ---- Egg patterns ---- */
+.egg-pattern {
+  position: absolute;
+  inset: 0;
+}
+
+.egg-pattern.dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.85) 2px, transparent 2px);
+  background-size: 14px 14px;
+  background-position: 4px 6px;
+}
+
+.egg-pattern.stripes {
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55) 0,
+    rgba(255, 255, 255, 0.55) 6px,
+    transparent 6px,
+    transparent 16px
+  );
+}
+
+.egg-pattern.spots {
+  background-image: radial-gradient(rgba(0, 0, 0, 0.18) 3px, transparent 4px),
+    radial-gradient(rgba(0, 0, 0, 0.14) 2px, transparent 3px);
+  background-size: 26px 26px, 20px 20px;
+  background-position: 6px 10px, 20px 34px;
+}
+
+/* ---- Labels & hint ---- */
+.egg-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.egg-hint {
+  margin: 16px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--text-light);
+  text-align: center;
+}
+
+/* ---- Egg confirmation popup (Figma 4788:6036) ---- */
+.egg-detail-layer {
+  // slot="fixed" pins this to the ion-content viewport (above the tab bar).
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  z-index: 20;
+}
+
+.egg-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  animation: egg-fade-in 0.2s ease;
+}
+
+.egg-detail {
+  position: relative;
+  z-index: 1;
+  margin: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
+  animation: egg-slide-up 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.egg-detail-art {
+  // Renders the shared egg artwork at the larger popup size.
+  --egg-w: 80px;
+  --egg-h: 100px;
+}
+
+.egg-detail-art .egg-emoji {
+  font-size: 34px;
+}
+
+.egg-detail-title {
+  margin: 0;
+  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.egg-detail-text {
+  margin: 0;
+  max-width: 260px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.egg-detail-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.egg-btn {
+  flex: 1 1 0;
+  height: 46px;
+  border-radius: var(--radius-pill);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.egg-btn--outline {
+  border: 2px solid var(--ion-color-primary);
+  background: transparent;
+  color: var(--ion-color-primary);
+  font-weight: 600;
+}
+
+.egg-btn--primary {
+  border: none;
+  color: #ffffff;
+  font-weight: 700;
+  // Brand red → coral, matching the Figma gradient.
+  background: linear-gradient(163deg, var(--ion-color-primary) 0%, #ff4757 100%);
+  box-shadow: 0 4px 7px rgba(227, 6, 19, 0.4);
+}
+
+@keyframes egg-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes egg-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

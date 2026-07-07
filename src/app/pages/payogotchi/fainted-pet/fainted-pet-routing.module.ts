@@ -1,0 +1,10 @@
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { FaintedPetPage } from './fainted-pet.page';
+
+const routes: Routes = [{ path: '', component: FaintedPetPage }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+})
+export class FaintedPetPageRoutingModule {}

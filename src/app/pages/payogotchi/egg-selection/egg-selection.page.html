@@ -1,0 +1,66 @@
+<ion-content [fullscreen]="true" class="egg-selection-content">
+  <div class="egg-screen">
+    <!-- Header copy -->
+    <header class="egg-header">
+      <h1 class="egg-title">Welcome to PAYOGOTCHI! 🎮</h1>
+      <p class="egg-subtitle">Choose your egg to begin your journey</p>
+    </header>
+
+    <!-- Egg grid (8 mystery eggs) -->
+    <div class="egg-grid">
+      <button
+        *ngFor="let egg of eggs; trackBy: trackByEggId"
+        type="button"
+        class="egg-card"
+        [class.selected]="selectedEggId === egg.id"
+        (click)="selectEgg(egg)"
+      >
+        <ng-container *ngTemplateOutlet="eggArt; context: { $implicit: egg }"></ng-container>
+        <span class="egg-label">{{ egg.label }}</span>
+      </button>
+    </div>
+
+    <!-- Helper -->
+    <p class="egg-hint">Tap an egg above to select it ✨</p>
+  </div>
+
+  <!-- Egg confirmation popup, pinned to the bottom of the content viewport -->
+  <div slot="fixed" class="egg-detail-layer" *ngIf="selectedEgg">
+    <div class="egg-detail-backdrop" (click)="chooseDifferent()"></div>
+
+    <div class="egg-detail" role="dialog" aria-modal="true">
+      <div class="egg-detail-art">
+        <ng-container *ngTemplateOutlet="eggArt; context: { $implicit: selectedEgg }"></ng-container>
+      </div>
+
+      <h3 class="egg-detail-title">You picked {{ selectedEgg.label }}!</h3>
+      <p class="egg-detail-text">
+        Are you sure? Your choice will hatch into a unique Tapatchi!
+      </p>
+
+      <div class="egg-detail-actions">
+        <button type="button" class="egg-btn egg-btn--outline" (click)="chooseDifferent()">
+          Choose Different
+        </button>
+        <button type="button" class="egg-btn egg-btn--primary" (click)="confirmChoice()">
+          Confirm Choice 🥚
+        </button>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Reusable egg artwork, shared by the grid tiles and the popup -->
+<ng-template #eggArt let-egg>
+  <div class="egg" [class.rare]="egg.rare" [style.background]="egg.gradient">
+    <span *ngIf="egg.rare" class="egg-badge">RARE ✦</span>
+
+    <!-- Patterned eggs -->
+    <span *ngIf="egg.pattern === 'dots'" class="egg-pattern dots"></span>
+    <span *ngIf="egg.pattern === 'stripes'" class="egg-pattern stripes"></span>
+    <span *ngIf="egg.pattern === 'spots'" class="egg-pattern spots"></span>
+
+    <!-- Emoji-decorated eggs -->
+    <span *ngIf="egg.pattern === 'emoji'" class="egg-emoji">{{ egg.emoji }}</span>
+  </div>
+</ng-template>

@@ -1,0 +1,130 @@
+<ion-content [fullscreen]="true" class="home-content">
+  <div class="home-screen">
+    <!-- Top bar -->
+    <header class="home-topbar">
+      <button type="button" class="home-icon-btn" aria-label="Menu">≡</button>
+      <h1 class="home-brand">PAYOGOTCHI 🎮</h1>
+      <button type="button" class="home-icon-btn" (click)="openSettings()" aria-label="Settings">⚙️</button>
+    </header>
+
+    <!-- Pet name + level -->
+    <section class="home-identity">
+      <h2 class="home-pet-name">{{ pet.name }}</h2>
+      <p class="home-pet-sub">Level {{ pet.level }} • {{ pet.stage }} Tapatchi</p>
+    </section>
+
+    <!-- XP bar -->
+    <section class="home-xp">
+      <span class="home-xp-star">⭐</span>
+      <div class="home-xp-body">
+        <span class="home-xp-label">XP</span>
+        <div class="home-xp-track">
+          <div class="home-xp-fill" [style.width.%]="xpPercent"></div>
+        </div>
+      </div>
+      <span class="home-xp-value">{{ pet.xp }}/{{ pet.xpMax }}</span>
+    </section>
+
+    <!-- Pet stage: meters + character + speech bubble -->
+    <section class="home-stage">
+      <div class="home-stage-glow"></div>
+      <span class="home-float-star star-1">⭐</span>
+      <span class="home-float-star star-2">⭐</span>
+
+      <!-- Happiness meter (left) -->
+      <div class="home-meter meter-happy">
+        <div class="home-meter-icon">😊</div>
+        <div class="home-meter-track">
+          <div class="home-meter-fill" [style.height.%]="pet.happiness"></div>
+        </div>
+        <span class="home-meter-value">{{ pet.happiness }}</span>
+      </div>
+
+      <!-- Pet -->
+      <div class="home-pet">
+        <app-tapatchi [mood]="mood" [size]="180"></app-tapatchi>
+        <div class="home-speech">
+          <span class="home-speech-tail"></span>
+          <p class="home-speech-text">{{ statusText }}</p>
+        </div>
+      </div>
+
+      <!-- Hunger meter (right) -->
+      <div class="home-meter meter-hunger">
+        <div class="home-meter-icon">🍔</div>
+        <div class="home-meter-track">
+          <div class="home-meter-fill" [style.height.%]="pet.hunger"></div>
+        </div>
+        <span class="home-meter-value">{{ pet.hunger }}</span>
+      </div>
+    </section>
+
+    <!-- Quick actions -->
+    <section class="home-actions">
+      <button type="button" class="home-action" (click)="openMiniGame()">
+        <span class="home-action-icon icon-play">🎮</span>
+        <span class="home-action-label">Play</span>
+      </button>
+      <button type="button" class="home-action" (click)="feed()">
+        <span class="home-action-icon icon-snacks">🍪</span>
+        <span class="home-action-label">Snacks</span>
+      </button>
+      <button type="button" class="home-action" (click)="openDressUp()">
+        <span class="home-action-icon icon-dress">👕</span>
+        <span class="home-action-label">Dress</span>
+      </button>
+    </section>
+
+    <!-- Demo mode -->
+    <section class="home-demo">
+      <span class="home-demo-badge">🎮 DEMO MODE</span>
+
+      <div class="home-demo-row">
+        <button
+          *ngFor="let txn of demoTxns"
+          type="button"
+          class="home-demo-txn"
+          [class]="'home-demo-txn theme-' + txn.theme"
+          (click)="runTransaction(txn)"
+        >
+          {{ txn.label }}
+        </button>
+      </div>
+
+      <div class="home-demo-row states">
+        <button type="button" class="home-demo-state theme-levelup" (click)="openLevelUp()">
+          <span class="state-emoji">🎉</span>
+          <span class="state-label">Level Up</span>
+        </button>
+        <button type="button" class="home-demo-state theme-evolve" (click)="openEvolve()">
+          <span class="state-emoji">🌟</span>
+          <span class="state-label">Evolve</span>
+        </button>
+        <button type="button" class="home-demo-state theme-faint" (click)="openFaint()">
+          <span class="state-emoji">😴</span>
+          <span class="state-label">Faint</span>
+        </button>
+        <button type="button" class="home-demo-state theme-return" (click)="openReturn()">
+          <span class="state-emoji">👋</span>
+          <span class="state-label">Return</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Today's quests -->
+    <section class="home-quests">
+      <div class="home-quests-head">
+        <h3 class="home-quests-title">📋 Today's Quests</h3>
+        <button type="button" class="home-quests-viewall" (click)="openQuests()">View All →</button>
+      </div>
+
+      <div class="home-quest" *ngFor="let quest of quests">
+        <span class="home-quest-mark" [class.done]="quest.done">{{ quest.done ? '✅' : '●' }}</span>
+        <span class="home-quest-label" [class.done]="quest.done">{{ quest.label }}</span>
+        <span class="home-quest-reward" [class]="'home-quest-reward theme-' + quest.rewardTheme">
+          {{ quest.reward }}
+        </span>
+      </div>
+    </section>
+  </div>
+</ion-content>

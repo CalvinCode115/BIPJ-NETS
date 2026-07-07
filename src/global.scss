@@ -17,6 +17,9 @@
 @import "@ionic/angular/css/flex-utils.css";
 @import "@ionic/angular/css/palettes/dark.system.css";
 
+/* Payogotchi typography: Fredoka (headings), Inter (body), Quicksand (pet names) */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
+
 @media (min-width: 480px) {
   body {
     background: #d1d1d6;

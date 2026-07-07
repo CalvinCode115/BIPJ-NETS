@@ -1,0 +1,322 @@
+.mini-content {
+  // Mint → sky diagonal from the Figma frame (4782:3227).
+  --background: linear-gradient(143deg, var(--payogotchi-mint) 8%, var(--payogotchi-sky-blue) 92%);
+}
+
+.mini-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* ---- Header ---- */
+.mini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+}
+
+.mini-back {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 18px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.mini-title {
+  flex: 1;
+  margin: 0;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.mini-trophy {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ---- Stats bar ---- */
+.mini-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 16px 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-medium);
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.mini-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-stat-icon {
+  font-size: 16px;
+}
+
+.mini-stat-value {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.mini-stat-text {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.mini-stat-divider {
+  width: 1px;
+  height: 20px;
+  background: #e8e8e8;
+}
+
+/* ---- Play arena ---- */
+.mini-arena {
+  position: relative;
+  margin: 0 16px;
+  height: 460px;
+  border: 2px solid rgba(178, 242, 187, 0.6);
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.mini-pet {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease;
+
+  &.dimmed {
+    opacity: 0.25;
+  }
+}
+
+/* ---- Persistent play prompt ---- */
+.mini-play-prompt {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-primary);
+  text-align: center;
+  z-index: 3;
+}
+
+/* ---- Floating shapes ---- */
+.mini-shape {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  user-select: none;
+  z-index: 2;
+  animation: shape-float var(--dur, 3600ms) linear forwards;
+
+  &.popped {
+    animation: shape-pop 0.25s ease forwards;
+  }
+}
+
+.mini-shape-emoji {
+  font-size: 26px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Themed circles (colours from Figma frame 4782:3325). */
+.mini-shape.theme-heart {
+  background: #ffe4ee;
+  border-color: var(--happiness-color-light);
+  box-shadow: 0 4px 6px rgba(255, 107, 157, 0.25);
+}
+
+.mini-shape.theme-star {
+  background: #fff5cc;
+  border-color: var(--xp-color);
+  box-shadow: 0 4px 6px rgba(255, 165, 0, 0.25);
+}
+
+.mini-shape.theme-bubble {
+  background: #e8f7ff;
+  border-color: var(--payogotchi-sky-blue);
+  box-shadow: 0 4px 6px rgba(135, 206, 235, 0.25);
+}
+
+/* ---- Overlays (idle + end) ---- */
+.mini-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.mini-prompt-title {
+  margin: 0;
+  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.mini-prompt-sub {
+  margin: 4px 0 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.mini-result-title {
+  margin: 0;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ion-color-primary);
+  text-align: center;
+}
+
+.mini-result-sub {
+  margin: 2px 0 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.mini-btn {
+  width: 180px;
+  height: 48px;
+  border: none;
+  border-radius: 24px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  background: linear-gradient(165deg, var(--ion-color-primary) 0%, #ff4757 100%);
+  box-shadow: 0 6px 10px rgba(227, 6, 19, 0.35);
+  transition: transform 0.12s ease;
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* ---- Happiness gained ---- */
+.mini-happiness {
+  margin: 10px 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--happiness-color);
+  text-align: center;
+}
+
+/* ---- End Game ---- */
+.mini-endgame {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 16px;
+}
+
+.mini-endgame-btn {
+  width: 200px;
+  height: 44px;
+  border: 2px solid var(--ion-color-primary);
+  border-radius: 22px;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ion-color-primary);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* ============================================================= */
+/* Keyframes                                                      */
+/* ============================================================= */
+@keyframes shape-float {
+  0% {
+    transform: translateY(40px) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-460px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes shape-pop {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}

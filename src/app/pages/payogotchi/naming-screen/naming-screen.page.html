@@ -1,0 +1,57 @@
+<ion-content [fullscreen]="true" class="naming-content">
+  <div class="naming-screen">
+    <!-- Header -->
+    <header class="naming-header">
+      <button type="button" class="naming-back" (click)="goBack()" aria-label="Back">‹</button>
+      <h1 class="naming-title">Name Your Tapatchi</h1>
+    </header>
+
+    <!-- Reaction speech bubble -->
+    <div class="naming-bubble">
+      <p class="naming-bubble-text">{{ bubbleText }}</p>
+      <span class="naming-bubble-tail"></span>
+    </div>
+
+    <!-- The pet -->
+    <div class="naming-pet">
+      <app-tapatchi mood="normal" [size]="160"></app-tapatchi>
+    </div>
+
+    <!-- Name input card -->
+    <div class="naming-card naming-input-card">
+      <p class="naming-input-label">Enter a name</p>
+      <input
+        type="text"
+        class="naming-input"
+        placeholder="Type a name..."
+        [maxlength]="maxLength"
+        [(ngModel)]="petName"
+        (keyup.enter)="confirmName()"
+      />
+      <p class="naming-counter">{{ petName.length }}/{{ maxLength }} characters</p>
+    </div>
+
+    <!-- Suggestions card -->
+    <div class="naming-card naming-suggest-card">
+      <p class="naming-suggest-label">Suggestions:</p>
+      <div class="naming-suggest-pills">
+        <button
+          *ngFor="let name of suggestions"
+          type="button"
+          class="naming-pill"
+          [class.active]="trimmedName === name"
+          (click)="pickSuggestion(name)"
+        >
+          {{ name }}
+        </button>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="naming-cta">
+      <button type="button" class="naming-btn" [disabled]="!hasName" (click)="confirmName()">
+        Confirm Name 🎉
+      </button>
+    </div>
+  </div>
+</ion-content>
