@@ -1,0 +1,96 @@
+<ion-content class="send-points-content">
+
+  <h1 class="send-points-heading">Send Points</h1>
+
+  <!-- Balance card -->
+  <div class="balance-card">
+    <div class="balance-text">
+      <span class="balance-label">Your Balance</span>
+      <div class="balance-row">
+        <ion-icon name="logo-bitcoin"></ion-icon>
+        <span class="balance-amount">{{ balance | number }}</span>
+      </div>
+      <span class="balance-unit">NETS Points</span>
+    </div>
+    <span class="balance-icon">💰</span>
+  </div>
+
+  <!-- Send to Friend form -->
+  <div class="send-form-card">
+    <h2 class="send-form-heading">
+      <ion-icon name="paper-plane-outline"></ion-icon>
+      Send to Friend
+    </h2>
+
+    <div class="form-field">
+      <label class="form-label">
+        <ion-icon name="call-outline"></ion-icon>
+        Payee's Contact Number
+      </label>
+      <ion-input
+        class="form-input"
+        type="tel"
+        maxlength="8"
+        placeholder="Enter 8-digit number"
+        [(ngModel)]="contactNumber">
+      </ion-input>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">
+        <ion-icon name="logo-bitcoin"></ion-icon>
+        Amount to Send
+      </label>
+      <div class="amount-input-wrapper">
+        <ion-input
+          class="form-input"
+          type="number"
+          placeholder="0"
+          [(ngModel)]="amount">
+        </ion-input>
+        <span class="amount-suffix">Points</span>
+      </div>
+    </div>
+
+    <div class="quick-amount-row">
+      <button
+        class="quick-amount-btn"
+        *ngFor="let quickAmount of quickAmounts"
+        [class.quick-amount-btn--active]="amount === quickAmount"
+        (click)="selectQuickAmount(quickAmount)">
+        {{ quickAmount }}
+      </button>
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">
+        <ion-icon name="chatbubble-outline"></ion-icon>
+        Comments (Optional)
+      </label>
+      <ion-textarea
+        class="form-textarea"
+        placeholder="Add a message..."
+        maxlength="200"
+        [(ngModel)]="comment"
+        rows="4">
+      </ion-textarea>
+      <span class="char-count">{{ comment.length }}/200</span>
+    </div>
+
+    <ion-button
+      expand="block"
+      shape="round"
+      class="send-btn"
+      [disabled]="!isFormValid"
+      (click)="sendPoints()">
+      <ion-icon name="paper-plane-outline" slot="start"></ion-icon>
+      {{ isFormValid ? 'Send Points' : 'Fill in details to send' }}
+    </ion-button>
+  </div>
+
+  <div class="back-link" (click)="goBackToBalance()">
+    <ion-icon name="arrow-back-outline"></ion-icon>
+    <span>Back to Points Balance</span>
+  </div>
+
+</ion-content>

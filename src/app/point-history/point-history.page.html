@@ -1,0 +1,61 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Point History</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="point-history-content">
+
+  <!-- Filter by -->
+  <div class="filter-label">
+    <ion-icon name="filter-outline"></ion-icon>
+    <span>Filter by:</span>
+  </div>
+
+  <ion-segment [(ngModel)]="activeFilter" (ionChange)="onFilterChange()" class="filter-segment">
+    <ion-segment-button value="all">
+      <ion-label>All ({{ counts.all }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="earned">
+      <ion-label>Earned ({{ counts.earned }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="spent">
+      <ion-label>Spent ({{ counts.spent }})</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Section heading -->
+  <div class="section-heading-row">
+    <span class="section-heading-title">{{ sectionTitle }}</span>
+    <span class="section-heading-count">
+      <ion-icon name="calendar-outline"></ion-icon>
+      {{ filteredTransactions.length }} items
+    </span>
+  </div>
+
+  <!-- Transaction list -->
+  <div class="transaction-list">
+    <div class="transaction-item" *ngFor="let item of filteredTransactions">
+      <div class="transaction-icon" [ngClass]="'transaction-icon--' + item.type">
+        <ion-icon [name]="item.icon"></ion-icon>
+      </div>
+      <div class="transaction-details">
+        <span class="transaction-title">{{ item.title }}</span>
+        <div class="transaction-meta">
+          <span class="transaction-timestamp">{{ item.timestamp }}</span>
+          <span class="transaction-tag" [ngClass]="'transaction-tag--' + item.type">{{ item.tag }}</span>
+        </div>
+      </div>
+      <div class="transaction-amount" [ngClass]="item.amount > 0 ? 'transaction-amount--positive' : 'transaction-amount--negative'">
+        <span class="transaction-amount-value">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</span>
+        <span class="transaction-amount-unit">Pts</span>
+      </div>
+    </div>
+  </div>
+
+</ion-content>

@@ -1,0 +1,204 @@
+.send-points-content {
+  --background: linear-gradient(180deg, #fdeef1 0%, #fdf3e4 100%);
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 20px;
+}
+
+.send-points-heading {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+// ---- Balance card ----
+.balance-card {
+  background: linear-gradient(135deg, #7b2fd6 0%, #9b3fe0 100%);
+  border-radius: 22px;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  .balance-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .balance-label {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .balance-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    ion-icon {
+      color: #ffffff;
+      font-size: 22px;
+    }
+
+    .balance-amount {
+      color: #ffffff;
+      font-size: 30px;
+      font-weight: 800;
+    }
+  }
+
+  .balance-unit {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  .balance-icon {
+    font-size: 40px;
+  }
+}
+
+// ---- Send form card ----
+.send-form-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 22px 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+
+  .send-form-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 20px;
+
+    ion-icon {
+      color: #7b2fd6;
+    }
+  }
+}
+
+.form-field {
+  margin-bottom: 18px;
+
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a4a4e;
+    margin-bottom: 8px;
+
+    ion-icon {
+      font-size: 15px;
+      color: #8a8a8e;
+    }
+  }
+
+  .form-input {
+    --background: #ffffff;
+    --border-radius: 14px;
+    --padding-start: 14px;
+    --padding-end: 14px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    border: 1px solid #e2e2e5;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .form-textarea {
+    --background: #ffffff;
+    --border-radius: 14px;
+    --padding-start: 14px;
+    --padding-end: 14px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    border: 1px solid #e2e2e5;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .char-count {
+    display: block;
+    text-align: right;
+    font-size: 11px;
+    color: #9a9a9e;
+    margin-top: 4px;
+  }
+}
+
+.amount-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .form-input {
+    flex: 1;
+  }
+
+  .amount-suffix {
+    position: absolute;
+    right: 16px;
+    font-size: 13px;
+    color: #9a9a9e;
+    pointer-events: none;
+  }
+}
+
+// ---- Quick amount chips ----
+.quick-amount-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+
+  .quick-amount-btn {
+    flex: 1;
+    background: #f3e9fc;
+    color: #7b2fd6;
+    border: none;
+    border-radius: 14px;
+    padding: 10px 0;
+    font-size: 14px;
+    font-weight: 700;
+
+    &--active {
+      background: #7b2fd6;
+      color: #ffffff;
+    }
+  }
+}
+
+// ---- Send button ----
+.send-btn {
+  --background: #d8d8db;
+  --background-activated: #7b2fd6;
+  --border-radius: 26px;
+  font-weight: 600;
+  text-transform: none;
+  margin-top: 4px;
+
+  &:not([disabled]) {
+    --background: #7b2fd6;
+  }
+}
+
+// ---- Back to balance link ----
+.back-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #7b2fd6;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 16px 0 24px;
+  cursor: pointer;
+}

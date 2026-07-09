@@ -1,0 +1,105 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>My Vouchers</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="my-vouchers-content">
+
+  <ion-segment [(ngModel)]="activeTab" class="vouchers-segment">
+    <ion-segment-button value="available">
+      <ion-icon name="ticket-outline"></ion-icon>
+      <ion-label>Available ({{ availableVouchers.length }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="used">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      <ion-label>Used ({{ usedVouchers.length }})</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Available vouchers -->
+  <div class="voucher-list" *ngIf="activeTab === 'available'">
+    <div class="voucher-card voucher-card--available" *ngFor="let voucher of availableVouchers">
+      <div class="voucher-top">
+        <div class="voucher-icon">
+          <span>{{ voucher.emoji }}</span>
+        </div>
+        <div class="voucher-info">
+          <span class="voucher-name">{{ voucher.name }}</span>
+          <span class="voucher-description">{{ voucher.description }}</span>
+          <span class="voucher-points voucher-points--available">{{ voucher.points }} Points</span>
+        </div>
+      </div>
+      <div class="voucher-dates">
+        <div class="voucher-date">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <div class="voucher-date-text">
+            <span class="voucher-date-label">Redeemed</span>
+            <span class="voucher-date-value">{{ voucher.redeemedOn }}</span>
+          </div>
+        </div>
+        <div class="voucher-date">
+          <ion-icon name="time-outline"></ion-icon>
+          <div class="voucher-date-text">
+            <span class="voucher-date-label">Expires</span>
+            <span class="voucher-date-value voucher-date-value--expires">{{ voucher.expiresOn }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Used vouchers -->
+  <div class="voucher-list" *ngIf="activeTab === 'used'">
+    <div class="voucher-card voucher-card--used" *ngFor="let voucher of usedVouchers">
+      <div class="voucher-top">
+        <div class="voucher-icon">
+          <span>{{ voucher.emoji }}</span>
+        </div>
+        <div class="voucher-info">
+          <span class="voucher-name">{{ voucher.name }}</span>
+          <span class="voucher-description">{{ voucher.description }}</span>
+          <span class="voucher-points voucher-points--used">{{ voucher.points }} Points</span>
+        </div>
+      </div>
+      <div class="voucher-dates">
+        <div class="voucher-date">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <div class="voucher-date-text">
+            <span class="voucher-date-label">Redeemed</span>
+            <span class="voucher-date-value">{{ voucher.redeemedOn }}</span>
+          </div>
+        </div>
+        <div class="voucher-date">
+          <ion-icon name="time-outline"></ion-icon>
+          <div class="voucher-date-text">
+            <span class="voucher-date-label">Expired</span>
+            <span class="voucher-date-value">{{ voucher.expiredOn }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="voucher-used-info">
+        <div class="voucher-used-row">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <div class="voucher-used-text">
+            <span class="voucher-used-label">Used On</span>
+            <span class="voucher-used-value">{{ voucher.usedOn }}</span>
+          </div>
+        </div>
+        <div class="voucher-used-row">
+          <ion-icon name="storefront-outline"></ion-icon>
+          <div class="voucher-used-text">
+            <span class="voucher-used-label">Location</span>
+            <span class="voucher-used-value">{{ voucher.location }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</ion-content>

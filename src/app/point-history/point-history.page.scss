@@ -1,0 +1,178 @@
+.nets-page-toolbar {
+  --background: #ffffff;
+  --border-color: transparent;
+}
+
+.point-history-content {
+  --background: #ffffff;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 12px;
+}
+
+// ---- Filter by label ----
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b6b6f;
+  margin-bottom: 10px;
+
+  ion-icon {
+    font-size: 16px;
+  }
+}
+
+// ---- Segment (All / Earned / Spent) ----
+.filter-segment {
+  --background: #f5f0f3;
+  border-radius: 24px;
+  padding: 4px;
+  margin-bottom: 20px;
+
+  ion-segment-button {
+    --border-radius: 20px;
+    --indicator-color: #ffffff;
+    --color: #8a8a8e;
+    --color-checked: #1a1a1a;
+    min-height: 36px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+  }
+}
+
+// ---- Section heading ----
+.section-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+
+  .section-heading-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .section-heading-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #8a8a8e;
+
+    ion-icon {
+      font-size: 14px;
+    }
+  }
+}
+
+// ---- Transaction list ----
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 20px;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 16px;
+  padding: 14px;
+
+  .transaction-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+
+    &--quest, &--bonus, &--achievement {
+      background: #e3f5ea;
+      color: #1fa564;
+    }
+    &--redemption, &--cosmetic {
+      background: #fbe4e6;
+      color: #e0303d;
+    }
+    &--challenge {
+      background: #fdf1de;
+      color: #d99a2b;
+    }
+    &--transfer {
+      background: #e9edfd;
+      color: #4a63e0;
+    }
+    &--transaction {
+      background: #eef4fb;
+      color: #3d7fc9;
+    }
+  }
+
+  .transaction-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 4px;
+
+    .transaction-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .transaction-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .transaction-timestamp {
+        font-size: 12px;
+        color: #9a9a9e;
+      }
+
+      .transaction-tag {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 10px;
+
+        &--quest, &--achievement { background: #e9defb; color: #7b3fd1; }
+        &--bonus { background: #d9f2e3; color: #1fa564; }
+        &--redemption, &--cosmetic { background: #fbe4e6; color: #e0303d; }
+        &--challenge { background: #fdf1de; color: #d99a2b; }
+        &--transfer { background: #e9edfd; color: #4a63e0; }
+        &--transaction { background: #eef4fb; color: #3d7fc9; }
+      }
+    }
+  }
+
+  .transaction-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    .transaction-amount-value {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .transaction-amount-unit {
+      font-size: 11px;
+      color: #9a9a9e;
+    }
+
+    &--positive .transaction-amount-value { color: #1fa564; }
+    &--negative .transaction-amount-value { color: #e0303d; }
+  }
+}

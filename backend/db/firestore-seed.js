@@ -5,6 +5,9 @@ const {
   userCardsRef,
   userTransactionsRef,
   appMetaRef,
+  dailyQuestTemplatesRef,
+  weeklyQuestTemplatesRef,
+  partnerChallengesRef,
 } = require('./firestore-paths');
 
 const BATCH_LIMIT = 400;
@@ -125,6 +128,23 @@ async function seedFirestore(data, { reset = false } = {}) {
     });
   }
 
+  // ---- Quest & Partner Challenge templates (global, admin-authored content) ----
+  // These are config/reference data, not user data, so `reset` doesn't touch
+  // them — they're always just upserted with the latest definitions from
+  // seed-quests-data.js. Deleting one from that file won't remove it here;
+  // do that manually in Firestore if a template is retired.
+  for (const [id, template] of Object.entries(data.dailyQuestTemplates ?? {})) {
+    writes.push({ ref: dailyQuestTemplatesRef(db).doc(id), data: template });
+  }
+
+  for (const [id, template] of Object.entries(data.weeklyQuestTemplates ?? {})) {
+    writes.push({ ref: weeklyQuestTemplatesRef(db).doc(id), data: template });
+  }
+
+  for (const [id, challenge] of Object.entries(data.partnerChallenges ?? {})) {
+    writes.push({ ref: partnerChallengesRef(db).doc(id), data: challenge });
+  }
+
   await writeBatch(db, writes);
   await appMetaRef(db).set(
     {
@@ -138,6 +158,9 @@ async function seedFirestore(data, { reset = false } = {}) {
     users: data.users.length,
     cards: data.cards.length,
     transactions: data.transactions.length,
+    dailyQuestTemplates: Object.keys(data.dailyQuestTemplates ?? {}).length,
+    weeklyQuestTemplates: Object.keys(data.weeklyQuestTemplates ?? {}).length,
+    partnerChallenges: Object.keys(data.partnerChallenges ?? {}).length,
     seedVersion: data.seedVersion ?? 0,
   };
 }

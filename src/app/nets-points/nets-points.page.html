@@ -1,0 +1,68 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>NETS Points</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="nets-points-content">
+
+  <!-- Total balance card -->
+  <div class="balance-card">
+    <span class="balance-label">Total NETS Points</span>
+    <div class="balance-row">
+      <span class="balance-coin-icon">🪙</span>
+      <span class="balance-amount">{{ totalPoints | number }}</span>
+    </div>
+    <ion-button expand="block" shape="round" class="send-points-btn" (click)="sendPointsToFriends()">
+      <ion-icon name="paper-plane-outline" slot="start"></ion-icon>
+      Send Points to Friends
+    </ion-button>
+  </div>
+
+  <!-- Earned / Spent this week -->
+  <div class="week-stats-row">
+    <div class="week-stat-card">
+      <span class="week-stat-label">
+        <ion-icon name="trending-up-outline" class="week-stat-icon week-stat-icon--up"></ion-icon>
+        Earned This Week
+      </span>
+      <span class="week-stat-value week-stat-value--positive">+{{ earnedThisWeek }}</span>
+    </div>
+    <div class="week-stat-card">
+      <span class="week-stat-label">
+        <ion-icon name="trending-down-outline" class="week-stat-icon week-stat-icon--down"></ion-icon>
+        Spent This Week
+      </span>
+      <span class="week-stat-value week-stat-value--negative">-{{ spentThisWeek }}</span>
+    </div>
+  </div>
+
+  <!-- Points History -->
+  <h2 class="points-history-heading">Points History</h2>
+
+  <div class="history-list">
+    <div class="history-item" *ngFor="let item of pointsHistory">
+      <div class="history-icon" [ngClass]="'history-icon--' + item.type">
+        <ion-icon [name]="item.icon"></ion-icon>
+      </div>
+      <div class="history-details">
+        <span class="history-title">{{ item.title }}</span>
+        <span class="history-timestamp">{{ item.timestamp }}</span>
+      </div>
+      <div class="history-amount" [ngClass]="item.amount > 0 ? 'history-amount--positive' : 'history-amount--negative'">
+        <span class="history-amount-value">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</span>
+        <span class="history-amount-unit">Pts</span>
+      </div>
+    </div>
+  </div>
+
+  <ion-button expand="block" fill="outline" shape="round" class="load-more-btn" (click)="goToPointHistory()">
+    Load More History
+  </ion-button>
+
+</ion-content>

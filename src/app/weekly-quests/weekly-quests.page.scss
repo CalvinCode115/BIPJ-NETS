@@ -1,0 +1,277 @@
+.nets-page-toolbar {
+  --background: #ffffff;
+  --border-color: transparent;
+}
+
+.weekly-quests-content {
+  --background: #ffffff;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 12px;
+}
+
+// ---- Time remaining card ----
+.time-remaining-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e2e2e5;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+
+  ion-icon {
+    font-size: 22px;
+    color: #3d6fe0;
+  }
+
+  .time-remaining-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .time-remaining-label {
+    font-size: 12px;
+    color: #8a8a8e;
+  }
+
+  .time-remaining-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+}
+
+// ---- Weekly progress ----
+.weekly-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+
+  .weekly-progress-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
+  .weekly-progress-percent {
+    font-size: 13px;
+    font-weight: 700;
+    color: #3d6fe0;
+  }
+}
+
+.weekly-progress-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #ececee;
+  overflow: hidden;
+  margin-bottom: 24px;
+
+  .weekly-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #3d6fe0, #ff2d78);
+  }
+}
+
+// ---- Section heading ----
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+  margin-top: 8px;
+
+  .section-heading-icon {
+    font-size: 18px;
+    color: #1a1a1a;
+
+    &--claimed { color: #1fa564; }
+  }
+}
+
+// ---- Quest card ----
+.quest-card {
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 12px;
+
+  &--claimed {
+    background: #fafafa;
+  }
+
+  .quest-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .quest-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 14px;
+    background: #3d6fe0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 20px;
+
+    &--claimed {
+      background: #d9f2e3;
+      color: #1fa564;
+    }
+  }
+
+  .quest-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .quest-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .claimed-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #1fa564;
+    }
+
+    .quest-description {
+      font-size: 13px;
+      color: #8a8a8e;
+    }
+  }
+}
+
+// ---- Category chips (Diverse Spender) ----
+.chip-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.chip {
+  flex: 1;
+  text-align: center;
+  padding: 8px 0;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ececee;
+  color: #b0b0b4;
+
+  &--filled {
+    background: #1fa564;
+    color: #ffffff;
+  }
+}
+
+// ---- Day streak circles (Streak Keeper) ----
+.day-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ececee;
+  color: #b0b0b4;
+
+  &--filled {
+    background: #ff7a1a;
+    color: #ffffff;
+  }
+}
+
+.quest-progress-caption {
+  display: block;
+  font-size: 12px;
+  color: #8a8a8e;
+  margin-bottom: 12px;
+}
+
+// ---- Linear progress row (Social Butterfly) ----
+.quest-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .quest-progress-value {
+    font-size: 12px;
+    color: #8a8a8e;
+    white-space: nowrap;
+  }
+
+  .quest-progress-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #ececee;
+    overflow: hidden;
+
+    .quest-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3d6fe0, #1fc9e0);
+      border-radius: 3px;
+    }
+  }
+}
+
+// ---- Reward pills ----
+.quest-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.claim-btn {
+  --background: #7b2fd6;
+  --border-radius: 20px;
+  font-weight: 700;
+  text-transform: none;
+  margin-top: 12px;
+}
+
+.pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 14px;
+
+  &--points { background: #ede4fb; color: #7b3fd1; }
+  &--xp { background: #e3ecfd; color: #3d6fe0; }
+  &--badge { background: #fdf1de; color: #d99a2b; }
+  &--legendary { background: linear-gradient(90deg, #7b2fd6, #e0307a); color: #ffffff; }
+  &--pet { background: #dff5f6; color: #1f9ba5; }
+}
+
+// ---- Loading / error states ----
+.state-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #8a8a8e;
+  font-size: 14px;
+
+  &--error {
+    color: #e0303d;
+  }
+}

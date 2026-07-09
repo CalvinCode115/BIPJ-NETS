@@ -2,6 +2,8 @@ const express = require('express');
 const db = require('../db');
 const asyncHandler = require('../utils/async-handler');
 const authRouter = require('./auth');
+const questsRouter = require('./quests'); 
+
 const {
   buildDnaProfile,
   buildDashboard,
@@ -27,6 +29,7 @@ const { formatBalanceLeft } = require('../services/balance-message');
 const router = express.Router();
 
 router.use('/auth', authRouter);
+router.use('/', questsRouter);
 
 router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'nets-backend', mode: 'firestore' });

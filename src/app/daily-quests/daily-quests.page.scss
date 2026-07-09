@@ -1,0 +1,239 @@
+.nets-page-toolbar {
+  --background: #ffffff;
+  --border-color: transparent;
+}
+
+.daily-quests-content {
+  --background: #ffffff;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 12px;
+}
+
+// ---- Resets in banner ----
+.resets-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8eefc;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #6b4fa0;
+  margin-bottom: 16px;
+
+  ion-icon {
+    font-size: 16px;
+  }
+
+  strong {
+    color: #4a2f80;
+  }
+}
+
+// ---- Progress card ----
+.progress-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid #f0e6f7;
+  border-radius: 18px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  position: relative;
+
+  .progress-ring {
+    --progress: 40;
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: conic-gradient(#ff2d78 calc(var(--progress) * 1%), #f0e6f0 0);
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    .progress-ring-value {
+      position: relative;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+  }
+
+  .progress-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .progress-label {
+      font-size: 13px;
+      color: #8a8a8e;
+    }
+
+    .progress-percent {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1a1a1a;
+    }
+  }
+
+  .progress-sparkle {
+    position: absolute;
+    right: 20px;
+    font-size: 26px;
+  }
+}
+
+// ---- Section heading ----
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+  margin-top: 8px;
+
+  .section-heading-icon {
+    font-size: 18px;
+
+    &--incomplete { color: #ff9500; }
+    &--completed { color: #1fa564; }
+  }
+}
+
+// ---- Quest card ----
+.quest-card {
+  background: #ffffff;
+  border: 1px solid #ececee;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 12px;
+
+  &--completed {
+    background: #fafafa;
+  }
+
+  .quest-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .quest-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 14px;
+    background: #e0407a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 20px;
+
+    &--completed {
+      background: #d9f2e3;
+      color: #1fa564;
+    }
+  }
+
+  .quest-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .quest-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .quest-description {
+      font-size: 13px;
+      color: #8a8a8e;
+    }
+  }
+}
+
+// ---- Progress bar within a quest (e.g. Big Spender) ----
+.quest-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  .quest-progress-value {
+    font-size: 12px;
+    color: #8a8a8e;
+    white-space: nowrap;
+  }
+
+  .quest-progress-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #ececee;
+    overflow: hidden;
+
+    .quest-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff9500, #ff2d78);
+      border-radius: 3px;
+    }
+  }
+}
+
+// ---- Reward pills ----
+.quest-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 14px;
+
+  &--points { background: #ede4fb; color: #7b3fd1; }
+  &--buff { background: #fdf1de; color: #d99a2b; }
+  &--rare { background: #fbe4e6; color: #e0303d; }
+  &--pet { background: #dff5f6; color: #1f9ba5; }
+  &--xp { background: #e3ecfd; color: #3d6fe0; }
+}
+
+// ---- Loading / error states ----
+.state-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #8a8a8e;
+  font-size: 14px;
+
+  &--error {
+    color: #e0303d;
+  }
+}
+
+// ---- Claim button ----
+.claim-btn {
+  --background: #7b2fd6;
+  --border-radius: 20px;
+  font-weight: 700;
+  text-transform: none;
+  margin-top: 12px;
+}
