@@ -476,7 +476,7 @@ function createTransactionFromReceipt(userId, receipt, card) {
     txn_type: 'debit',
     icon: meta.icon,
     icon_color: meta.iconColor,
-    occurred_at: period.parseReceiptDate(receipt.dateTime || receipt.date),
+    occurred_at: period.nowSingaporeIso(),
   };
 }
 

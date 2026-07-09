@@ -1,7 +1,7 @@
-const CURRENT_MONTH = 6;
-const CURRENT_YEAR = 2026;
+const CURRENT_MONTH = new Date().getMonth() + 1;
+const CURRENT_YEAR = new Date().getFullYear();
 const SINGAPORE_TZ = 'Asia/Singapore';
-w
+
 function parseOccurredAt(value) {
   const text = String(value || '').trim();
   if (!text) {

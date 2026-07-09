@@ -100,8 +100,8 @@ export interface InsightsResponse {
   providedIn: 'root',
 })
 export class TransactionsService {
-  readonly currentMonth = 6;
-  readonly currentYear = 2026;
+  readonly currentMonth = new Date().getMonth() + 1;
+  readonly currentYear = new Date().getFullYear();
 
   constructor(private http: HttpClient) {}
 
