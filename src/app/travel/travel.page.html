@@ -14,25 +14,126 @@
 
 <ion-content class="travel-content scroll-content-visible">
 
-  <!-- Destination Header -->
-  <div class="destination-bar">
-    <ion-icon name="location-outline"></ion-icon>
-    <span class="destination-text">{{ destination }}</span>
+  <!-- Sticky Destination Selector -->
+<div class="destination-bar">
+  <div class="destination-current" (click)="toggleDestinationDropdown()">
+    <span class="destination-flag">{{ currentDestination.flag }}</span>
+    <span class="destination-name">{{ currentDestination.name }}</span>
+    <span class="destination-currency">{{ currentDestination.currencyCode }}</span>
+    <ion-icon name="chevron-down" [class.open]="destinationDropdownOpen"></ion-icon>
   </div>
 
-  <!-- Weather Widget -->
-  <div class="weather-widget" *ngIf="weather">
-    <div class="weather-main">
-      <ion-icon [name]="getWeatherIcon()" class="weather-icon"></ion-icon>
-      <div class="weather-info">
-        <span class="weather-temp">{{ weather.temp }}°C</span>
-        <span class="weather-condition">{{ weather.condition }}</span>
+  <div class="destination-dropdown" *ngIf="destinationDropdownOpen">
+    <div 
+      class="destination-option" 
+      *ngFor="let dest of destinations"
+      [class.active]="dest.id === currentDestination.id"
+      (click)="selectDestination(dest.id)">
+      <span class="option-flag">{{ dest.flag }}</span>
+      <div class="option-info">
+        <span class="option-name">{{ dest.name }}</span>
+        <span class="option-country">{{ dest.country }}</span>
       </div>
-    </div>
-    <div class="weather-detail">
-      <span class="weather-humidity">💧 {{ weather.humidity }}%</span>
+      <span class="option-currency">{{ dest.currencyCode }}</span>
     </div>
   </div>
+</div>
+
+<!-- Click outside to close -->
+<div class="dropdown-backdrop" *ngIf="destinationDropdownOpen" (click)="destinationDropdownOpen = false"></div>
+
+  <!-- ── WEATHER FORECAST STRIP ── -->
+  <div class="weather-strip" *ngIf="forecast.length > 0">
+    <div class="weather-day" *ngFor="let day of forecast; let i = index" [class.active]="activeDayIndex === i"
+      (click)="selectDay(i)">
+      <span class="day-name">{{ day.dayOfWeek.substring(0, 3) }}</span>
+      <span class="day-icon">{{ day.isRainy ? '🌧️' : day.isHot ? '☀️' : '🌤️' }}</span>
+      <span class="day-temp">{{ day.tempMax }}°</span>
+    </div>
+  </div>
+
+  <!-- ── DAY ADVICE BANNER ── -->
+  <div class="day-advice" *ngIf="forecast[activeDayIndex]">
+    <p>{{ weatherService.getDayAdvice(forecast[activeDayIndex]) }}</p>
+  </div>
+
+<ion-card class="packing-card" *ngIf="packingList.length > 0">
+  <ion-card-header>
+    <ion-card-title>🎒 Smart Packing List</ion-card-title>
+    <ion-card-subtitle>Based on your 5-day forecast</ion-card-subtitle>
+  </ion-card-header>
+  <ion-card-content>
+    <div class="packing-grid">
+      <div class="pack-item" *ngFor="let item of packingList">
+        <ion-checkbox 
+          [checked]="item.checked"
+          (ionChange)="item.checked = $event.detail.checked">
+        </ion-checkbox>
+        <span [class.checked]="item.checked">{{ item.text }}</span>
+      </div>
+    </div>
+  </ion-card-content>
+</ion-card>
+
+  <!-- ── 3-DAY ITINERARY ── -->
+  <ion-card class="itinerary-card" *ngIf="itinerary.length > 0">
+    <ion-card-header>
+      <ion-card-title>🗓️ Weather-Optimized Itinerary</ion-card-title>
+      <ion-card-subtitle>Activities matched to daily conditions</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="day-plan" *ngFor="let plan of itinerary; let i = index">
+        <div class="day-header">
+          <div class="day-badge">Day {{ i + 1 }}</div>
+          <div class="day-weather">
+            <span>{{ plan.day.dayOfWeek }}</span>
+            <span class="day-condition">
+              {{ plan.day.isRainy ? '🌧️' : plan.day.isHot ? '☀️' : '🌤️' }}
+              {{ plan.day.tempMin }}°–{{ plan.day.tempMax }}°
+            </span>
+          </div>
+        </div>
+
+        <div class="day-activities">
+          <div class="activity-chip" *ngFor="let place of plan.activities">
+            <!-- Use method on component instead of service in template -->
+            <span class="activity-type">{{ isIndoorPlace(place.types) ? '🏠' : '🌳' }}</span>
+            <span>{{ place.displayName?.text || place.name }}</span>
+          </div>
+          <div class="no-activities" *ngIf="plan.activities.length === 0">
+            No activities assigned — add more places!
+          </div>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- ── WEATHER-AWARE PLACES LIST ── -->
+  <ion-card *ngIf="weatherSortedPlaces.length > 0">
+    <ion-card-header>
+      <ion-card-title>
+        {{ forecast[0]?.isRainy ? '🌧️ Indoor Picks for Today' : '☀️ Outdoor Picks for Today' }}
+      </ion-card-title>
+    </ion-card-header>
+    <ion-list>
+      <ion-item *ngFor="let place of weatherSortedPlaces.slice(0, 5)">
+        <!-- Use your existing photo proxy instead of exposing API key -->
+        <ion-thumbnail slot="start" *ngIf="place.photos?.[0]">
+          <img [src]="'http://localhost:8000/api/photo?photo_name=' + place.photos[0].name" />
+        </ion-thumbnail>
+        <ion-label>
+          <h3>{{ place.displayName?.text || place.name }}</h3>
+          <p>{{ place.formattedAddress }}</p>
+          <ion-badge [color]="isIndoorPlace(place.types) ? 'tertiary' : 'success'">
+            {{ isIndoorPlace(place.types) ? 'Indoor' : 'Outdoor' }}
+          </ion-badge>
+        </ion-label>
+        <ion-note slot="end" *ngIf="place.rating">
+          ⭐ {{ place.rating }}
+        </ion-note>
+      </ion-item>
+    </ion-list>
+  </ion-card>
 
   <!-- Trip Mode Toggle -->
   <div class="trip-toggle-bar">
@@ -115,28 +216,29 @@
     </div>
   </div>
   <!-- Plan Section (Planning Mode — shown separately) -->
-<div class="plan-section plan-mode" *ngIf="!isTripMode && plannedVenues.length > 0">
-  <div class="plan-header">
-    <ion-icon name="list-outline"></ion-icon>
-    <span>Your Plan ({{ plannedVenues.length }})</span>
-    <span class="plan-header-sub">Tap to view details</span>
-  </div>
-  <div class="plan-list">
-    <div class="plan-item" *ngFor="let venue of plannedVenues" (click)="openDetailModal(venue)">
-      <div class="plan-image" *ngIf="venue.photoUrl" [style.backgroundImage]="'url(' + venue.photoUrl + ')'"></div>
-      <div class="plan-image placeholder" *ngIf="!venue.photoUrl">
-        <ion-icon name="compass-outline"></ion-icon>
+  <div class="plan-section plan-mode" *ngIf="!isTripMode && plannedVenues.length > 0">
+    <div class="plan-header">
+      <ion-icon name="list-outline"></ion-icon>
+      <span>Your Plan ({{ plannedVenues.length }})</span>
+      <span class="plan-header-sub">Tap to view details</span>
+    </div>
+    <div class="plan-list">
+      <div class="plan-item" *ngFor="let venue of plannedVenues" (click)="openDetailModal(venue)">
+        <div class="plan-image" *ngIf="venue.photoUrl" [style.backgroundImage]="'url(' + venue.photoUrl + ')'"></div>
+        <div class="plan-image placeholder" *ngIf="!venue.photoUrl">
+          <ion-icon name="compass-outline"></ion-icon>
+        </div>
+        <div class="plan-info">
+          <span class="plan-name">{{ venue.venueName }}</span>
+          <span class="plan-meta">{{ getStars(venue.rating) }} {{ venue.rating }} · {{ getPriceLevel(venue.priceLevel)
+            }}</span>
+        </div>
+        <ion-button fill="clear" size="small" (click)="removeFromPlan(venue); $event.stopPropagation()">
+          <ion-icon name="close-circle" color="danger"></ion-icon>
+        </ion-button>
       </div>
-      <div class="plan-info">
-        <span class="plan-name">{{ venue.venueName }}</span>
-        <span class="plan-meta">{{ getStars(venue.rating) }} {{ venue.rating }} · {{ getPriceLevel(venue.priceLevel) }}</span>
-      </div>
-      <ion-button fill="clear" size="small" (click)="removeFromPlan(venue); $event.stopPropagation()">
-        <ion-icon name="close-circle" color="danger"></ion-icon>
-      </ion-button>
     </div>
   </div>
-</div>
 
   <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
@@ -676,7 +778,7 @@
   <div class="fx-fab" *ngIf="fxInsight" [style.border-color]="getFxTrendColor()">
     <div class="fx-fab-inner">
       <span class="fx-fab-rate">{{ fxInsight.currentRate | number:'1.3-3' }}</span>
-      <span class="fx-fab-unit">MYR</span>
+      <span class="fx-fab-unit">{{ currentDestination.currencyCode }}</span>
       <ion-icon [name]="getFxTrendIcon()" [style.color]="getFxTrendColor()"></ion-icon>
     </div>
   </div>

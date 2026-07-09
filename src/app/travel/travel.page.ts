@@ -1,9 +1,11 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { TravelService } from './travel.service';
 import { FxTrackerService } from '../fx-tracker/fx-tracker.service';
 import { AuthService } from '../services/auth.service';
 import { CardContextService } from '../services/card-context.service';
+import { GooglePlace } from './travel.model';
 import {
   CardsService,
   WalletCard,
@@ -14,6 +16,8 @@ import {
   getCardFundsSubtext,
   formatCardPaymentLabel,
 } from '../services/cards.service';
+import { DestinationConfig, DESTINATIONS, DEFAULT_DESTINATION } from '../services/destination.config';
+import { CacheService } from '../services/cache.service';
 import {
   displayedCardBalance as formatDisplayedCardBalance,
   displayedCardNumber as formatDisplayedCardNumber,
@@ -27,6 +31,7 @@ import {
   TravelTransaction,
 } from './travel.model';
 
+import { PackingItem, WeatherService, DailyForecast } from './weather.service';
 @Component({
   selector: 'app-travel',
   templateUrl: './travel.page.html',
@@ -35,6 +40,13 @@ import {
 })
 export class TravelPage implements OnInit {
   @ViewChild('tripToggle', { static: false }) tripToggle: any;
+
+  // ── Country Selection ──
+  currentDestination: DestinationConfig = DESTINATIONS[DEFAULT_DESTINATION];
+  destinationDropdownOpen = false;
+  readonly destinations = Object.values(DESTINATIONS);
+
+
   // Travel
   recommendations: RecommendationCard[] = [];
   categories: CategorySection[] = [];
@@ -96,67 +108,103 @@ export class TravelPage implements OnInit {
   selectedBudgetOption = 500;
   customBudget = '';
 
+  forecast: DailyForecast[] = [];
+  packingList: PackingItem[] = [];
+  itinerary: { day: DailyForecast; activities: any[] }[] = [];
+  weatherSortedPlaces: any[] = [];
+  activeDayIndex: number = 0;
+
+  places: any[] = [];
+  placesApiKey: string = '';
+
   constructor(
+    private http: HttpClient,
     private travelService: TravelService,
     private fxService: FxTrackerService,
     private router: Router,
     private auth: AuthService,
     private cardContext: CardContextService,
-    private cardsService: CardsService
+    private cardsService: CardsService,
+    public weatherService: WeatherService,
+    private cache: CacheService
   ) { }
 
   ngOnInit() {
+    const savedDest = localStorage.getItem('nets_selected_destination');
+    if (savedDest && DESTINATIONS[savedDest]) {
+      this.currentDestination = DESTINATIONS[savedDest];
+    }
+
     this.loadTripMode();
     this.loadPlan();
     this.loadCategoryBudgets();
     this.loadAll();
+    if (this.isTripMode) this.loadBudget();
+  this.loadActiveCard();
+
+
 
     // Only load budget if in trip mode
     if (this.isTripMode) {
       this.loadBudget();
     }
 
-    this.loadActiveCard();
   }
 
   loadAll() {
-    this.loadTravelData();
+    this.loadTravelData();      // ← this now fetches places too
     this.loadWeather();
     this.loadFxCircle();
+    this.loadForecastAndBuildItinerary();
+
+    this.weatherService.getForecast(this.currentDestination).subscribe({
+      next: (forecast) => {
+        this.forecast = forecast;
+        this.packingList = this.weatherService.getPackingList(forecast, this.currentDestination);
+        // buildWeatherItinerary() is now called inside loadTravelData() when places arrive
+      }
+    });
   }
+
 
   // ========== TRAVEL DATA ==========
+// Update loadTravelData to call onPlacesLoaded
+loadTravelData() {
+  this.isLoading = true;
+  this.error = null;
+  const now = new Date();
 
-  loadTravelData() {
-    this.isLoading = true;
-    this.error = null;
-    const now = new Date();
+  this.travelService.getTravelRecommendations(
+    this.userId,
+    this.currentDestination,
+    now.getMonth() + 1,
+    now.getFullYear()
+  ).subscribe({
+    next: (result) => {
+      this.recommendations = result.dnaPicks || [];
+      this.categories = (result.categories || []).map((cat: CategorySection) => ({
+        ...cat,
+        visibleCount: 3
+      }));
+      this.places = result.places || [];
 
-    this.travelService.getTravelRecommendations(this.userId, now.getMonth() + 1, now.getFullYear())
-      .subscribe({
-        next: (result: any) => {
-          this.recommendations = result.recommendations || result.dnaPicks || [];
-          this.categories = (result.categories || []).map((cat: CategorySection) => ({
-            ...cat,
-            visibleCount: 3
-          }));
+      if (result.budget && !this.budget) {
+        this.budget = result.budget;
+        this.saveBudget();
+      }
 
-          if (result.dnaProfile) {
-            this.dnaProfile = result.dnaProfile;
-          }
+      // ← KEY: trigger itinerary rebuild now that places are here
+      this.onPlacesLoaded();
 
-          if (result.budget && !this.budget) {
-            this.budget = result.budget;
-            this.saveBudget();
-          }
-          this.isLoading = false;
-        },
-        error: (err: any) => {
-          this.error = err.message || 'Something went wrong';
-          this.isLoading = false;
-        }
-      });
-  }
+      this.isLoading = false;
+    },
+    error: (err: any) => {
+      this.error = err.message || 'Something went wrong';
+      this.isLoading = false;
+    }
+  });
+}
+
 
   loadMoreCards(category: CategorySection) {
     category.visibleCount += 3;
@@ -165,13 +213,11 @@ export class TravelPage implements OnInit {
   // ========== WEATHER ==========
 
   loadWeather() {
-    const conditions = [
-      { condition: 'Sunny', icon: 'sunny', temp: 32, humidity: 75 },
-      { condition: 'Partly Cloudy', icon: 'partly-sunny', temp: 30, humidity: 80 },
-      { condition: 'Cloudy', icon: 'cloudy', temp: 29, humidity: 82 },
-      { condition: 'Rainy', icon: 'rainy', temp: 27, humidity: 90 },
-    ];
-    this.weather = conditions[Math.floor(Math.random() * conditions.length)];
+    this.weatherService.getWeather(this.currentDestination).subscribe({
+      next: (weather) => {
+        this.weather = weather;
+      }
+    });
   }
 
   getWeatherIcon(): string {
@@ -188,9 +234,9 @@ export class TravelPage implements OnInit {
   // ========== FX FAB ==========
 
   loadFxCircle() {
-    this.fxService.getFxInsight(7).subscribe({
-      next: (insight: FxInsight) => (this.fxInsight = insight),
-      error: (err: any) => console.error('FX circle load failed:', err),
+    this.fxService.getFxInsightWithPrediction(this.currentDestination, 7).subscribe({
+      next: (insight) => this.fxInsight = insight,
+      error: (err) => console.error('FX load failed:', err)
     });
   }
 
@@ -1095,4 +1141,91 @@ export class TravelPage implements OnInit {
     if (spent / budget > 0.8) return '#ff9500';
     return '#34c759';
   }
+
+  // Call this after places load
+  buildWeatherItinerary() {
+    this.itinerary = this.weatherService.buildItinerary(this.places, this.forecast);
+
+    // Also create a weather-sorted version of all places for the "Things to Do" tab
+    if (this.forecast.length > 0) {
+      this.weatherSortedPlaces = this.weatherService.sortPlacesByWeather(
+        this.places,
+        this.forecast[0] // sort by today's weather
+      );
+    }
+  }
+
+  selectDay(index: number) {
+    this.activeDayIndex = index;
+  }
+
+  // Helper methods for template
+  isIndoorPlace(types: string[]): boolean {
+    return this.weatherService.isIndoorPlace(types);
+  }
+
+  getDayAdvice(day: DailyForecast): string {
+    return this.weatherService.getDayAdvice(day);
+  }
+
+  /** Switch country — clears and reloads everything */
+  selectDestination(destId: string) {
+    if (destId === this.currentDestination.id) {
+      this.destinationDropdownOpen = false;
+      return;
+    }
+
+    this.currentDestination = DESTINATIONS[destId];
+    localStorage.setItem('nets_selected_destination', destId);
+    this.destinationDropdownOpen = false;
+
+    // Clear in-memory data for fresh load
+    this.recommendations = [];
+    this.categories = [];
+    this.places = [];
+    this.forecast = [];
+    this.packingList = [];
+    this.itinerary = [];
+    this.weatherSortedPlaces = [];
+    this.fxInsight = null;
+
+    // Reload everything for new country
+    this.loadAll();
+    if (this.isTripMode) {
+      // Update budget destination context
+      this.saveBudget(); // triggers re-save with new destination context
+    }
+  }
+
+  toggleDestinationDropdown() {
+    this.destinationDropdownOpen = !this.destinationDropdownOpen;
+  }
+
+  get destinationDisplay(): string {
+    return `${this.currentDestination.name}, ${this.currentDestination.country}`;
+  }
+
+private loadForecastAndBuildItinerary() {
+  this.weatherService.getForecast(this.currentDestination).subscribe({
+    next: (forecast) => {
+      this.forecast = forecast;
+      this.packingList = this.weatherService.getPackingList(forecast, this.currentDestination);
+      
+      // Try to build itinerary — places might already be loaded from cache
+      this.tryBuildWeatherItinerary();
+    }
+  });
+}
+
+private onPlacesLoaded() {
+  // Try to build itinerary — forecast might already be loaded
+  this.tryBuildWeatherItinerary();
+}
+
+/** Safe rebuild — only runs when BOTH places AND forecast are ready */
+private tryBuildWeatherItinerary() {
+  if (this.places.length > 0 && this.forecast.length > 0) {
+    this.buildWeatherItinerary();
+  }
+}
 }

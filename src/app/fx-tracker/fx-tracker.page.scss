@@ -273,3 +273,134 @@
     font-size: 14px;
   }
 }
+
+.direction-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 16px 16px 0;
+  padding: 4px;
+  background: #f5f5f7;
+  border-radius: 12px;
+
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #8e8e93;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+
+    .currency-flag {
+      font-size: 16px;
+    }
+
+    &.active {
+      background: #fff;
+      color: #1a1a2e;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+// ── Chart Legend ──
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  margin: 8px 16px 12px;
+  justify-content: center;
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #8e8e93;
+
+    .dot {
+      width: 12px;
+      height: 3px;
+      border-radius: 2px;
+
+      &.solid { background: var(--nets-red); }
+      &.dotted {
+        background: transparent;
+        border-top: 2px dashed #8e8e93;
+        height: 0;
+      }
+      &.band {
+        background: rgba(142, 142, 147, 0.25);
+        height: 8px;
+        border-radius: 4px;
+      }
+    }
+  }
+}
+
+// ── Prediction Card ──
+.prediction-card {
+  background: #fff;
+  border-radius: 16px;
+  margin: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+
+  .prediction-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    ion-icon {
+      font-size: 28px;
+    }
+
+    h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .prediction-signal {
+      font-size: 13px;
+      font-weight: 700;
+    }
+  }
+
+  .prediction-narrative {
+    p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #3a3a3c;
+    }
+  }
+
+  .prediction-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+    font-size: 12px;
+    color: #8e8e93;
+
+    ion-icon {
+      font-size: 14px;
+    }
+  }
+}

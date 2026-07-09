@@ -2,7 +2,9 @@ import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Location } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
 import { FxTrackerService } from './fx-tracker.service';
-import { FxInsight } from './fx-tracker.model';
+import { FxInsightWithPrediction } from './fx-tracker.model';
+import { DESTINATIONS, DEFAULT_DESTINATION } from '../services/destination.config';
+import { DestinationConfig } from '../services/destination.config';
 
 Chart.register(...registerables);
 
@@ -15,13 +17,26 @@ Chart.register(...registerables);
 export class FxTrackerPage implements OnInit {
   @ViewChild('fxChart') fxChartRef!: ElementRef;
 
-  insight: FxInsight | null = null;
+  insight: FxInsightWithPrediction | null = null;
   isLoading = false;
   error: string | null = null;
+  isReversed = false;
 
-  baseCurrency = 'SGD';
-  targetCurrency = 'MYR';
-  destination = 'Malaysia';
+  // Dynamic destination loaded from localStorage
+  currentDestination: DestinationConfig = DESTINATIONS[DEFAULT_DESTINATION];
+
+  get baseCurrency(): string {
+    return this.isReversed ? this.currentDestination.currencyCode : this.currentDestination.homeCurrencyCode;
+  }
+
+  get targetCurrency(): string {
+    return this.isReversed ? this.currentDestination.homeCurrencyCode : this.currentDestination.currencyCode;
+  }
+
+  get destination(): string {
+    return this.currentDestination.country;
+  }
+
   chart: Chart | null = null;
 
   constructor(
@@ -30,14 +45,31 @@ export class FxTrackerPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    // Load selected destination from localStorage (shared with travel page)
+    const savedDest = localStorage.getItem('nets_selected_destination');
+    if (savedDest && DESTINATIONS[savedDest]) {
+      this.currentDestination = DESTINATIONS[savedDest];
+    }
+    this.loadFxData();
+  }
+
+  setDirection(reversed: boolean) {
+    if (this.isReversed === reversed) return;
+    this.isReversed = reversed;
     this.loadFxData();
   }
 
   loadFxData() {
     this.isLoading = true;
     this.error = null;
+    this.insight = null;
+    if (this.chart) {
+      this.chart.destroy();
+      this.chart = null;
+    }
 
-    this.fxService.getFxInsight(30).subscribe({
+    // Pass destination object — prediction is included!
+    this.fxService.getFxInsightWithPrediction(this.currentDestination, 30).subscribe({
       next: (insight) => {
         this.insight = insight;
         this.isLoading = false;
@@ -50,66 +82,126 @@ export class FxTrackerPage implements OnInit {
       }
     });
   }
-
   renderChart() {
-    if (!this.fxChartRef || !this.insight || this.insight.rates.length === 0) return;
-
+    if (!this.fxChartRef || !this.insight) return;
     const ctx = this.fxChartRef.nativeElement.getContext('2d');
     if (!ctx) return;
+    if (this.chart) this.chart.destroy();
 
-    if (this.chart) {
-      this.chart.destroy();
-    }
+    const hist = this.insight.rates;
+    const pred = this.insight.prediction.forecastRates;
+    const upper = this.insight.prediction.confidenceUpper;
+    const lower = this.insight.prediction.confidenceLower;
 
-    const rates = this.insight.rates;
-    const labels = rates.map(r => {
+    // All dates for x-axis
+    const histLabels = hist.map(r => {
       const d = new Date(r.date);
       return `${d.getDate()}/${d.getMonth() + 1}`;
     });
-    const data = rates.map(r => r.rate);
+    const predLabels = pred.map(r => {
+      const d = new Date(r.date);
+      return `${d.getDate()}/${d.getMonth() + 1}`;
+    });
 
-    const trendColor = this.insight.trend === 'up' ? '#d71920' : 
-                       this.insight.trend === 'down' ? '#34c759' : '#ff9500';
+    // Gap between historical and prediction (connecting point)
+    const allLabels = [...histLabels, ...predLabels];
+
+    // Historical data + null padding for prediction period
+    const histData = [...hist.map(r => r.rate), ...new Array(pred.length).fill(null)];
+    // Null padding for historical period + prediction data
+    const predData = [...new Array(hist.length - 1).fill(null), hist[hist.length - 1].rate, ...pred.map(r => r.rate)];
+    // Confidence bands
+    const upperData = [...new Array(hist.length).fill(null), ...upper];
+    const lowerData = [...new Array(hist.length).fill(null), ...lower];
+
+    const trendColor = this.insight.trend === 'up' ? '#d71920' :
+      this.insight.trend === 'down' ? '#34c759' : '#ff9500';
+    const predColor = '#8e8e93';
 
     this.chart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels,
-        datasets: [{
-          label: `SGD → MYR`,
-          data,
-          borderColor: trendColor,
-          backgroundColor: this.hexToRgba(trendColor, 0.1),
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          pointBackgroundColor: trendColor,
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2
-        }]
+        labels: allLabels,
+        datasets: [
+          // Confidence band (fill between upper and lower)
+          {
+            label: 'Confidence',
+            data: upperData,
+            borderColor: 'transparent',
+            backgroundColor: 'rgba(142, 142, 147, 0.1)',
+            fill: '+1',
+            pointRadius: 0,
+            pointHoverRadius: 0,
+          },
+          {
+            label: 'Confidence Lower',
+            data: lowerData,
+            borderColor: 'transparent',
+            backgroundColor: 'transparent',
+            pointRadius: 0,
+            pointHoverRadius: 0,
+          },
+          // Historical line (solid)
+          {
+            label: `${this.baseCurrency} → ${this.targetCurrency} (Historical)`,
+            data: histData,
+            borderColor: trendColor,
+            backgroundColor: this.hexToRgba(trendColor, 0.1),
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointBackgroundColor: trendColor,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+          },
+          // Prediction line (dotted)
+          {
+            label: '7-Day Forecast',
+            data: predData,
+            borderColor: predColor,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            fill: false,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: predColor,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+          },
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
+        interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'circle',
+              font: { size: 11 },
+              filter: (item) => item.text !== 'Confidence' && item.text !== 'Confidence Lower',
+            }
+          },
           tooltip: {
             backgroundColor: '#1a1a2e',
             titleColor: '#fff',
             bodyColor: '#fff',
             cornerRadius: 8,
             padding: 12,
-            displayColors: false,
+            displayColors: true,
             callbacks: {
               label: (context) => {
-                const value = context.parsed.y ?? 0;
-                return `Rate: ${value.toFixed(4)} MYR`;
+                const value = context.parsed.y;
+                if (value == null) return '';
+                const isPred = context.dataset.label?.includes('Forecast');
+                return `${context.dataset.label?.replace(' (Historical)', '')}: ${value.toFixed(4)} ${isPred ? '(forecast)' : ''}`;
               }
             }
           }
@@ -117,32 +209,19 @@ export class FxTrackerPage implements OnInit {
         scales: {
           x: {
             grid: { display: false },
-            ticks: {
-              color: '#8e8e93',
-              font: { size: 10 },
-              maxTicksLimit: 6
-            }
+            ticks: { color: '#8e8e93', font: { size: 10 }, maxTicksLimit: 8 }
           },
           y: {
             grid: { color: '#f0f0f0' },
-            ticks: {
-              color: '#8e8e93',
-              font: { size: 10 },
-              callback: (value) => Number(value).toFixed(3)
-            }
+            ticks: { color: '#8e8e93', font: { size: 10 }, callback: (v) => Number(v).toFixed(4) }
           }
         }
       }
     });
   }
 
-  refresh() {
-    this.loadFxData();
-  }
-
-  goBack() {
-    this.location.back();
-  }
+  refresh() { this.loadFxData(); }
+  goBack() { this.location.back(); }
 
   getTrendIcon(): string {
     if (!this.insight) return 'remove-outline';
@@ -160,9 +239,25 @@ export class FxTrackerPage implements OnInit {
 
   getTrendLabel(): string {
     if (!this.insight) return 'Stable';
-    if (this.insight.trend === 'up') return 'SGD Weakening';
-    if (this.insight.trend === 'down') return 'SGD Strengthening';
+    if (this.insight.trend === 'up') return `${this.baseCurrency} Weakening`;
+    if (this.insight.trend === 'down') return `${this.baseCurrency} Strengthening`;
     return 'Stable';
+  }
+
+  getSignalColor(): string {
+    if (!this.insight) return '#8e8e93';
+    const s = this.insight.prediction.technicalSignal;
+    if (s === 'bullish') return '#34c759';
+    if (s === 'bearish') return '#d71920';
+    return '#ff9500';
+  }
+
+  getSignalIcon(): string {
+    if (!this.insight) return 'remove-outline';
+    const s = this.insight.prediction.technicalSignal;
+    if (s === 'bullish') return 'trending-up-outline';
+    if (s === 'bearish') return 'trending-down-outline';
+    return 'remove-outline';
   }
 
   private hexToRgba(hex: string, alpha: number): string {

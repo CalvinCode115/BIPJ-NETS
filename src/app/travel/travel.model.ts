@@ -98,3 +98,11 @@ export interface WeatherData {
   icon: string;
   humidity: number;
 }
+
+// Add this interface if you want
+export interface TravelRecommendationsResult {
+  dnaPicks: RecommendationCard[];
+  categories: CategorySection[];
+  budget: BudgetTracker;
+  places: GooglePlace[];
+}

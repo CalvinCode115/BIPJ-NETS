@@ -34,3 +34,22 @@ export interface FxInsight {
   average30d: number;
    rates: FxRate[];
 }
+
+export interface NewsSentiment {
+  score: number;
+  articleCount: number;
+  headlines: string[];
+}
+
+export interface FxPrediction {
+  forecastRates: FxRate[];
+  confidenceUpper: number[];
+  confidenceLower: number[];
+  sentiment: NewsSentiment;
+  technicalSignal: 'bullish' | 'bearish' | 'neutral';
+  narrative: string;
+}
+
+export interface FxInsightWithPrediction extends FxInsight {
+  prediction: FxPrediction;
+}
