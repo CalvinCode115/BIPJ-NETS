@@ -1,30 +1,31 @@
 import { Injectable } from '@angular/core';
+import { AuthService } from 'src/app/services/auth.service';
+
 
 /**
- * TODO: replace this with however your app's `routes/auth.js` login flow
- * already tracks the signed-in user (e.g. a shared AuthService, a value
- * stored after PIN login, etc). This is a placeholder so the quest/challenge
- * services below have something to call — it reads/writes a simple key so
- * you can wire it up quickly, but it should be replaced with your real
- * current-user source rather than kept long-term.
+ * Thin wrapper so the quest/points/challenge services only need to know
+ * about "the current userId", not the details of how auth works.
+ *
+ * This used to be a standalone placeholder that read a made-up localStorage
+ * key nothing else in the app ever wrote to — which is why every user saw
+ * user_1's data regardless of who was actually logged in. It now delegates
+ * directly to the real AuthService.
  */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
 
-  private readonly STORAGE_KEY = 'nets_current_user_id';
+  constructor(private auth: AuthService) {}
 
   get userId(): string {
-    const stored = localStorage.getItem(this.STORAGE_KEY);
-    if (!stored) {
-      // Fallback so the app doesn't crash before real auth is wired in —
-      // matches one of the seeded demo users (user_1 / Alex Tan).
-      console.warn('SessionService: no logged-in user found, defaulting to user_1');
-      return 'user_1';
+    const id = this.auth.userId;
+    if (!id) {
+      // Surfacing this loudly on purpose: silently falling back to a
+      // hardcoded user (like the old placeholder did) is exactly the bug
+      // we're fixing here. If this throws, it means a quest/points page
+      // rendered before login — a routing/guard issue worth fixing at the
+      // source, not papering over here.
+      throw new Error('SessionService.userId: no user is currently logged in.');
     }
-    return stored;
-  }
-
-  setUserId(userId: string): void {
-    localStorage.setItem(this.STORAGE_KEY, userId);
+    return id;
   }
 }

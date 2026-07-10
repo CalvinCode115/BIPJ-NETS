@@ -26,6 +26,7 @@ const notificationService = require('../services/notifications');
 const { LOW_BALANCE_THRESHOLD } = require('../services/wallet-config');
 const { clampCreditLimit } = require('../services/credit-config');
 const { formatBalanceLeft } = require('../services/balance-message');
+const transactionRewards = require('../services/transaction-rewards');
 
 const router = express.Router();
 
@@ -115,6 +116,7 @@ router.post('/users/:userId/transactions/receipt', asyncHandler(async (req, res)
   }
 
   const saved = await db.addTransaction(createTransactionFromReceipt(req.params.userId, receipt, card));
+  await transactionRewards.awardTransactionRewards(req.params.userId, saved);
 
   const refreshedCard = await db.setCardBalance(
     card.id,
@@ -263,6 +265,8 @@ router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
   const saved = await db.addTransaction(
     qrPayment.createTransactionFromQr(req.params.userId, parsed.payment, card)
   );
+
+  await transactionRewards.awardTransactionRewards(req.params.userId, saved);
 
   const refreshedCard = await db.setCardBalance(card.id, cardUtils.applyDebit(card, parsed.payment.amount));
 

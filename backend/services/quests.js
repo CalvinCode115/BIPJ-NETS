@@ -495,14 +495,33 @@ async function recordQuestEvent(userId, event) {
       }
     }
 
+    /** requirementMeta.category can be a single string or an array — matches either. */
+    function categoryMatches(requirementMeta, eventCategory) {
+      const categories = requirementMeta?.category;
+      if (!categories) return true; // no category restriction on this quest
+      const list = Array.isArray(categories) ? categories : [categories];
+      return list.includes(eventCategory);
+    }
+
+    /** requirementMeta.hourRange: [startHour, endHour) in Asia/Singapore, 24h clock. */
+    function withinHourRange(requirementMeta) {
+      if (!requirementMeta?.hourRange) return true; // no time restriction
+      const [startHour, endHour] = requirementMeta.hourRange;
+      const hour = toSgtWallClock().getUTCHours();
+      if (startHour <= endHour) {
+        return hour >= startHour && hour < endHour;
+      }
+      return hour >= startHour || hour < endHour; // wraps past midnight
+    }
+
     function applyEventToQuest(template, progress) {
       if (progress.completed) return null;
 
       switch (template.requirementType) {
         case 'transaction_count': {
           if (event.eventType !== 'transaction') return null;
-          const category = template.requirementMeta?.category;
-          if (category && event.merchantCategory !== category) return null;
+          if (!categoryMatches(template.requirementMeta, event.merchantCategory)) return null;
+          if (!withinHourRange(template.requirementMeta)) return null;
           return incrementBy(progress, 1);
         }
         case 'spend_amount': {
@@ -510,13 +529,13 @@ async function recordQuestEvent(userId, event) {
           return incrementBy(progress, event.amount);
         }
         case 'visit_new_merchant': {
-          if (event.eventType !== 'merchant_visit' || !event.isNewMerchant) return null;
+          const isVisitLikeEvent = event.eventType === 'transaction' || event.eventType === 'merchant_visit';
+          if (!isVisitLikeEvent || !event.isNewMerchant) return null;
           return incrementBy(progress, 1);
         }
         case 'merchant_category': {
           if (event.eventType !== 'transaction' || !event.merchantCategory) return null;
-          const category = template.requirementMeta?.category;
-          if (category && event.merchantCategory !== category) return null;
+          if (!categoryMatches(template.requirementMeta, event.merchantCategory)) return null;
           return incrementBy(progress, 1);
         }
         case 'merchant_category_count': {
@@ -575,6 +594,13 @@ async function recordQuestEvent(userId, event) {
       weeklyQuests[templateId] = updated;
     }
 
+    /** requirementMeta.merchantIds may contain the literal 'any' as a wildcard (e.g. National Day challenge). */
+    function merchantMatches(requirementMeta, eventMerchantId) {
+      const ids = requirementMeta?.merchantIds ?? [];
+      if (ids.includes('any')) return true;
+      return !!eventMerchantId && ids.includes(eventMerchantId);
+    }
+
     // ---- Partner challenges ----
     const challengeUpdates = [];
     const challengeCompletions = [];
@@ -588,14 +614,19 @@ async function recordQuestEvent(userId, event) {
 
       let delta = 0;
       if (challenge.requirementType === 'spend_amount_at_merchant') {
-        if (event.eventType === 'transaction' && event.amount && challenge.requirementMeta?.merchantIds?.includes(event.merchantId)) {
+        if (event.eventType === 'transaction' && event.amount && merchantMatches(challenge.requirementMeta, event.merchantId)) {
           delta = event.amount;
         }
       } else if (
         challenge.requirementType === 'visit_count_at_merchants' ||
         challenge.requirementType === 'visit_stall_count'
       ) {
-        if (event.eventType === 'merchant_visit' && challenge.requirementMeta?.merchantIds?.includes(event.merchantId)) {
+        // A transaction at the merchant counts as a visit — this integration
+        // has no separate "check in" action.
+        if (
+          (event.eventType === 'merchant_visit' || event.eventType === 'transaction') &&
+          merchantMatches(challenge.requirementMeta, event.merchantId)
+        ) {
           delta = 1;
         }
       }
