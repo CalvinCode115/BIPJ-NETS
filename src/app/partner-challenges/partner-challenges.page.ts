@@ -6,6 +6,7 @@ import { ChallengeWithProgress } from 'shared/quest.models';
 import { PartnerChallengesService } from 'shared/partner-challenges.service';
 import { SessionService } from 'shared/session.service';
 
+
 @Component({
   selector: 'app-partner-challenges',
   templateUrl: './partner-challenges.page.html',

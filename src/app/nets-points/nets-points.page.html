@@ -11,6 +11,8 @@
 
 <ion-content class="nets-points-content">
 
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
   <!-- Total balance card -->
   <div class="balance-card">
     <span class="balance-label">Total NETS Points</span>
@@ -31,38 +33,42 @@
         <ion-icon name="trending-up-outline" class="week-stat-icon week-stat-icon--up"></ion-icon>
         Earned This Week
       </span>
-      <span class="week-stat-value week-stat-value--positive">+{{ earnedThisWeek }}</span>
+      <span class="week-stat-value week-stat-value--positive">{{ earnedThisWeek > 0 ? '+' : '' }}{{ earnedThisWeek }}</span>
     </div>
     <div class="week-stat-card">
       <span class="week-stat-label">
         <ion-icon name="trending-down-outline" class="week-stat-icon week-stat-icon--down"></ion-icon>
         Spent This Week
       </span>
-      <span class="week-stat-value week-stat-value--negative">-{{ spentThisWeek }}</span>
+      <span class="week-stat-value week-stat-value--negative">{{ spentThisWeek > 0 ? '-' : '' }}{{ spentThisWeek }}</span>
     </div>
   </div>
 
   <!-- Points History -->
   <h2 class="points-history-heading">Points History</h2>
 
-  <div class="history-list">
+  <div *ngIf="loading" class="state-message">Loading...</div>
+
+  <div class="history-list" *ngIf="!loading">
     <div class="history-item" *ngFor="let item of pointsHistory">
       <div class="history-icon" [ngClass]="'history-icon--' + item.type">
         <ion-icon [name]="item.icon"></ion-icon>
       </div>
       <div class="history-details">
         <span class="history-title">{{ item.title }}</span>
-        <span class="history-timestamp">{{ item.timestamp }}</span>
+        <span class="history-timestamp">{{ item.timestamp | date:'MMM d, y, h:mm a' }}</span>
       </div>
       <div class="history-amount" [ngClass]="item.amount > 0 ? 'history-amount--positive' : 'history-amount--negative'">
         <span class="history-amount-value">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</span>
         <span class="history-amount-unit">Pts</span>
       </div>
     </div>
+
+    <div *ngIf="pointsHistory.length === 0" class="state-message">No points activity yet.</div>
   </div>
 
   <ion-button expand="block" fill="outline" shape="round" class="load-more-btn" (click)="goToPointHistory()">
-    Load More History
+    View Full History
   </ion-button>
 
 </ion-content>

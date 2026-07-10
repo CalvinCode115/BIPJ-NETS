@@ -138,15 +138,27 @@
 
     &--quest,
     &--challenge,
-    &--streak,
-    &--pet {
+    &--bonus,
+    &--achievement {
       background: #e3f5ea;
       color: #1fa564;
     }
 
+    &--redemption,
+    &--cosmetic,
     &--redeem {
       background: #fbe4e6;
       color: #e0303d;
+    }
+
+    &--transfer {
+      background: #e9edfd;
+      color: #4a63e0;
+    }
+
+    &--transaction {
+      background: #eef4fb;
+      color: #3d7fc9;
     }
   }
 
@@ -197,4 +209,16 @@
   font-weight: 600;
   text-transform: none;
   margin-bottom: 16px;
+}
+
+// ---- Loading / error states ----
+.state-message {
+  text-align: center;
+  padding: 30px 20px;
+  color: #8a8a8e;
+  font-size: 14px;
+
+  &--error {
+    color: #e0303d;
+  }
 }

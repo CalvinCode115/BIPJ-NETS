@@ -176,3 +176,58 @@
     &--negative .transaction-amount-value { color: #e0303d; }
   }
 }
+
+// ---- Search bar ----
+.history-searchbar {
+  --background: #f5f5f7;
+  --border-radius: 14px;
+  --box-shadow: none;
+  padding: 0 0 12px;
+}
+
+// ---- Date range filter ----
+.date-range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+
+  .date-range-btn {
+    flex: 1;
+    --border-radius: 12px;
+    --border-color: #d8d8db;
+    --color: #4a4a4e;
+    font-size: 12px;
+    text-transform: none;
+    height: 38px;
+  }
+
+  .date-range-separator {
+    font-size: 12px;
+    color: #8a8a8e;
+  }
+
+  .date-range-clear {
+    --color: #8a8a8e;
+    margin: 0;
+  }
+}
+
+// ---- Loading / error / empty states ----
+.state-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8a8a8e;
+  font-size: 14px;
+
+  &--error {
+    color: #e0303d;
+  }
+}
+
+// ---- Date picker modal ----
+.date-picker-modal {
+  --width: 320px;
+  --height: 420px;
+  --border-radius: 16px;
+}

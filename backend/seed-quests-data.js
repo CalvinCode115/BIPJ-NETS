@@ -18,7 +18,7 @@ const dailyQuestTemplates = {
     rewards: [{ label: '[Buff] Energized', style: 'buff' }],
     requirementType: 'transaction_count',
     requirementTarget: 1,
-    requirementMeta: { category: 'F&B' },
+    requirementMeta: { category: ['Coffee', 'Drinks', 'Dining'] },
     active: true,
   },
   'daily-big-spender': {
@@ -79,7 +79,7 @@ const dailyQuestTemplates = {
     rewards: [{ label: '+50 XP', style: 'xp' }],
     requirementType: 'transaction_count',
     requirementTarget: 1,
-    requirementMeta: { category: 'F&B' },
+    requirementMeta: { category: ['Dining', 'Coffee', 'Drinks'], hourRange: [11, 14] },
     active: true,
   },
   'daily-transport-tap': {
@@ -142,6 +142,7 @@ const dailyQuestTemplates = {
     rewards: [{ label: '[Buff] Energized', style: 'buff' }],
     requirementType: 'transaction_count',
     requirementTarget: 1,
+    requirementMeta: { hourRange: [0, 9] },
     active: true,
   },
   'daily-night-owl': {
@@ -152,6 +153,7 @@ const dailyQuestTemplates = {
     rewards: [],
     requirementType: 'transaction_count',
     requirementTarget: 1,
+    requirementMeta: { hourRange: [21, 24] },
     active: true,
   },
   'daily-beverage-break': {
@@ -162,7 +164,7 @@ const dailyQuestTemplates = {
     rewards: [{ label: '+30 XP', style: 'xp' }],
     requirementType: 'transaction_count',
     requirementTarget: 1,
-    requirementMeta: { category: 'Beverage' },
+    requirementMeta: { category: ['Drinks', 'Coffee'] },
     active: true,
   },
 };
@@ -229,7 +231,7 @@ const weeklyQuestTemplates = {
     rewards: [{ label: 'Foodie Pet Theme', style: 'badge' }],
     requirementType: 'transaction_count',
     requirementTarget: 5,
-    requirementMeta: { category: 'F&B' },
+    requirementMeta: { category: ['Dining', 'Coffee', 'Drinks'] },
     active: true,
   },
   'weekly-explorer-plus': {
@@ -285,7 +287,12 @@ const partnerChallenges = {
     durationDays: 5,
     requirementType: 'spend_amount_at_merchant',
     requirementTarget: 15,
-    requirementMeta: { merchantIds: ['timhowan-chinatown'] },
+    // Merchant matching now uses the same normalized-name string that
+    // merchant-tags.js's normalizeMerchant() produces (lowercased, trimmed,
+    // collapsed whitespace) — e.g. 'Tim Ho Wan' -> 'tim ho wan'.
+    // TODO: confirm this matches the exact merchant name in your catalog
+    // (data/pay-qr-merchants.json or home-receipts.json).
+    requirementMeta: { merchantIds: ['tim ho wan'] },
     points: 200,
     rewards: [
       { label: 'Dim Sum Basket Hat', style: 'item' },
@@ -303,7 +310,9 @@ const partnerChallenges = {
     requirementType: 'visit_count_at_merchants',
     requirementTarget: 5,
     requirementMeta: {
-      merchantIds: ['indie-cafe-1', 'indie-cafe-2', 'indie-cafe-3', 'indie-cafe-4', 'indie-cafe-5'],
+      // TODO: replace with the actual normalized names of 5 real indie
+      // cafes from your merchant catalog.
+      merchantIds: ['indie cafe 1', 'indie cafe 2', 'indie cafe 3', 'indie cafe 4', 'indie cafe 5'],
     },
     points: 1000,
     rewards: [
@@ -322,7 +331,9 @@ const partnerChallenges = {
     durationType: 'permanent',
     requirementType: 'visit_stall_count',
     requirementTarget: 3,
-    requirementMeta: { merchantIds: ['hawker-stall-1', 'hawker-stall-2', 'hawker-stall-3'] },
+    // TODO: replace with the actual normalized names of 3 real hawker
+    // stalls from your merchant catalog.
+    requirementMeta: { merchantIds: ['hawker stall 1', 'hawker stall 2', 'hawker stall 3'] },
     points: 400,
     rewards: [
       { label: 'Hawker Champion Badge', style: 'badge' },
@@ -341,7 +352,7 @@ const partnerChallenges = {
     eventEndDate: '2026-08-09T23:59:59+08:00',
     requirementType: 'spend_amount_at_merchant',
     requirementTarget: 88,
-    requirementMeta: { merchantIds: ['any'] }, // TODO: replace with real partner merchant IDs
+    requirementMeta: { merchantIds: ['any'] }, // 'any' matches every merchant (event.merchantId is ignored) — intentional for a store-wide event
     points: 888,
     rewards: [{ label: "'SG Patriot' Badge", style: 'badge' }],
     participantCount: 0,

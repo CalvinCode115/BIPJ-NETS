@@ -9,6 +9,7 @@ const {
   userWeeklyQuestProgressRef,
   userChallengeProgressRef,
   userQuestMetaRef,
+  userPointsLedgerRef,
 } = require('../db/firestore-paths');
 
 const TIMEZONE = 'Asia/Singapore';
@@ -335,6 +336,14 @@ async function claimDailyQuestReward(userId, templateId) {
 
     tx.set(progressRef, { quests: { [templateId]: { ...entry, claimed: true } } }, { merge: true });
     tx.update(userRef, { points: currentPoints + template.points });
+    tx.set(userPointsLedgerRef(db, userId).doc(), {
+      title: `Completed Daily Quest: ${template.title}`,
+      amount: template.points,
+      type: 'quest',
+      tag: 'Quest',
+      icon: 'trophy-outline',
+      timestamp: new Date().toISOString(),
+    });
 
     return { ok: true, pointsAwarded: template.points };
   });
@@ -369,6 +378,14 @@ async function claimWeeklyQuestReward(userId, templateId) {
 
     tx.set(progressRef, { quests: { [templateId]: { ...entry, claimed: true } } }, { merge: true });
     tx.update(userRef, { points: currentPoints + template.points });
+    tx.set(userPointsLedgerRef(db, userId).doc(), {
+      title: `Completed Weekly Quest: ${template.title}`,
+      amount: template.points,
+      type: 'quest',
+      tag: 'Quest',
+      icon: 'trophy-outline',
+      timestamp: new Date().toISOString(),
+    });
 
     return { ok: true, pointsAwarded: template.points };
   });
@@ -402,6 +419,14 @@ async function claimChallengeReward(userId, challengeId) {
     tx.update(progressRef, { claimed: true });
     if (points > 0) {
       tx.update(userRef, { points: currentPoints + points });
+      tx.set(userPointsLedgerRef(db, userId).doc(), {
+        title: `Partner Challenge: ${challenge.merchantName}`,
+        amount: points,
+        type: 'challenge',
+        tag: 'Challenge',
+        icon: 'trophy-outline',
+        timestamp: new Date().toISOString(),
+      });
     }
 
     return { ok: true, pointsAwarded: points };

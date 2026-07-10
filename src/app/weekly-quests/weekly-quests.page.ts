@@ -5,7 +5,6 @@ import { QuestWithProgress } from 'shared/quest.models';
 import { WeeklyQuestsService } from 'shared/weekly-quests.service';
 import { SessionService } from 'shared/session.service';
 
-
 @Component({
   selector: 'app-weekly-quests',
   templateUrl: './weekly-quests.page.html',

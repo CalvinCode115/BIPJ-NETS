@@ -19,6 +19,7 @@
  * users/{userId}/weeklyQuestProgress/{weekId}  per-user progress on this week's weekly quests
  * users/{userId}/challengeProgress/{challengeId}  per-user progress on a partner challenge
  * users/{userId}/questMeta/streak              per-user streak tracking (for streak_day quests)
+ * users/{userId}/pointsLedger/{entryId}        every points-earning/spending event (Points History)
  */
 
 const USER_SUBCOLLECTIONS = [
@@ -32,6 +33,7 @@ const USER_SUBCOLLECTIONS = [
   'weeklyQuestProgress',
   'challengeProgress',
   'questMeta',
+  'pointsLedger',
 ];
 
 function userRef(db, userId) {
@@ -104,6 +106,10 @@ function userQuestMetaRef(db, userId) {
   return userRef(db, userId).collection('questMeta');
 }
 
+function userPointsLedgerRef(db, userId) {
+  return userRef(db, userId).collection('pointsLedger');
+}
+
 module.exports = {
   USER_SUBCOLLECTIONS,
   userRef,
@@ -123,4 +129,5 @@ module.exports = {
   userWeeklyQuestProgressRef,
   userChallengeProgressRef,
   userQuestMetaRef,
+  userPointsLedgerRef,
 };

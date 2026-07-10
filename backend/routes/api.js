@@ -3,6 +3,7 @@ const db = require('../db');
 const asyncHandler = require('../utils/async-handler');
 const authRouter = require('./auth');
 const questsRouter = require('./quests'); 
+const pointsRouter = require('./points');
 
 const {
   buildDnaProfile,
@@ -30,6 +31,7 @@ const router = express.Router();
 
 router.use('/auth', authRouter);
 router.use('/', questsRouter);
+router.use('/', pointsRouter);
 
 router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'nets-backend', mode: 'firestore' });
