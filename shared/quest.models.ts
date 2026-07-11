@@ -8,7 +8,7 @@ export interface QuestProgress {
   target: number;
   completed: boolean;
   claimed: boolean;
-  meta?: { visitedCategories?: string[] };
+  meta?: { visitedCategories?: string[]; visitedMerchants?: string[] };
 }
 
 export interface QuestWithProgress {

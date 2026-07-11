@@ -57,8 +57,9 @@ const dailyQuestTemplates = {
     icon: 'wallet-outline',
     points: 20,
     rewards: [],
-    requirementType: 'spend_amount',
-    requirementTarget: 5,
+    requirementType: 'transaction_under_amount',
+    requirementTarget: 1, // completes on ONE qualifying transaction, not cumulative spend
+    requirementMeta: { maxAmount: 5 },
     active: true,
   },
   'daily-checkin-streak': {
@@ -181,6 +182,10 @@ const weeklyQuestTemplates = {
     ],
     requirementType: 'merchant_category_count',
     requirementTarget: 5,
+    requirementMeta: {
+      allowedCategories: ['Dining', 'Retail', 'Groceries', 'Transport', 'Travel'],
+      categoryAliases: { Coffee: 'Dining', Drinks: 'Dining' },
+    },
     active: true,
   },
   'weekly-streak-keeper': {
@@ -278,25 +283,58 @@ const weeklyQuestTemplates = {
 };
 
 const partnerChallenges = {
-  'dim-sum-delight-timhowan': {
-    merchantName: 'Dim Sum Delight at Tim Ho Wan',
-    location: 'Chinatown',
-    icon: 'restaurant-outline',
-    difficulty: 'average',
-    durationType: 'fixed',
-    durationDays: 5,
-    requirementType: 'spend_amount_at_merchant',
-    requirementTarget: 15,
-    // Merchant matching now uses the same normalized-name string that
-    // merchant-tags.js's normalizeMerchant() produces (lowercased, trimmed,
-    // collapsed whitespace) — e.g. 'Tim Ho Wan' -> 'tim ho wan'.
-    // TODO: confirm this matches the exact merchant name in your catalog
-    // (data/pay-qr-merchants.json or home-receipts.json).
-    requirementMeta: { merchantIds: ['tim ho wan'] },
-    points: 200,
+  // ---- Permanent (2) — always available, never expires ----
+  'bubble-tea-buddy': {
+    merchantName: 'Bubble Tea Buddy',
+    icon: 'cafe-outline',
+    difficulty: 'easy',
+    durationType: 'permanent',
+    requirementType: 'visit_count_at_merchants',
+    requirementTarget: 3,
+    requirementMeta: {
+      merchantIds: ['liho tea', 'gong cha', 'mr bean', 'boost juice'],
+    },
+    points: 150,
     rewards: [
-      { label: 'Dim Sum Basket Hat', style: 'item' },
-      { label: '[Buff] Fully Satisfied (48h)', style: 'buff' },
+      { label: 'Bubble Tea Lover Badge', style: 'badge' },
+      { label: 'Free Topping Voucher', style: 'voucher' },
+    ],
+    participantCount: 0,
+    completedCount: 0,
+    active: true,
+  },
+  'grocery-run-challenge': {
+    merchantName: 'Grocery Run Challenge',
+    icon: 'cart-outline',
+    difficulty: 'easy',
+    durationType: 'permanent',
+    requirementType: 'spend_amount_at_merchant',
+    requirementTarget: 30,
+    requirementMeta: {
+      merchantIds: ['ntuc fairprice', 'cold storage', 'fairprice finest'],
+    },
+    points: 100,
+    rewards: [{ label: 'Grocery Saver Badge', style: 'badge' }],
+    participantCount: 0,
+    completedCount: 0,
+    active: true,
+  },
+
+  // ---- Monthly (2) — progress resets on the 1st of each month ----
+  'fashion-refresh': {
+    merchantName: 'Fashion Refresh',
+    icon: 'shirt-outline',
+    difficulty: 'average',
+    durationType: 'monthly',
+    requirementType: 'visit_count_at_merchants',
+    requirementTarget: 2,
+    requirementMeta: {
+      merchantIds: ['uniqlo orchard', 'h&m vivocity', 'cotton on', 'muji orchard'],
+    },
+    points: 300,
+    rewards: [
+      { label: 'Trendsetter Badge', style: 'badge' },
+      { label: '10% Fashion Voucher', style: 'voucher' },
     ],
     participantCount: 0,
     completedCount: 0,
@@ -310,9 +348,9 @@ const partnerChallenges = {
     requirementType: 'visit_count_at_merchants',
     requirementTarget: 5,
     requirementMeta: {
-      // TODO: replace with the actual normalized names of 5 real indie
-      // cafes from your merchant catalog.
-      merchantIds: ['indie cafe 1', 'indie cafe 2', 'indie cafe 3', 'indie cafe 4', 'indie cafe 5'],
+      // Real merchants from data/pay-qr-merchants.json, chosen for their
+      // casual local cafe/kopitiam flavor to match "indie cafe route".
+      merchantIds: ['ya kun kaya toast', 'killiney kopitiam', 'toast box', 'dough culture', 'marina bay hawker'],
     },
     points: 1000,
     rewards: [
@@ -324,25 +362,50 @@ const partnerChallenges = {
     completedCount: 0,
     active: true,
   },
-  'hawker-hero-challenge': {
-    merchantName: 'Hawker Hero Challenge',
-    icon: 'checkmark-circle-outline',
-    difficulty: 'easy',
-    durationType: 'permanent',
-    requirementType: 'visit_stall_count',
-    requirementTarget: 3,
-    // TODO: replace with the actual normalized names of 3 real hawker
-    // stalls from your merchant catalog.
-    requirementMeta: { merchantIds: ['hawker stall 1', 'hawker stall 2', 'hawker stall 3'] },
-    points: 400,
+
+  // ---- Fixed / limited-time (2) — a countdown starts the moment a user taps "Start Challenge" ----
+  'weekend-feast': {
+    merchantName: 'Weekend Feast',
+    icon: 'restaurant-outline',
+    difficulty: 'average',
+    durationType: 'fixed',
+    durationDays: 5,
+    requirementType: 'spend_amount_at_merchant',
+    requirementTarget: 30,
+    requirementMeta: {
+      merchantIds: ['din tai fung', 'ichiban sushi', 'pizza hut'],
+    },
+    points: 250,
     rewards: [
-      { label: 'Hawker Champion Badge', style: 'badge' },
-      { label: '10% Hawker Voucher', style: 'voucher' },
+      { label: 'Foodie Weekend Badge', style: 'badge' },
+      { label: '[Buff] Well Fed (24h)', style: 'buff' },
     ],
     participantCount: 0,
     completedCount: 0,
     active: true,
   },
+  'wellness-week': {
+    merchantName: 'Wellness Week',
+    icon: 'medkit-outline',
+    difficulty: 'easy',
+    durationType: 'fixed',
+    durationDays: 14,
+    requirementType: 'spend_amount_at_merchant',
+    requirementTarget: 20,
+    requirementMeta: {
+      merchantIds: ['guardian pharmacy', 'watsons'],
+    },
+    points: 150,
+    rewards: [
+      { label: 'Wellness Warrior Badge', style: 'badge' },
+      { label: '15% Health & Beauty Voucher', style: 'voucher' },
+    ],
+    participantCount: 0,
+    completedCount: 0,
+    active: true,
+  },
+
+  // ---- Event / occasion-based (2) — tied to a calendar date, not to when the user starts ----
   'national-day-spender': {
     merchantName: 'National Day Spending Spree',
     icon: 'flag-outline',
@@ -352,9 +415,30 @@ const partnerChallenges = {
     eventEndDate: '2026-08-09T23:59:59+08:00',
     requirementType: 'spend_amount_at_merchant',
     requirementTarget: 88,
-    requirementMeta: { merchantIds: ['any'] }, // 'any' matches every merchant (event.merchantId is ignored) — intentional for a store-wide event
+    requirementMeta: { merchantIds: ['any'] }, // 'any' matches every merchant — intentional for a store-wide event
     points: 888,
     rewards: [{ label: "'SG Patriot' Badge", style: 'badge' }],
+    participantCount: 0,
+    completedCount: 0,
+    active: true,
+  },
+  'travel-deals-week': {
+    merchantName: 'Travel Deals Week',
+    icon: 'airplane-outline',
+    difficulty: 'hard',
+    durationType: 'event',
+    eventName: 'Travel Deals Week',
+    eventEndDate: '2026-12-15T23:59:59+08:00',
+    requirementType: 'spend_amount_at_merchant',
+    requirementTarget: 100,
+    requirementMeta: {
+      merchantIds: ['scoot', 'airasia', 'agoda', 'booking.com', 'klook'],
+    },
+    points: 1200,
+    rewards: [
+      { label: "'Globetrotter' Title", style: 'title' },
+      { label: '$20 Travel Voucher', style: 'voucher' },
+    ],
     participantCount: 0,
     completedCount: 0,
     active: true,

@@ -551,18 +551,9 @@ async function recordQuestEvent(userId, event) {
         }
         case 'merchant_category_count': {
           if (event.eventType !== 'transaction' || !event.merchantCategory) return null;
-
-          // Optional per-quest category collapsing/allowlisting — e.g.
-          // Diverse Spender treats Coffee and Drinks as Dining, and only
-          // counts 5 broad categories total.
-          const aliases = template.requirementMeta?.categoryAliases ?? {};
-          const canonicalCategory = aliases[event.merchantCategory] ?? event.merchantCategory;
-          const allowedCategories = template.requirementMeta?.allowedCategories;
-          if (allowedCategories && !allowedCategories.includes(canonicalCategory)) return null;
-
           const visited = new Set(progress.meta?.visitedCategories ?? []);
-          if (visited.has(canonicalCategory)) return null; // already counted
-          visited.add(canonicalCategory);
+          if (visited.has(event.merchantCategory)) return null;
+          visited.add(event.merchantCategory);
           const current = visited.size;
           return {
             ...progress,
@@ -632,43 +623,31 @@ async function recordQuestEvent(userId, event) {
       if (!challengeSnap.exists) return;
       const challenge = challengeSnap.data();
 
+      let delta = 0;
       if (challenge.requirementType === 'spend_amount_at_merchant') {
-        if (event.eventType !== 'transaction' || !event.amount) return;
-        if (!merchantMatches(challenge.requirementMeta, event.merchantId)) return;
-
-        const newCurrent = progress.current + event.amount;
-        const nowCompleted = newCurrent >= progress.target;
-        challengeUpdates.push({ ref: progressDoc.ref, current: newCurrent, completed: nowCompleted });
-        if (nowCompleted) {
-          challengeCompletions.push({ ref: challengeSnap.ref, completedCount: (challenge.completedCount ?? 0) + 1 });
+        if (event.eventType === 'transaction' && event.amount && merchantMatches(challenge.requirementMeta, event.merchantId)) {
+          delta = event.amount;
         }
-        return;
-      }
-
-      if (challenge.requirementType === 'visit_count_at_merchants' || challenge.requirementType === 'visit_stall_count') {
+      } else if (
+        challenge.requirementType === 'visit_count_at_merchants' ||
+        challenge.requirementType === 'visit_stall_count'
+      ) {
         // A transaction at the merchant counts as a visit — this integration
         // has no separate "check in" action.
-        const isVisitLikeEvent = event.eventType === 'merchant_visit' || event.eventType === 'transaction';
-        if (!isVisitLikeEvent || !merchantMatches(challenge.requirementMeta, event.merchantId)) return;
-
-        // Track DISTINCT merchants visited, not raw visit count — otherwise
-        // 3 trips to the same cafe would wrongly complete a "visit 5
-        // different cafes" challenge.
-        const visitedMerchants = new Set(progress.meta?.visitedMerchants ?? []);
-        if (visitedMerchants.has(event.merchantId)) return; // already counted this merchant
-        visitedMerchants.add(event.merchantId);
-
-        const newCurrent = visitedMerchants.size;
-        const nowCompleted = newCurrent >= progress.target;
-        challengeUpdates.push({
-          ref: progressDoc.ref,
-          current: newCurrent,
-          completed: nowCompleted,
-          meta: { visitedMerchants: Array.from(visitedMerchants) },
-        });
-        if (nowCompleted) {
-          challengeCompletions.push({ ref: challengeSnap.ref, completedCount: (challenge.completedCount ?? 0) + 1 });
+        if (
+          (event.eventType === 'merchant_visit' || event.eventType === 'transaction') &&
+          merchantMatches(challenge.requirementMeta, event.merchantId)
+        ) {
+          delta = 1;
         }
+      }
+
+      if (delta === 0) return;
+      const newCurrent = progress.current + delta;
+      const nowCompleted = newCurrent >= progress.target;
+      challengeUpdates.push({ ref: progressDoc.ref, current: newCurrent, completed: nowCompleted });
+      if (nowCompleted) {
+        challengeCompletions.push({ ref: challengeSnap.ref, completedCount: (challenge.completedCount ?? 0) + 1 });
       }
     });
 
@@ -682,11 +661,7 @@ async function recordQuestEvent(userId, event) {
     if (weeklyChanged) {
       tx.set(weeklyProgressRef, { quests: weeklyQuests }, { merge: true });
     }
-    challengeUpdates.forEach((u) => {
-      const data = { current: u.current, completed: u.completed };
-      if (u.meta) data.meta = u.meta;
-      tx.update(u.ref, data);
-    });
+    challengeUpdates.forEach((u) => tx.update(u.ref, { current: u.current, completed: u.completed }));
     challengeCompletions.forEach((c) => tx.update(c.ref, { completedCount: c.completedCount }));
 
     return { ok: true };
