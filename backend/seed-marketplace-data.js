@@ -18,6 +18,10 @@ const voucherCatalog = {
     description: 'Free Topping Upgrade',
     icon: 'cup-outline',
     pointsCost: 600,
+    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'none', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 0, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'easy',
     merchantIds: ['liho tea'],
@@ -40,6 +44,10 @@ const voucherCatalog = {
     description: '$3 Ride Voucher',
     icon: 'car-outline',
     pointsCost: 900,
+    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 3, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'easy',
     merchantIds: ['grab'],
@@ -62,6 +70,10 @@ const voucherCatalog = {
     description: '$5 Beverage Voucher',
     icon: 'cafe-outline',
     pointsCost: 1200,
+    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 5, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'easy',
     merchantIds: ['starbucks raffles place', 'starbucks one raffles'],
@@ -84,6 +96,10 @@ const voucherCatalog = {
     description: '$5 Voucher',
     icon: 'nutrition-outline',
     pointsCost: 1800,
+    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 5, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'limited',
     difficulty: 'moderate',
     merchantIds: ['boost juice'],
@@ -106,6 +122,10 @@ const voucherCatalog = {
     description: '$10 Off Voucher',
     icon: 'medkit-outline',
     pointsCost: 2600,
+    minSpend: 30, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 10, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'moderate',
     merchantIds: ['watsons'],
@@ -128,6 +148,10 @@ const voucherCatalog = {
     description: '$10 Beverage Voucher',
     icon: 'cafe-outline',
     pointsCost: 2800,
+    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 10, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'moderate',
     merchantIds: ['starbucks raffles place', 'starbucks one raffles'],
@@ -150,6 +174,10 @@ const voucherCatalog = {
     description: '$10 Off Voucher',
     icon: 'basketball-outline',
     pointsCost: 6000,
+    minSpend: 40, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 10, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'limited',
     difficulty: 'challenging',
     merchantIds: ['decathlon singapore'],
@@ -172,6 +200,10 @@ const voucherCatalog = {
     description: '50% off, up to $5 off',
     icon: 'flag-outline',
     pointsCost: 6500,
+    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'percentage', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 50, // dollars for 'flat', percent for 'percentage'
+    discountCap: 5, // only used for 'percentage' — max $ off
     type: 'event',
     difficulty: 'challenging',
     // Category-based rather than merchant-based — matches any Dining,
@@ -199,6 +231,10 @@ const voucherCatalog = {
     description: '$15 Fashion Voucher',
     icon: 'shirt-outline',
     pointsCost: 7000,
+    minSpend: 50, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 15, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'limited',
     difficulty: 'challenging',
     merchantIds: ['cotton on'],
@@ -221,6 +257,10 @@ const voucherCatalog = {
     description: '$20 Year-End Travel Deal',
     icon: 'airplane-outline',
     pointsCost: 12500,
+    minSpend: 80, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
+    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
+    discountValue: 20, // dollars for 'flat', percent for 'percentage'
+    discountCap: null, // only used for 'percentage' — max $ off
     type: 'event',
     difficulty: 'premium',
     merchantIds: ['klook'],

@@ -1,6 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
+import { ToastController } from '@ionic/angular';
+import { PointsTransferService } from 'shared/points-transfer.service';
+import { PointsService } from 'shared/points.service';
+import { SessionService } from 'shared/session.service';
+
 
 @Component({
   selector: 'app-send-points',
@@ -8,24 +13,86 @@ import { Location } from '@angular/common';
   styleUrls: ['./send-points.page.scss'],
   standalone: false,
 })
-export class SendPointsPage {
+export class SendPointsPage implements OnInit {
 
-  balance = 2450;
+  balance = 0;
   contactNumber = '';
   amount: number | null = null;
   comment = '';
 
   quickAmounts = [100, 250, 500, 1000];
 
-  constructor(private router: Router, private location: Location) {}
+  // Payee lookup state
+  payeeName: string | null = null;
+  payeeNotFound = false;
+  lookupInProgress = false;
+  private lookupDebounceHandle: ReturnType<typeof setTimeout> | null = null;
+
+  sending = false;
+
+  constructor(
+    private pointsTransferService: PointsTransferService,
+    private pointsService: PointsService,
+    private session: SessionService,
+    private router: Router,
+    private location: Location,
+    private toastController: ToastController
+  ) {}
+
+  ngOnInit(): void {
+    this.pointsService.getBalance(this.session.userId).subscribe({
+      next: (res) => (this.balance = res.totalPoints),
+      error: (err) => console.error('Failed to load points balance', err),
+    });
+  }
 
   get isFormValid(): boolean {
     return (
       this.contactNumber.length === 8 &&
+      !!this.payeeName &&
       !!this.amount &&
       this.amount > 0 &&
       this.amount <= this.balance
     );
+  }
+
+  /** Debounced so we don't look up the phone number on every keystroke. */
+  onContactNumberChange(value: string): void {
+    this.contactNumber = value;
+    this.payeeName = null;
+    this.payeeNotFound = false;
+
+    if (this.lookupDebounceHandle) {
+      clearTimeout(this.lookupDebounceHandle);
+    }
+
+    if (value.length !== 8) {
+      return;
+    }
+
+    this.lookupDebounceHandle = setTimeout(() => this.lookupPayee(value), 400);
+  }
+
+  private lookupPayee(phone: string): void {
+    this.lookupInProgress = true;
+    this.pointsTransferService.lookupByPhone(phone).subscribe({
+      next: (res) => {
+        this.lookupInProgress = false;
+        if (res.found) {
+          this.payeeName = res.name ?? null;
+          this.payeeNotFound = false;
+        } else {
+          this.payeeName = null;
+          this.payeeNotFound = true;
+        }
+      },
+      error: (err) => {
+        this.lookupInProgress = false;
+        this.payeeName = null;
+        this.payeeNotFound = true;
+        console.error('Failed to look up payee', err);
+      },
+    });
   }
 
   selectQuickAmount(value: number): void {
@@ -33,12 +100,42 @@ export class SendPointsPage {
   }
 
   sendPoints(): void {
-    if (!this.isFormValid) {
+    if (!this.isFormValid || this.sending || !this.amount) {
       return;
     }
-    // TODO: call your points service to submit the transfer, e.g.
-    // this.pointsService.sendPoints(this.contactNumber, this.amount, this.comment)
-    //   .subscribe(() => this.router.navigate(['/nets-points']));
+
+    this.sending = true;
+
+    this.pointsTransferService
+      .sendPoints(this.session.userId, {
+        toPhone: this.contactNumber,
+        amount: this.amount,
+        comment: this.comment || undefined,
+      })
+      .subscribe({
+        next: async (res) => {
+          this.sending = false;
+          const toast = await this.toastController.create({
+            message: `Sent ${res.amount} points to ${res.toName}!`,
+            duration: 2500,
+            position: 'top',
+            color: 'success',
+          });
+          await toast.present();
+          this.router.navigate(['/nets-points']);
+        },
+        error: async (err) => {
+          this.sending = false;
+          console.error('Failed to send points', err);
+          const toast = await this.toastController.create({
+            message: err?.error?.error || 'Could not send points. Please try again.',
+            duration: 2500,
+            position: 'top',
+            color: 'danger',
+          });
+          await toast.present();
+        },
+      });
   }
 
   goBackToBalance(): void {

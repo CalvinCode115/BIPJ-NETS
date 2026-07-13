@@ -612,3 +612,85 @@
   font-size: 10px;
   color: #8e8e93;
 }
+
+// ---- Voucher selector (Confirm Payment card) ----
+.original-amount {
+  font-size: 12px;
+  font-weight: 500;
+  color: #8e8e93;
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+
+.voucher-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.voucher-select-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid #e2e2e5;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 22px;
+    color: #6c63ff;
+    flex-shrink: 0;
+  }
+
+  &.selected {
+    border-color: #6c63ff;
+    background: #f7f6ff;
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.voucher-select-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+
+  span {
+    font-size: 12px;
+    color: #8e8e93;
+  }
+}
+
+.voucher-select-note {
+  color: #eb5757 !important;
+  font-size: 11px !important;
+  margin-top: 2px;
+}
+
+.voucher-select-discount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #27ae60;
+  white-space: nowrap;
+}
+
+.voucher-select-check {
+  font-size: 20px;
+  color: #6c63ff;
+  flex-shrink: 0;
+}

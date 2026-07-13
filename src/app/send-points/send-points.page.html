@@ -32,8 +32,21 @@
         type="tel"
         maxlength="8"
         placeholder="Enter 8-digit number"
-        [(ngModel)]="contactNumber">
+        [value]="contactNumber"
+        (ionInput)="onContactNumberChange($event.detail.value ?? '')">
       </ion-input>
+      <div class="payee-feedback" *ngIf="lookupInProgress">
+        <ion-spinner name="dots"></ion-spinner>
+        <span>Looking up payee...</span>
+      </div>
+      <div class="payee-feedback payee-feedback--found" *ngIf="!lookupInProgress && payeeName">
+        <ion-icon name="checkmark-circle"></ion-icon>
+        <span>{{ payeeName }}</span>
+      </div>
+      <div class="payee-feedback payee-feedback--not-found" *ngIf="!lookupInProgress && payeeNotFound">
+        <ion-icon name="close-circle"></ion-icon>
+        <span>Payee not found</span>
+      </div>
     </div>
 
     <div class="form-field">
@@ -81,10 +94,10 @@
       expand="block"
       shape="round"
       class="send-btn"
-      [disabled]="!isFormValid"
+      [disabled]="!isFormValid || sending"
       (click)="sendPoints()">
       <ion-icon name="paper-plane-outline" slot="start"></ion-icon>
-      {{ isFormValid ? 'Send Points' : 'Fill in details to send' }}
+      {{ sending ? 'Sending...' : (isFormValid ? 'Send Points' : 'Fill in details to send') }}
     </ion-button>
   </div>
 

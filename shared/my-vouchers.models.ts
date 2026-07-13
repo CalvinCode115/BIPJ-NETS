@@ -17,6 +17,23 @@ export interface UserVoucher {
   usageSteps: string[];
 }
 
+export interface VoucherEligibilityMatch {
+  voucherInstanceId: string;
+  merchantName: string;
+  description: string;
+  icon: string;
+  termsAndConditions: string[];
+  minSpend: number | null;
+  meetsConditions: boolean;
+  discountAmount: number;
+  finalAmount: number | null;
+  message: string | null;
+}
+
+export interface VoucherEligibilityResponse {
+  matches: VoucherEligibilityMatch[];
+}
+
 export interface MyVouchersResponse {
   available: UserVoucher[];
   used: UserVoucher[];

@@ -35,6 +35,9 @@ import {
   captureFullVideoFrame,
   captureRegionFromVideo,
 } from '../utils/video-frame-capture';
+import { ToastController } from '@ionic/angular';
+import { VoucherEligibilityMatch } from 'shared/my-vouchers.models';
+import { MyVouchersService } from 'shared/my-vouchers.service';
 
 type QrTab = 'scan' | 'my';
 
@@ -64,6 +67,10 @@ export class QrCodePage implements OnDestroy {
   pendingPayload = '';
   paymentSuccess = '';
   paymentError = '';
+
+  selectedVoucherInstanceId: string | null = null;
+  selectedVoucherDiscount = 0;
+  eligibleVouchers: VoucherEligibilityMatch[] = [];
 
   activeCard: WalletCard | null = null;
 
@@ -167,8 +174,10 @@ export class QrCodePage implements OnDestroy {
     private qrPayments: QrPaymentsService,
     private transfersService: TransfersService,
     private receiptsService: ReceiptsService,
-    private transactionsService: TransactionsService
-  ) {}
+    private transactionsService: TransactionsService,
+    private myVouchers: MyVouchersService,
+    private toastController: ToastController
+  ) { }
 
   ionViewWillEnter(): void {
     const tab = this.route.snapshot.queryParamMap.get('tab');
@@ -429,6 +438,46 @@ export class QrCodePage implements OnDestroy {
 
     this.isProcessing = true;
     this.paymentError = '';
+
+    if (this.selectedVoucherInstanceId) {
+      this.myVouchers.payWithVoucher(userId, this.pendingPayload, cardId, this.selectedVoucherInstanceId).subscribe({
+        next: async (response) => {
+          this.isProcessing = false;
+          this.paymentSuccess = response.message;
+          this.pendingPayment = null;
+          this.pendingPayload = '';
+          this.selectedVoucherInstanceId = null;
+          this.selectedVoucherDiscount = 0;
+
+          if (response.voucherApplied) {
+            const toast = await this.toastController.create({
+              message: `Voucher applied — you saved $${response.voucherDiscount.toFixed(2)}!`,
+              duration: 2000,
+              position: 'top',
+              color: 'success',
+            });
+            await toast.present();
+          } else if (response.voucherError) {
+            const toast = await this.toastController.create({
+              message: `Payment succeeded, but the voucher couldn't be applied: ${response.voucherError}`,
+              duration: 3000,
+              position: 'top',
+              color: 'warning',
+            });
+            await toast.present();
+          }
+
+          if (this.canPayWithQr) {
+            this.startCamera();
+          }
+        },
+        error: (err: { error?: { error?: string }; message?: string }) => {
+          this.isProcessing = false;
+          this.paymentError = err?.error?.error ?? err?.message ?? 'Payment failed. Please try again.';
+        },
+      });
+      return;
+    }
 
     this.qrPayments
       .payWithQr(userId, this.pendingPayload, { cardId })
@@ -755,6 +804,7 @@ export class QrCodePage implements OnDestroy {
         if (response.kind === 'pay' && response.payment?.merchant && response.payment.amount) {
           this.pendingPayment = response.payment;
           this.scanHint = 'Review payment details before confirming';
+          this.checkVoucherEligibility(response.payment);
           return;
         }
 
@@ -767,6 +817,49 @@ export class QrCodePage implements OnDestroy {
         this.startCamera();
       },
     });
+  }
+
+  private checkVoucherEligibility(payment: QrPaymentDetails): void {
+    const userId = this.auth.userId;
+    if (!userId) return;
+
+    this.myVouchers
+      .checkEligibility(userId, {
+        merchant: payment.merchant,
+        category: (payment as any).category || 'Retail',
+        amount: payment.amount,
+      })
+      .subscribe({
+        next: (res) => {
+          this.eligibleVouchers = res.matches ?? [];
+        },
+        error: (err) => {
+          console.error('Voucher eligibility check failed (payment unaffected):', err);
+          this.eligibleVouchers = [];
+        },
+      });
+  }
+
+  /** Tapping the already-selected voucher deselects it (single-select, toggle). */
+  selectVoucher(match: VoucherEligibilityMatch): void {
+    if (!match.meetsConditions) return;
+
+    if (this.selectedVoucherInstanceId === match.voucherInstanceId) {
+      this.selectedVoucherInstanceId = null;
+      this.selectedVoucherDiscount = 0;
+      return;
+    }
+
+    this.selectedVoucherInstanceId = match.voucherInstanceId;
+    this.selectedVoucherDiscount = match.discountAmount;
+  }
+
+  /** What the template should actually show as the amount to pay. */
+  get displayedPaymentAmount(): number {
+    if (!this.pendingPayment) return 0;
+    return this.selectedVoucherInstanceId
+      ? Math.max(0, this.pendingPayment.amount - this.selectedVoucherDiscount)
+      : this.pendingPayment.amount;
   }
 
   private captureReceiptSourcesFromCamera(): ImageData[] {
@@ -915,6 +1008,9 @@ export class QrCodePage implements OnDestroy {
     this.paymentSuccess = '';
     this.paymentError = '';
     this.scanHint = 'Point your camera at a merchant or person QR code';
+    this.selectedVoucherInstanceId = null;
+    this.selectedVoucherDiscount = 0;
+    this.eligibleVouchers = [];
   }
 
   private resetReceiptState(): void {
