@@ -27,7 +27,8 @@ const routes: Routes = [
   {
     path: 'point-history',
     loadChildren: () => import('./point-history/point-history.module').then( m => m.PointHistoryPageModule)
-  },  {
+  },
+  {
     path: 'partner-challenges',
     loadChildren: () => import('./partner-challenges/partner-challenges.module').then( m => m.PartnerChallengesPageModule)
   },

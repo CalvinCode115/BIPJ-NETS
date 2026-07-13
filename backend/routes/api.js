@@ -27,12 +27,16 @@ const { LOW_BALANCE_THRESHOLD } = require('../services/wallet-config');
 const { clampCreditLimit } = require('../services/credit-config');
 const { formatBalanceLeft } = require('../services/balance-message');
 const transactionRewards = require('../services/transaction-rewards');
+const marketplaceRouter = require('./marketplace');
+const myVouchersRouter = require('./my-vouchers');
 
 const router = express.Router();
 
 router.use('/auth', authRouter);
 router.use('/', questsRouter);
 router.use('/', pointsRouter);
+router.use('/', marketplaceRouter);
+router.use('/', myVouchersRouter);
 
 router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'nets-backend', mode: 'firestore' });

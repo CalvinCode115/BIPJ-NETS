@@ -10,96 +10,203 @@
 </ion-header>
 
 <ion-content class="my-vouchers-content">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
 
   <ion-segment [(ngModel)]="activeTab" class="vouchers-segment">
     <ion-segment-button value="available">
       <ion-icon name="ticket-outline"></ion-icon>
-      <ion-label>Available ({{ availableVouchers.length }})</ion-label>
+      <ion-label>Available ({{ available.length }})</ion-label>
     </ion-segment-button>
     <ion-segment-button value="used">
       <ion-icon name="checkmark-circle-outline"></ion-icon>
-      <ion-label>Used ({{ usedVouchers.length }})</ion-label>
+      <ion-label>Used ({{ used.length }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="expired">
+      <ion-icon name="close-circle-outline"></ion-icon>
+      <ion-label>Expired ({{ expired.length }})</ion-label>
     </ion-segment-button>
   </ion-segment>
 
-  <!-- Available vouchers -->
-  <div class="voucher-list" *ngIf="activeTab === 'available'">
-    <div class="voucher-card voucher-card--available" *ngFor="let voucher of availableVouchers">
-      <div class="voucher-top">
-        <div class="voucher-icon">
-          <span>{{ voucher.emoji }}</span>
-        </div>
-        <div class="voucher-info">
-          <span class="voucher-name">{{ voucher.name }}</span>
-          <span class="voucher-description">{{ voucher.description }}</span>
-          <span class="voucher-points voucher-points--available">{{ voucher.points }} Points</span>
-        </div>
-      </div>
-      <div class="voucher-dates">
-        <div class="voucher-date">
-          <ion-icon name="calendar-outline"></ion-icon>
-          <div class="voucher-date-text">
-            <span class="voucher-date-label">Redeemed</span>
-            <span class="voucher-date-value">{{ voucher.redeemedOn }}</span>
-          </div>
-        </div>
-        <div class="voucher-date">
-          <ion-icon name="time-outline"></ion-icon>
-          <div class="voucher-date-text">
-            <span class="voucher-date-label">Expires</span>
-            <span class="voucher-date-value voucher-date-value--expires">{{ voucher.expiresOn }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div *ngIf="loading" class="state-message">Loading your vouchers...</div>
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
 
-  <!-- Used vouchers -->
-  <div class="voucher-list" *ngIf="activeTab === 'used'">
-    <div class="voucher-card voucher-card--used" *ngFor="let voucher of usedVouchers">
-      <div class="voucher-top">
-        <div class="voucher-icon">
-          <span>{{ voucher.emoji }}</span>
+  <ng-container *ngIf="!loading && !error">
+
+    <!-- Available vouchers -->
+    <div class="voucher-list" *ngIf="activeTab === 'available'">
+      <div class="voucher-card voucher-card--available" *ngFor="let voucher of available" (click)="openDetails(voucher)">
+        <div class="voucher-top">
+          <div class="voucher-icon">
+            <ion-icon [name]="voucher.icon"></ion-icon>
+          </div>
+          <div class="voucher-info">
+            <span class="voucher-name">{{ voucher.merchantName }}</span>
+            <span class="voucher-description">{{ voucher.description }}</span>
+            <span class="voucher-points voucher-points--available">{{ voucher.pointsCost }} Points</span>
+          </div>
         </div>
-        <div class="voucher-info">
-          <span class="voucher-name">{{ voucher.name }}</span>
-          <span class="voucher-description">{{ voucher.description }}</span>
-          <span class="voucher-points voucher-points--used">{{ voucher.points }} Points</span>
+        <div class="voucher-dates">
+          <div class="voucher-date">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <div class="voucher-date-text">
+              <span class="voucher-date-label">Redeemed</span>
+              <span class="voucher-date-value">{{ voucher.redeemedAt | date:'d MMM y' }}</span>
+            </div>
+          </div>
+          <div class="voucher-date">
+            <ion-icon name="time-outline"></ion-icon>
+            <div class="voucher-date-text">
+              <span class="voucher-date-label">Expires</span>
+              <span
+                class="voucher-date-value"
+                [class.voucher-date-value--expires]="daysUntilExpiry(voucher) <= 7">
+                {{ voucher.expiresAt | date:'d MMM y' }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="voucher-dates">
-        <div class="voucher-date">
-          <ion-icon name="calendar-outline"></ion-icon>
-          <div class="voucher-date-text">
-            <span class="voucher-date-label">Redeemed</span>
-            <span class="voucher-date-value">{{ voucher.redeemedOn }}</span>
-          </div>
-        </div>
-        <div class="voucher-date">
-          <ion-icon name="time-outline"></ion-icon>
-          <div class="voucher-date-text">
-            <span class="voucher-date-label">Expired</span>
-            <span class="voucher-date-value">{{ voucher.expiredOn }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="voucher-used-info">
-        <div class="voucher-used-row">
-          <ion-icon name="checkmark-circle-outline"></ion-icon>
-          <div class="voucher-used-text">
-            <span class="voucher-used-label">Used On</span>
-            <span class="voucher-used-value">{{ voucher.usedOn }}</span>
-          </div>
-        </div>
-        <div class="voucher-used-row">
-          <ion-icon name="storefront-outline"></ion-icon>
-          <div class="voucher-used-text">
-            <span class="voucher-used-label">Location</span>
-            <span class="voucher-used-value">{{ voucher.location }}</span>
-          </div>
-        </div>
+
+      <div *ngIf="available.length === 0" class="state-message">
+        No available vouchers yet — redeem one in the Rewards Marketplace.
       </div>
     </div>
-  </div>
+
+    <!-- Used vouchers -->
+    <div class="voucher-list" *ngIf="activeTab === 'used'">
+      <div class="voucher-card voucher-card--used" *ngFor="let voucher of used">
+        <div class="voucher-top">
+          <div class="voucher-icon">
+            <ion-icon [name]="voucher.icon"></ion-icon>
+          </div>
+          <div class="voucher-info">
+            <span class="voucher-name">{{ voucher.merchantName }}</span>
+            <span class="voucher-description">{{ voucher.description }}</span>
+            <span class="voucher-points voucher-points--used">{{ voucher.pointsCost }} Points</span>
+          </div>
+        </div>
+        <div class="voucher-dates">
+          <div class="voucher-date">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <div class="voucher-date-text">
+              <span class="voucher-date-label">Redeemed</span>
+              <span class="voucher-date-value">{{ voucher.redeemedAt | date:'d MMM y' }}</span>
+            </div>
+          </div>
+          <div class="voucher-date">
+            <ion-icon name="time-outline"></ion-icon>
+            <div class="voucher-date-text">
+              <span class="voucher-date-label">Expires</span>
+              <span class="voucher-date-value">{{ voucher.expiresAt | date:'d MMM y' }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="voucher-used-info">
+          <div class="voucher-used-row">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            <div class="voucher-used-text">
+              <span class="voucher-used-label">Used On</span>
+              <span class="voucher-used-value">{{ voucher.usedAt | date:'d MMM y, h:mm a' }}</span>
+            </div>
+          </div>
+          <div class="voucher-used-row">
+            <ion-icon name="storefront-outline"></ion-icon>
+            <div class="voucher-used-text">
+              <span class="voucher-used-label">Location</span>
+              <span class="voucher-used-value">{{ voucher.usedLocation || voucher.usedMerchant }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="used.length === 0" class="state-message">No used vouchers yet.</div>
+    </div>
+
+    <!-- Expired vouchers -->
+    <div class="voucher-list" *ngIf="activeTab === 'expired'">
+      <div class="voucher-card voucher-card--expired" *ngFor="let voucher of expired">
+        <div class="voucher-top">
+          <div class="voucher-icon">
+            <ion-icon [name]="voucher.icon"></ion-icon>
+          </div>
+          <div class="voucher-info">
+            <span class="voucher-name">{{ voucher.merchantName }}</span>
+            <span class="voucher-description">{{ voucher.description }}</span>
+            <span class="voucher-points voucher-points--expired">{{ voucher.pointsCost }} Points</span>
+          </div>
+        </div>
+        <div class="voucher-dates">
+          <div class="voucher-date">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <div class="voucher-date-text">
+              <span class="voucher-date-label">Redeemed</span>
+              <span class="voucher-date-value">{{ voucher.redeemedAt | date:'d MMM y' }}</span>
+            </div>
+          </div>
+          <div class="voucher-date">
+            <ion-icon name="time-outline"></ion-icon>
+            <div class="voucher-date-text">
+              <span class="voucher-date-label">Expired</span>
+              <span class="voucher-date-value">{{ voucher.expiresAt | date:'d MMM y' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="expired.length === 0" class="state-message">No expired vouchers.</div>
+    </div>
+  </ng-container>
+
+  <!-- Available voucher details modal -->
+  <ion-modal [isOpen]="showDetailsModal" (didDismiss)="closeDetails()" class="voucher-details-modal">
+    <ng-template>
+      <div class="voucher-details" *ngIf="selectedVoucher as voucher">
+        <div class="voucher-details-header">
+          <div class="voucher-details-icon">
+            <ion-icon [name]="voucher.icon"></ion-icon>
+          </div>
+          <div class="voucher-details-title">
+            <span class="voucher-details-name">{{ voucher.merchantName }}</span>
+            <span class="voucher-details-desc">{{ voucher.description }}</span>
+          </div>
+          <ion-button fill="clear" class="voucher-details-close" (click)="closeDetails()">
+            <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <div class="voucher-details-section">
+          <span class="voucher-details-section-title">Terms & Conditions</span>
+          <ul>
+            <li *ngFor="let line of voucher.termsAndConditions">{{ line }}</li>
+          </ul>
+        </div>
+
+        <div class="voucher-details-section">
+          <span class="voucher-details-section-title">How to Use</span>
+          <ol>
+            <li *ngFor="let step of voucher.usageSteps">{{ step }}</li>
+          </ol>
+        </div>
+
+        <!-- ⚠️ TEST/DEV ONLY: remove once the real Pay/QR auto-apply hook exists -->
+        <div class="dev-test-box">
+          <span class="dev-test-label">⚠️ Test only — simulate using this voucher</span>
+          <ion-input class="dev-test-input" placeholder="Merchant" [(ngModel)]="testMerchant"></ion-input>
+          <ion-input class="dev-test-input" placeholder="Location (optional)" [(ngModel)]="testLocation"></ion-input>
+          <ion-button
+            expand="block"
+            fill="outline"
+            shape="round"
+            class="dev-test-btn"
+            [disabled]="markingUsed"
+            (click)="markAsUsed(voucher)">
+            {{ markingUsed ? 'Marking...' : 'Simulate Use (Test Only)' }}
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 
 </ion-content>

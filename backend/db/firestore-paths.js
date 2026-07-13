@@ -20,6 +20,11 @@
  * users/{userId}/challengeProgress/{challengeId}  per-user progress on a partner challenge
  * users/{userId}/questMeta/streak              per-user streak tracking (for streak_day quests)
  * users/{userId}/pointsLedger/{entryId}        every points-earning/spending event (Points History)
+ *
+ * ---- Rewards Marketplace (added) ----
+ * voucherCatalog/{voucherId}                   voucher/deal definitions (admin/seed managed)
+ * voucherRedemptionCounters/{voucherId_period} daily/weekly redemption counters for limited vouchers
+ * users/{userId}/vouchers/{voucherInstanceId}  a user's redeemed voucher (feeds My Vouchers)
  */
 
 const USER_SUBCOLLECTIONS = [
@@ -34,6 +39,7 @@ const USER_SUBCOLLECTIONS = [
   'challengeProgress',
   'questMeta',
   'pointsLedger',
+  'vouchers',
 ];
 
 function userRef(db, userId) {
@@ -110,6 +116,18 @@ function userPointsLedgerRef(db, userId) {
   return userRef(db, userId).collection('pointsLedger');
 }
 
+function voucherCatalogRef(db) {
+  return db.collection('voucherCatalog');
+}
+
+function voucherRedemptionCountersRef(db) {
+  return db.collection('voucherRedemptionCounters');
+}
+
+function userVouchersRef(db, userId) {
+  return userRef(db, userId).collection('vouchers');
+}
+
 module.exports = {
   USER_SUBCOLLECTIONS,
   userRef,
@@ -130,4 +148,7 @@ module.exports = {
   userChallengeProgressRef,
   userQuestMetaRef,
   userPointsLedgerRef,
+  voucherCatalogRef,
+  voucherRedemptionCountersRef,
+  userVouchersRef,
 };
