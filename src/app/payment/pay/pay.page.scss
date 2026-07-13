@@ -379,6 +379,12 @@
   display: flex;
   gap: 8px;
   align-items: center;
+
+  ion-spinner.btn-inline-spinner {
+    width: 16px;
+    height: 16px;
+    --color: #e30613;
+  }
 }
 
 .phone-prefix {
@@ -466,6 +472,13 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 .transfer-panel-body {
@@ -611,6 +624,13 @@
 .transfer-submit {
   margin-top: 20px;
   --background: #27ae60;
+
+  ion-spinner.btn-inline-spinner {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    --color: #fff;
+  }
 }
 
 .form-error {
@@ -846,6 +866,13 @@
   font-weight: 700;
   letter-spacing: 0.3px;
   margin-bottom: 4px;
+
+  ion-spinner.btn-inline-spinner {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    --color: #fff;
+  }
 }
 
 .cancel-btn {

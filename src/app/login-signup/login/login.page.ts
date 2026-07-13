@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { PIN_PATTERN, sanitizePhoneDigits, sanitizePinInput } from '../../utils/input-validation';
+import { PIN_PATTERN, applySanitizedNativeInput, sanitizePhoneDigits, sanitizePinInput } from '../../utils/input-validation';
 
 @Component({
   selector: 'app-login',
@@ -28,10 +28,12 @@ export class LoginPage {
 
   onPhoneInput(event: Event): void {
     this.phoneDigits = sanitizePhoneDigits((event.target as HTMLInputElement).value);
+    applySanitizedNativeInput(event, this.phoneDigits);
   }
 
   onPinInput(event: Event): void {
     this.pin = sanitizePinInput((event.target as HTMLInputElement).value);
+    applySanitizedNativeInput(event, this.pin);
   }
 
   goToSignup(): void {

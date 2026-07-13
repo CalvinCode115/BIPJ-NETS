@@ -33,6 +33,11 @@
           Change card on Home
         </button>
       </div>
+    } @else if (isLoadingCard) {
+      <div class="balance-card empty-card-banner">
+        <p class="balance-label">Loading card...</p>
+        <p class="empty-card-copy">Getting your wallet ready.</p>
+      </div>
     } @else {
       <div class="balance-card empty-card-banner">
         <p class="balance-label">No card selected</p>
@@ -243,7 +248,12 @@
             [disabled]="isToppingUp || topUpAmount < 0.01"
             (click)="submitTopUp()"
           >
-            {{ isToppingUp ? 'PROCESSING...' : topUpButtonLabel }}
+            @if (isToppingUp) {
+              <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+              Processing...
+            } @else {
+              {{ topUpButtonLabel }}
+            }
           </ion-button>
 
           <ion-button expand="block" fill="clear" class="cancel-btn" (click)="closeTopUpModal()">
@@ -288,7 +298,11 @@
                   (ionInput)="onTransferPhoneInput($event)"
                 ></ion-input>
                 <ion-button fill="outline" (click)="lookupRecipient()" [disabled]="transferPhoneDigits.length !== 8 || isLookingUp">
-                  {{ isLookingUp ? '...' : 'Look up' }}
+                  @if (isLookingUp) {
+                    <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+                  } @else {
+                    SEARCH
+                  }
                 </ion-button>
               </div>
             }
@@ -343,7 +357,12 @@
               [disabled]="isTransferring || !transferRecipient || !selectedPayCardId || transferAmount < 0.01"
               (click)="submitTransfer()"
             >
-              {{ isTransferring ? 'Processing...' : 'Transfer' }}
+              @if (isTransferring) {
+                <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+                Processing...
+              } @else {
+                Transfer
+              }
             </ion-button>
           }
         </div>

@@ -9,7 +9,7 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="qr-content">
+<ion-content class="qr-content scroll-content-visible">
   <div class="qr-page">
     <div class="qr-tabs">
       <button
@@ -45,12 +45,25 @@
           </div>
         }
 
-        @if (!canPayWithQr && !pendingPayment && !pendingReceive && !paymentSuccess && !receiptResult) {
+        @if (isLoadingCard && !pendingPayment && !pendingReceive && !paymentSuccess && !receiptResult) {
+          <div class="cashcard-blocked-panel">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Loading your card...</p>
+          </div>
+        } @else if (isCashCardBlocked && !pendingPayment && !pendingReceive && !paymentSuccess && !receiptResult) {
           <div class="cashcard-blocked-panel">
             <ion-icon name="bus-outline"></ion-icon>
             <p>{{ cashcardBlockedMessage }}</p>
             <button type="button" class="change-card-link" (click)="goToHomeForCard()">
               Switch card on Home
+            </button>
+          </div>
+        } @else if (!activeCard && !pendingPayment && !pendingReceive && !paymentSuccess && !receiptResult) {
+          <div class="cashcard-blocked-panel">
+            <ion-icon name="card-outline"></ion-icon>
+            <p>{{ noPayableCardMessage }}</p>
+            <button type="button" class="change-card-link" (click)="goToHomeForCard()">
+              Go to Home
             </button>
           </div>
         } @else {
@@ -144,9 +157,14 @@
             }
             <div class="payment-actions">
               <ion-button expand="block" class="confirm-btn" (click)="confirmPayment()" [disabled]="isProcessing || !selectedPayCardId">
-                Pay now
+                @if (isProcessing) {
+                  <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+                  Processing...
+                } @else {
+                  Pay now
+                }
               </ion-button>
-              <button type="button" class="text-btn" (click)="cancelPayment()">Cancel</button>
+              <button type="button" class="text-btn" (click)="cancelPayment()" [disabled]="isProcessing">Cancel</button>
             </div>
           </div>
         } @else if (pendingReceive) {
@@ -197,9 +215,14 @@
             }
             <div class="payment-actions">
               <ion-button expand="block" class="confirm-btn" (click)="confirmTransfer()" [disabled]="isProcessing || !selectedPayCardId || transferAmount < 0.01 || transferAmountExceedsBalance">
-                Transfer
+                @if (isProcessing) {
+                  <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+                  Processing...
+                } @else {
+                  Transfer
+                }
               </ion-button>
-              <button type="button" class="text-btn" (click)="cancelPayment()">Cancel</button>
+              <button type="button" class="text-btn" (click)="cancelPayment()" [disabled]="isProcessing">Cancel</button>
             </div>
           </div>
         } @else if (paymentSuccess) {

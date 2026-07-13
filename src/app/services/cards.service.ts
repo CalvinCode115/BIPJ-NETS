@@ -297,6 +297,40 @@ export function getCardFundsSubtext(card: WalletCard | null | undefined): string
   return `$${limit.toFixed(2)} credit limit`;
 }
 
+/** Prepaid + linked bank cards can pay/QR; CashCard is transit-only. */
+export function isPayableCard(card: WalletCard | null | undefined): boolean {
+  return Boolean(card && card.cardType !== 'cashcard');
+}
+
+/** Prefer Prepaid, then linked cards — never auto-pick CashCard for Pay/QR. */
+export function firstPayableCard(wallet: CardsByType): WalletCard | null {
+  return wallet.prepaid[0] ?? wallet.others[0] ?? null;
+}
+
+/**
+ * Resolve which card Pay/QR should use:
+ * 1. Keep Home selection if it is payable
+ * 2. Otherwise first payable card in wallet
+ * 3. Only then CashCard (so Pay can still show the transit notice)
+ */
+export function resolveActivePayCard(
+  selected: WalletCard | null,
+  wallet: CardsByType,
+  findInWallet: (card: WalletCard | null, wallet: CardsByType) => WalletCard | null
+): WalletCard | null {
+  const refreshed = findInWallet(selected, wallet);
+  if (isPayableCard(refreshed)) {
+    return refreshed;
+  }
+
+  const payable = firstPayableCard(wallet);
+  if (payable) {
+    return payable;
+  }
+
+  return refreshed ?? wallet.cashcard[0] ?? null;
+}
+
 export const FALLBACK_REGISTRY: RegistryCard[] = [
   buildRegistryCard('prepaid', 'NETS Prepaid', '5990 8990 6778 6689', 125.5),
   buildRegistryCard('cashcard', 'NETS CashCard (Transit)', '6250 1234 5678 9012', 28.9),

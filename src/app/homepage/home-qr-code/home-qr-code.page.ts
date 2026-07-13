@@ -14,6 +14,8 @@ import {
   WalletCard,
   CardsByType,
   CardsService,
+  isPayableCard,
+  resolveActivePayCard,
 } from '../../services/cards.service';
 import { QrPaymentDetails, QrPaymentsService } from '../../services/qr-payments.service';
 import { ReceiptScanResult, ReceiptsService } from '../../services/receipts.service';
@@ -63,9 +65,11 @@ export class QrCodePage implements OnDestroy {
   transferAmountText = '';
   pendingPayload = '';
   paymentSuccess = '';
+  private paymentSuccessTimer: ReturnType<typeof setTimeout> | null = null;
   paymentError = '';
 
   activeCard: WalletCard | null = null;
+  isLoadingCard = true;
 
   myQrDataUrl = '';
   myQrName = '';
@@ -89,7 +93,12 @@ export class QrCodePage implements OnDestroy {
   readonly shortReceiveLabel = shortReceiveLabel;
 
   get canPayWithQr(): boolean {
-    return Boolean(this.activeCard && this.activeCard.cardType !== 'cashcard');
+    return isPayableCard(this.activeCard);
+  }
+
+  /** True only when the resolved card is CashCard (not loading / empty). */
+  get isCashCardBlocked(): boolean {
+    return Boolean(this.activeCard && this.activeCard.cardType === 'cashcard');
   }
 
   get selectedPayCardId(): string {
@@ -98,6 +107,10 @@ export class QrCodePage implements OnDestroy {
 
   get cashcardBlockedMessage(): string {
     return 'NETS CashCard is for transit and gantry. Switch to Prepaid or a linked card on Home to scan and pay.';
+  }
+
+  get noPayableCardMessage(): string {
+    return 'No payable card found. Link a Prepaid or bank card on Home to scan and pay.';
   }
 
   get payingFromLabel(): string {
@@ -195,10 +208,12 @@ export class QrCodePage implements OnDestroy {
   }
 
   ionViewWillLeave(): void {
+    this.clearPaymentSuccessTimer();
     this.stopCamera();
   }
 
   ngOnDestroy(): void {
+    this.clearPaymentSuccessTimer();
     this.stopCamera();
   }
 
@@ -435,13 +450,10 @@ export class QrCodePage implements OnDestroy {
       .subscribe({
         next: (response) => {
           this.isProcessing = false;
-          this.paymentSuccess = response.message;
           this.pendingPayment = null;
           this.pendingPayload = '';
           this.loadActiveCard();
-          if (this.canPayWithQr) {
-            this.startCamera();
-          }
+          this.showPaymentSuccess(response.message);
         },
         error: (err: { error?: { error?: string }; message?: string }) => {
           this.isProcessing = false;
@@ -482,15 +494,12 @@ export class QrCodePage implements OnDestroy {
       .subscribe({
         next: (response) => {
           this.isProcessing = false;
-          this.paymentSuccess = response.message;
           this.pendingReceive = null;
           this.pendingPayload = '';
           this.transferAmount = 0;
           this.transferAmountText = '';
           this.loadActiveCard();
-          if (this.canPayWithQr) {
-            this.startCamera();
-          }
+          this.showPaymentSuccess(response.message);
         },
         error: (err: { error?: { error?: string }; message?: string }) => {
           this.isProcessing = false;
@@ -524,19 +533,34 @@ export class QrCodePage implements OnDestroy {
   private loadActiveCard(): void {
     const userId = this.auth.userId ?? 'user_1';
     const selected = this.cardContext.getSelectedCard();
+    this.isLoadingCard = true;
 
     this.cardsService.getWallet(userId).subscribe({
       next: (wallet) => {
-        const refreshed = this.findCardInWallet(selected, wallet);
-        const fallback = wallet.prepaid[0] ?? wallet.cashcard[0] ?? wallet.others[0] ?? null;
-        this.activeCard = refreshed ?? fallback;
+        // Same rule as Pay: keep payable Home card; skip CashCard if a better option exists.
+        this.activeCard = resolveActivePayCard(selected, wallet, (card, cards) =>
+          this.findCardInWallet(card, cards)
+        );
 
         if (this.activeCard) {
           this.cardContext.selectCard(this.activeCard);
         }
+        this.isLoadingCard = false;
+
+        if (
+          this.activeTab === 'scan' &&
+          this.canPayWithQr &&
+          !this.cameraActive &&
+          !this.pendingPayment &&
+          !this.pendingReceive &&
+          !this.receiptResult
+        ) {
+          this.startCamera();
+        }
       },
       error: () => {
         this.activeCard = selected;
+        this.isLoadingCard = false;
       },
     });
   }
@@ -903,9 +927,26 @@ export class QrCodePage implements OnDestroy {
   }
 
   scanAnother(): void {
+    this.clearPaymentSuccessTimer();
     this.resetPaymentState();
     if (this.canPayWithQr) {
       this.startCamera();
+    }
+  }
+
+  private showPaymentSuccess(message: string): void {
+    this.clearPaymentSuccessTimer();
+    this.paymentSuccess = message;
+    this.paymentSuccessTimer = setTimeout(() => {
+      this.paymentSuccessTimer = null;
+      this.scanAnother();
+    }, 3000);
+  }
+
+  private clearPaymentSuccessTimer(): void {
+    if (this.paymentSuccessTimer) {
+      clearTimeout(this.paymentSuccessTimer);
+      this.paymentSuccessTimer = null;
     }
   }
 

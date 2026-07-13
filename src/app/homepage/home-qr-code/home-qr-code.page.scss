@@ -15,6 +15,16 @@
   --background: #fff;
 }
 
+.qr-content::part(scroll) {
+  scrollbar-width: none;
+}
+
+.qr-content::part(scroll)::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .qr-page {
   padding: 16px;
 }
@@ -312,6 +322,13 @@
   --background: #27ae60;
   --border-radius: 12px;
   font-weight: 700;
+
+  ion-spinner.btn-inline-spinner {
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    --color: #fff;
+  }
 }
 
 .text-btn {
@@ -392,6 +409,12 @@
   ion-icon {
     font-size: 40px;
     color: #6c63ff;
+  }
+
+  ion-spinner {
+    width: 32px;
+    height: 32px;
+    --color: #6c63ff;
   }
 
   p {

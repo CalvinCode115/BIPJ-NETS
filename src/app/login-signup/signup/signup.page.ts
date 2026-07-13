@@ -5,6 +5,7 @@ import {
   EMAIL_PATTERN,
   NAME_PATTERN,
   PIN_PATTERN,
+  applySanitizedNativeInput,
   sanitizeEmailInput,
   sanitizeNameInput,
   sanitizePhoneDigits,
@@ -39,22 +40,27 @@ export class SignupPage {
 
   onNameInput(event: Event): void {
     this.name = sanitizeNameInput((event.target as HTMLInputElement).value);
+    applySanitizedNativeInput(event, this.name);
   }
 
   onPhoneInput(event: Event): void {
     this.phoneDigits = sanitizePhoneDigits((event.target as HTMLInputElement).value);
+    applySanitizedNativeInput(event, this.phoneDigits);
   }
 
   onEmailInput(event: Event): void {
     this.email = sanitizeEmailInput((event.target as HTMLInputElement).value);
+    applySanitizedNativeInput(event, this.email);
   }
 
   onPinInput(event: Event): void {
     this.pin = sanitizePinInput((event.target as HTMLInputElement).value);
+    applySanitizedNativeInput(event, this.pin);
   }
 
   onConfirmPinInput(event: Event): void {
     this.confirmPin = sanitizePinInput((event.target as HTMLInputElement).value);
+    applySanitizedNativeInput(event, this.confirmPin);
   }
 
   submitSignup(): void {

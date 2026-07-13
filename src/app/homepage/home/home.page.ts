@@ -16,14 +16,23 @@ import {
 import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../../utils/wallet-topup';
 import {
   clearLowBalanceDismiss,
-  dismissLowBalanceReminder,
   isLowBalanceAlertsEnabled,
-  isLowBalanceDismissed,
 } from '../../utils/notification-preferences';
+import { FxTrackerService} from 'src/app/fx-tracker/fx-tracker.service';
+import { DESTINATIONS, DestinationConfig } from '../../services/destination.config';
 
 interface AccountTab {
   id: CardType;
   label: string;
+}
+
+interface TrackedCurrency {
+  destinationId: string;
+  currencyCode: string;
+  country: string;
+  flag: string;
+  rate: number;
+  isLoading: boolean;
 }
 
 interface QuickAction {
@@ -117,9 +126,6 @@ export class HomePage {
     cvv: '',
   };
 
-  /** Minimum valid expiry: after June 2026 (review in July) */
-  private readonly minExpiryYear = 26;
-  private readonly minExpiryMonth = 7;
 
   accountTabs: AccountTab[] = [
     { id: 'prepaid', label: 'PREPAID' },
@@ -133,7 +139,8 @@ export class HomePage {
     private cardsService: CardsService,
     private cardContext: CardContextService,
     private transactionsService: TransactionsService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private fxTrackerService: FxTrackerService,
   ) {}
 
   quickActions: QuickAction[] = [
@@ -162,6 +169,18 @@ export class HomePage {
   loginAlertQueue: AppNotification[] = [];
   private loginAlertTimer: ReturnType<typeof setTimeout> | null = null;
   private topUpSuccessTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly trackedCurrenciesStoragePrefix = 'nets_home_tracked_currencies';
+  private readonly fxFallbackRates: Record<string, number> = {
+    malaysia: 3.15,
+    thailand: 25.4,
+    japan: 112.5,
+    korea: 985,
+    australia: 1.12,
+  };
+  trackedCurrencies: TrackedCurrency[] = [];
+  isAddCurrencySheetOpen = false;
+  /** Soft-hide banner for this Home visit only; comes back next enter if still low. */
+  private lowBalanceSoftHidden = false;
   isSavingTopUpPreference = false;
 
   monthlySummary = {
@@ -204,9 +223,11 @@ export class HomePage {
     this.userName = user?.name.split(' ')[0] ?? 'Guest';
     this.rewards.currentPoints = user?.points ?? 0;
     const showLoginAlerts = this.auth.consumeFreshLogin();
+    this.lowBalanceSoftHidden = false;
     if (this.currentCard) {
       this.isCardActivityLoading = true;
     }
+    this.loadTrackedCurrencies();
     this.loadCardsForUser(user?.id ?? 'user_1');
     this.loadNotifications(user?.id ?? 'user_1', showLoginAlerts);
   }
@@ -293,6 +314,186 @@ export class HomePage {
 
   get displayedCardExpiry(): string {
     return formatDisplayedCardExpiry(this.currentCard?.expiryDate, this.showCardSensitiveDetails);
+  }
+
+  get availableDestinationsToAdd(): DestinationConfig[] {
+    const trackedIds = new Set(this.trackedCurrencies.map((item) => item.destinationId));
+    return Object.values(DESTINATIONS).filter((destination) => !trackedIds.has(destination.id));
+  }
+
+  formatTrackedCurrencyAmount(item: TrackedCurrency): string {
+    if (!this.showCardSensitiveDetails) {
+      return '•••';
+    }
+    const sgdAmount = getCardFundsAmount(this.currentCard);
+    const converted = sgdAmount * (item.rate > 0 ? item.rate : this.fxFallbackRates[item.destinationId] ?? 1);
+    return this.formatForeignAmount(converted, item.currencyCode);
+  }
+
+  openAddCurrencySheet(): void {
+    if (this.availableDestinationsToAdd.length === 0) {
+      return;
+    }
+    this.isAddCurrencySheetOpen = true;
+  }
+
+  closeAddCurrencySheet(): void {
+    this.isAddCurrencySheetOpen = false;
+  }
+
+  addTrackedCurrency(destinationId: string): void {
+    const destination = DESTINATIONS[destinationId];
+    if (!destination) {
+      return;
+    }
+    if (this.trackedCurrencies.some((item) => item.destinationId === destinationId)) {
+      this.closeAddCurrencySheet();
+      return;
+    }
+
+    const fallbackRate = this.fxFallbackRates[destinationId] ?? 1;
+    this.trackedCurrencies = [
+      ...this.trackedCurrencies,
+      {
+        destinationId: destination.id,
+        currencyCode: destination.currencyCode,
+        country: destination.country,
+        flag: destination.flag,
+        rate: fallbackRate,
+        isLoading: true,
+      },
+    ];
+    this.persistTrackedCurrencies();
+    this.closeAddCurrencySheet();
+    this.refreshTrackedCurrencyRate(destinationId);
+  }
+
+  removeTrackedCurrency(destinationId: string): void {
+    this.trackedCurrencies = this.trackedCurrencies.filter(
+      (item) => item.destinationId !== destinationId
+    );
+    this.persistTrackedCurrencies();
+  }
+
+  private loadTrackedCurrencies(): void {
+    const ids = this.readTrackedCurrencyIds();
+    this.trackedCurrencies = ids
+      .map((destinationId) => DESTINATIONS[destinationId])
+      .filter((destination): destination is DestinationConfig => Boolean(destination))
+      .map((destination) => ({
+        destinationId: destination.id,
+        currencyCode: destination.currencyCode,
+        country: destination.country,
+        flag: destination.flag,
+        rate: this.fxFallbackRates[destination.id] ?? 1,
+        isLoading: true,
+      }));
+
+    for (const item of this.trackedCurrencies) {
+      this.refreshTrackedCurrencyRate(item.destinationId);
+    }
+  }
+
+  private refreshTrackedCurrencyRate(destinationId: string): void {
+    const destination = DESTINATIONS[destinationId];
+    if (!destination) {
+      return;
+    }
+
+    this.patchTrackedCurrency(destinationId, { isLoading: true });
+    this.fxTrackerService.getFxInsightWithPrediction(destination, 7).subscribe({
+      next: (insight) => {
+        const rate = insight?.currentRate;
+        const fallback = this.fxFallbackRates[destinationId] ?? 1;
+        this.patchTrackedCurrency(destinationId, {
+          rate: rate && rate > 0 ? rate : fallback,
+          isLoading: false,
+        });
+      },
+      error: () => {
+        this.patchTrackedCurrency(destinationId, {
+          rate: this.fxFallbackRates[destinationId] ?? 1,
+          isLoading: false,
+        });
+      },
+    });
+  }
+
+  private patchTrackedCurrency(
+    destinationId: string,
+    patch: Partial<Pick<TrackedCurrency, 'rate' | 'isLoading'>>
+  ): void {
+    this.trackedCurrencies = this.trackedCurrencies.map((item) =>
+      item.destinationId === destinationId ? { ...item, ...patch } : item
+    );
+  }
+
+  private trackedCurrenciesStorageKey(userId: string): string {
+    return `${this.trackedCurrenciesStoragePrefix}_${userId}`;
+  }
+
+  private persistTrackedCurrencies(): void {
+    const userId = this.auth.userId;
+    if (!userId) {
+      return;
+    }
+    const ids = this.trackedCurrencies.map((item) => item.destinationId);
+    try {
+      localStorage.setItem(this.trackedCurrenciesStorageKey(userId), JSON.stringify(ids));
+    } catch {
+      // Ignore storage failures in the prototype.
+    }
+  }
+
+  private readTrackedCurrencyIds(): string[] {
+    const userId = this.auth.userId;
+    if (!userId) {
+      return [];
+    }
+    try {
+      const key = this.trackedCurrenciesStorageKey(userId);
+      let raw = localStorage.getItem(key);
+      // One-time migrate from older shared key (pre per-user prefs)
+      if (!raw) {
+        const legacy = localStorage.getItem(this.trackedCurrenciesStoragePrefix);
+        if (legacy) {
+          localStorage.setItem(key, legacy);
+          localStorage.removeItem(this.trackedCurrenciesStoragePrefix);
+          raw = legacy;
+        }
+      }
+      if (!raw) {
+        return [];
+      }
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed)
+        ? parsed.filter((id): id is string => typeof id === 'string')
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private formatForeignAmount(amount: number, currencyCode: string): string {
+    const noDecimal = currencyCode === 'JPY' || currencyCode === 'KRW';
+    const formatted = noDecimal
+      ? Math.round(amount).toLocaleString('en-SG')
+      : amount.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    switch (currencyCode) {
+      case 'MYR':
+        return `RM ${formatted}`;
+      case 'JPY':
+        return `¥${formatted}`;
+      case 'KRW':
+        return `₩${formatted}`;
+      case 'THB':
+        return `฿${formatted}`;
+      case 'AUD':
+        return `A$${formatted}`;
+      default:
+        return `${formatted} ${currencyCode}`;
+    }
   }
 
   toggleCardSensitiveDetails(): void {
@@ -382,13 +583,15 @@ export class HomePage {
     if (!userId || !card?.id || !canManualTopUpWalletCard(card)) {
       return false;
     }
+    // Permanent off only via Notifications → Low balance toggle
     if (!isLowBalanceAlertsEnabled(userId)) {
       return false;
     }
     if (this.cardFundsAmount >= LOW_BALANCE_THRESHOLD) {
       return false;
     }
-    return !isLowBalanceDismissed(userId, card.id);
+    // Banner X only soft-hides for this visit — reminder returns until topped up ≥ $50
+    return !this.lowBalanceSoftHidden;
   }
 
   get lowBalanceAlertBalance(): string {
@@ -721,7 +924,7 @@ export class HomePage {
     }
 
     if (!this.isExpiryAfterCurrentMonth(expiry)) {
-      this.formError = 'Expiry must be July 2026 or later.';
+      this.formError = 'Expiry must the current month or later.';
       return;
     }
 
@@ -767,12 +970,14 @@ export class HomePage {
     const value = String(event.detail.value ?? '');
     const digits = value.replace(/\D/g, '').slice(0, 16);
     this.newCardForm.cardNumber = digits ? this.formatCardNumber(digits) : '';
+    applySanitizedIonInput(event, this.newCardForm.cardNumber);
   }
 
   onCardholderNameInput(event: CustomEvent): void {
     const value = String(event.detail.value ?? '');
     const cleaned = value.replace(/[^a-zA-Z\s]/g, '');
     this.newCardForm.cardholderName = cleaned.toUpperCase();
+    applySanitizedIonInput(event, this.newCardForm.cardholderName);
   }
 
   onExpiryInput(event: CustomEvent): void {
@@ -820,14 +1025,12 @@ export class HomePage {
     const month = parseInt(monthPart, 10);
     const year = parseInt(yearPart, 10);
 
-    if (year > this.minExpiryYear) {
-      return true;
-    }
+    const now = new Date();
+    const minYear = now.getFullYear() % 100;
+    const minMonth = now.getMonth() + 1;
 
-    if (year === this.minExpiryYear && month >= this.minExpiryMonth) {
-      return true;
-    }
-
+    if (year > minYear) return true;
+    if (year === minYear && month >= minMonth) return true;
     return false;
   }
 
@@ -904,11 +1107,9 @@ export class HomePage {
 
   dismissLowBalanceAlert(event?: Event): void {
     event?.stopPropagation();
-    const userId = this.auth.userId;
-    const cardId = this.currentCard?.id;
-    if (userId && cardId) {
-      dismissLowBalanceReminder(userId, cardId);
-    }
+    // Soft dismiss only — does not turn off the reminder permanently.
+    // Permanent: Notifications Guide → Low balance off, or top up to ≥ $50.
+    this.lowBalanceSoftHidden = true;
   }
 
   openLowBalanceTopUp(event?: Event): void {
@@ -998,8 +1199,10 @@ export class HomePage {
 
   private syncSelectedCard(): void {
     this.topUpError = '';
-    this.cardContext.selectCard(this.currentCard);
+    // Keep the last real card when user is on the "Add card" carousel slide.
+    // Made Pay/QR show "No card selected".
     if (this.currentCard) {
+      this.cardContext.selectCard(this.currentCard);
       this.maybeClearLowBalanceDismiss(this.currentCard);
     }
   }

@@ -117,6 +117,7 @@
             <div class="card-face-header">
               <p class="balance-label">{{ cardFundsLabel }}</p>
               <div class="card-header-actions">
+                <span class="card-currency-badge">SGD</span>
                 @if (cardBrandBadge) {
                   <span class="card-brand-badge">{{ cardBrandBadge }}</span>
                 }
@@ -179,6 +180,59 @@
         ></button>
       }
     </div>
+
+    @if (currentCard) {
+      <section class="fx-currency-panel" aria-label="Currency conversions">
+        <div class="fx-currency-header">
+          <div>
+            <p class="fx-currency-eyebrow">Also in other currencies</p>
+            <p class="fx-currency-hint">Same SGD balance, shown in currencies you add</p>
+          </div>
+        </div>
+
+        @if (trackedCurrencies.length === 0) {
+          <p class="fx-currency-empty">Add a currency to see this balance abroad.</p>
+        } @else {
+          <ul class="fx-currency-list">
+            @for (item of trackedCurrencies; track item.destinationId) {
+              <li class="fx-currency-row">
+                <div class="fx-currency-meta">
+                  <span class="fx-currency-flag" aria-hidden="true">{{ item.flag }}</span>
+                  <div>
+                    <p class="fx-currency-code">{{ item.currencyCode }}</p>
+                    <p class="fx-currency-country">{{ item.country }}</p>
+                  </div>
+                </div>
+                <div class="fx-currency-amount-wrap">
+                  @if (item.isLoading) {
+                    <ion-spinner name="crescent" class="fx-currency-spinner"></ion-spinner>
+                  }
+                  <p class="fx-currency-amount">{{ formatTrackedCurrencyAmount(item) }}</p>
+                  <button
+                    type="button"
+                    class="fx-currency-remove"
+                    (click)="removeTrackedCurrency(item.destinationId)"
+                    [attr.aria-label]="'Remove ' + item.currencyCode"
+                  >
+                    <ion-icon name="close"></ion-icon>
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+
+        <button
+          type="button"
+          class="fx-currency-add"
+          (click)="openAddCurrencySheet()"
+          [disabled]="availableDestinationsToAdd.length === 0"
+        >
+          <ion-icon name="add"></ion-icon>
+          <span>{{ availableDestinationsToAdd.length === 0 ? 'All currencies added' : 'Add currency' }}</span>
+        </button>
+      </section>
+    }
 
     <!-- Quick Actions -->
     <div class="quick-actions">
@@ -590,7 +644,12 @@
           [disabled]="isToppingUp || topUpAmount < 0.01"
           (click)="submitTopUp()"
         >
-          {{ isToppingUp ? 'PROCESSING...' : topUpButtonLabel }}
+          @if (isToppingUp) {
+            <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+            Processing...
+          } @else {
+            {{ topUpButtonLabel }}
+          }
         </ion-button>
 
         <ion-button expand="block" fill="clear" class="cancel-btn" (click)="closeTopUpModal()">
@@ -650,3 +709,38 @@
   (selected)="onSpendingPeriodSelected($event)"
   (dismissed)="closeSpendingPeriodSheet()"
 ></app-period-select-sheet>
+
+@if (isAddCurrencySheetOpen) {
+  <div class="fx-add-overlay" (click)="closeAddCurrencySheet()" role="presentation">
+    <div
+      class="fx-add-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Add currency"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="fx-add-grabber" aria-hidden="true"></div>
+      <h2 class="fx-add-title">Add currency</h2>
+      <p class="fx-add-subtitle">Build your own list — start empty, add what you need.</p>
+
+      <div class="fx-add-list">
+        @for (destination of availableDestinationsToAdd; track destination.id) {
+          <button
+            type="button"
+            class="fx-add-row"
+            (click)="addTrackedCurrency(destination.id)"
+          >
+            <span class="fx-add-flag" aria-hidden="true">{{ destination.flag }}</span>
+            <span class="fx-add-meta">
+              <span class="fx-add-code">{{ destination.currencyCode }}</span>
+              <span class="fx-add-country">{{ destination.country }}</span>
+            </span>
+            <ion-icon name="add-circle-outline" class="fx-add-icon"></ion-icon>
+          </button>
+        }
+      </div>
+
+      <button type="button" class="fx-add-cancel" (click)="closeAddCurrencySheet()">Cancel</button>
+    </div>
+  </div>
+}

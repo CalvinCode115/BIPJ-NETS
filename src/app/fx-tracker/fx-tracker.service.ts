@@ -42,8 +42,8 @@ export class FxTrackerService {
 
   // Demo fallback rates (expandable)
   private readonly DEMO_RATES: Record<string, number> = {
-    'SGD-MYR': 3.48,
-    'MYR-SGD': 0.287,
+    'SGD-MYR': 3.15,
+    'MYR-SGD': 0.317,
     'SGD-THB': 25.4,
     'THB-SGD': 0.039,
     'SGD-JPY': 112.5,
@@ -76,7 +76,11 @@ export class FxTrackerService {
       map(({ history, sentiment }) => {
         const prediction = this.generatePrediction(history.rates, sentiment, base, target);
         const result: FxInsightWithPrediction = { ...history, prediction };
-        this.cache.set(cacheKey, result, destination.id);
+        // Never cache demo/fallback rates — Home currency refresh + Travel share this cache.
+        // Caching a ~3.48 fallback for 1 hour made Travel show the wrong MYR after a failed call.
+        if (!(history as FxInsight & { isFallback?: boolean }).isFallback) {
+          this.cache.set(cacheKey, result, destination.id);
+        }
         return result;
       }),
       catchError(() => of(this.buildFallbackInsight(days, base, target, destination.id)))
@@ -97,6 +101,9 @@ export class FxTrackerService {
       .post<FxHistoryResponse>(`${this.API_BASE}/fx/history`, { days, base, target })
       .pipe(
         map(res => {
+          if (!res?.rates || Object.keys(res.rates).length === 0) {
+            throw new Error('Empty FX history from API');
+          }
           const result = this.transformResponse(res, target);
           this.cache.set(cacheKey, result, countryId);
           return result;
@@ -252,7 +259,7 @@ private fetchNewsSentiment(destination: DestinationConfig): Observable<NewsSenti
       current = Math.max(min, Math.min(max, current));
       rates.push({ date: dateStr, rate: parseFloat(current.toFixed(4)) });
     }
-    return this.calculateInsight(rates);
+    return { ...this.calculateInsight(rates), isFallback: true } as FxInsight & { isFallback: boolean };
   }
 
   private calculateInsight(rates: FxRate[]): FxInsight {

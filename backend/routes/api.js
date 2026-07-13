@@ -652,19 +652,41 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
     return res.status(500).json({ error: 'Unable to update card balance.' });
   }
 
+  const now = period.nowSingaporeIso();
+  const roundedAmount = Math.round(amount * 100) / 100;
+  const txnBaseId = `txn_${Date.now()}`;
+
   const saved = await db.addTransaction({
-    id: `txn_${Date.now()}`,
+    id: `${txnBaseId}_in`,
     user_id: req.params.userId,
     card_id: card.id,
     merchant: 'NETS Top Up',
     category: 'Transfer',
     subtitle: methodLabel,
-    amount: Math.round(amount * 100) / 100,
+    amount: roundedAmount,
     txn_type: 'credit',
     icon: 'arrow-down-circle',
     icon_color: '#27ae60',
-    occurred_at: period.nowSingaporeIso(),
+    occurred_at: now,
   });
+
+  let sourceTransaction = null;
+  if (sourceCard) {
+    const walletLabel = cardUtils.formatPayFromLabel(card);
+    sourceTransaction = await db.addTransaction({
+      id: `${txnBaseId}_out`,
+      user_id: req.params.userId,
+      card_id: sourceCard.id,
+      merchant: 'Wallet Top Up',
+      category: 'Transfer',
+      subtitle: `To ${walletLabel}`,
+      amount: -roundedAmount,
+      txn_type: 'debit',
+      icon: 'arrow-up-circle',
+      icon_color: '#eb5757',
+      occurred_at: now,
+    });
+  }
 
   const responsePayload = {
     success: true,
@@ -678,6 +700,9 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
       await db.getCardById(req.params.userId, sourceCard.id),
       'wallet'
     );
+    if (sourceTransaction) {
+      responsePayload.sourceTransaction = formatTransaction(sourceTransaction);
+    }
   }
 
   res.json(responsePayload);

@@ -12,6 +12,7 @@ import {
   getCardFundsLabel,
   getCardFundsSubtext,
   getCardThemeClass,
+  resolveActivePayCard,
   TopUpMethod,
   WalletCard,
 } from '../../services/cards.service';
@@ -49,6 +50,7 @@ type ContactFormMode = 'add' | 'edit';
 export class PayPage {
   activeCard: WalletCard | null = null;
   cardsByType: CardsByType = { prepaid: [], cashcard: [], others: [] };
+  isLoadingCard = true;
 
   isTransferModalOpen = false;
   isContactModalOpen = false;
@@ -641,21 +643,25 @@ export class PayPage {
   private loadActiveCard(): void {
     const userId = this.auth.userId ?? 'user_1';
     const selected = this.cardContext.getSelectedCard();
+    this.isLoadingCard = true;
 
     this.cardsService.getWallet(userId).subscribe({
       next: (wallet) => {
         this.cardsByType = wallet;
-        const refreshed = this.findCardInWallet(selected, wallet);
-        const fallback = wallet.prepaid[0] ?? wallet.cashcard[0] ?? wallet.others[0] ?? null;
-        this.activeCard = refreshed ?? fallback;
+        // Prefer Home's payable card; if CashCard was selected, jump to Prepaid/linked.
+        this.activeCard = resolveActivePayCard(selected, wallet, (card, cards) =>
+          this.findCardInWallet(card, cards)
+        );
 
         if (this.activeCard) {
           this.cardContext.selectCard(this.activeCard);
         }
+        this.isLoadingCard = false;
       },
       error: () => {
         this.activeCard = selected;
         this.cardsByType = { prepaid: [], cashcard: [], others: [] };
+        this.isLoadingCard = false;
       },
     });
   }
