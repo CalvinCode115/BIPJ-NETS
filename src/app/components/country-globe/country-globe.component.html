@@ -1,0 +1,124 @@
+<ion-content class="globe-content" scroll-y="false">
+  <div class="globe-modal">
+    <!-- Header -->
+    <div class="globe-header">
+      <ion-button fill="clear" (click)="dismiss()" class="close-btn">
+        <ion-icon name="close"></ion-icon>
+      </ion-button>
+      <h2>🌍 Select Destination</h2>
+      <div style="width: 48px;"></div>
+    </div>
+
+    <!-- Search -->
+    <div class="globe-search-bar">
+      <ion-icon name="search" class="search-icon"></ion-icon>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        (input)="onSearchInput($event)"
+        placeholder="Search countries..."
+        class="search-input"
+      />
+      <ion-button *ngIf="searchQuery" fill="clear" size="small" (click)="clearSearch()">
+        <ion-icon name="close-circle"></ion-icon>
+      </ion-button>
+    </div>
+
+    <!-- Region Legend -->
+    <div class="region-legend" *ngIf="!searchQuery">
+      <span class="legend-item"><span class="dot" style="background:#FF6B6B"></span>Asia</span>
+      <span class="legend-item"><span class="dot" style="background:#4ECDC4"></span>Europe</span>
+      <span class="legend-item"><span class="dot" style="background:#45B7D1"></span>Americas</span>
+      <span class="legend-item"><span class="dot" style="background:#FFE66D"></span>Africa</span>
+      <span class="legend-item"><span class="dot" style="background:#96CEB4"></span>Oceania</span>
+      <span class="legend-item featured"><span class="dot" style="background:#d71920"></span>Featured</span>
+    </div>
+
+    <!-- Loading -->
+    <div class="globe-loading" *ngIf="isLoading">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>Loading world map... {{ allCountries.length }} countries loaded</p>
+    </div>
+
+    <!-- Error -->
+    <div class="globe-error" *ngIf="error && !isLoading">
+      <ion-icon name="alert-circle" color="danger"></ion-icon>
+      <p>{{ error }}</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="globe-body" *ngIf="!isLoading">
+      <!-- 3D Globe -->
+      <div class="globe-viewport">
+        <div #cesiumContainer class="cesium-container"></div>
+
+        <!-- Selection Card -->
+        <div class="selection-card" *ngIf="selectedCountry">
+          <ion-button fill="clear" class="sel-close" (click)="selectedCountry = null">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+          <div class="sel-flag">{{ selectedCountry.flag }}</div>
+          <div class="sel-info">
+            <h4>{{ selectedCountry.country }}</h4>
+            <p>{{ selectedCountry.name }} · {{ selectedCountry.currencyCode }}</p>
+            <span class="sel-distance">📍 {{ getDistanceFromSingapore(selectedCountry) }} from Singapore</span>
+            <span class="sel-badge" [class.rich]="countryData.isRich(selectedCountry.id)">
+              {{ countryData.isRich(selectedCountry.id) ? '✨ Full Experience' : 'ℹ️ Limited Data' }}
+            </span>
+          </div>
+          <ion-button size="small" class="sel-confirm" (click)="confirmSelection()">
+            Select
+          </ion-button>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="globe-sidebar">
+        <!-- Featured -->
+        <div class="sidebar-section" *ngIf="!searchQuery">
+          <h4>✨ Featured</h4>
+          <div
+            class="sidebar-item featured"
+            *ngFor="let c of featuredCountries"
+            [class.active]="selectedCountry?.id === c.id"
+            (click)="selectFromSidebar(c)">
+            <span class="item-flag">{{ c.flag }}</span>
+            <div class="item-info">
+              <span class="item-name">{{ c.country }}</span>
+              <span class="item-meta">{{ c.currencyCode }} · {{ getDistanceFromSingapore(c) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- All Countries / Search Results -->
+        <div class="sidebar-section" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+          <h4>{{ searchQuery ? 'Results (' + filteredCountries.length + ')' : 'All Countries (' + allCountries.length + ')' }}</h4>
+
+          <div *ngIf="filteredCountries.length === 0 && !isLoading" class="sidebar-empty" style="padding: 20px; text-align: center; color: #666; font-size: 13px;">
+            No countries loaded. Check API connection.
+          </div>
+
+          <div class="sidebar-scroll" *ngIf="filteredCountries.length > 0">
+            <div
+              class="sidebar-item"
+              *ngFor="let c of filteredCountries"
+              [class.active]="selectedCountry?.id === c.id"
+              [class.featured]="countryData.isRich(c.id)"
+              [style.border-left-color]="getRegionColor(c.region)"
+              (click)="selectFromSidebar(c)">
+              <span class="region-indicator" [style.background-color]="getRegionColor(c.region)"></span>
+              <span class="item-flag">{{ c.flag }}</span>
+              <div class="item-info">
+                <span class="item-name">{{ c.country }}</span>
+                <span class="item-meta">{{ c.name }} · {{ c.currencyCode }} · {{ getDistanceFromSingapore(c) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Workaround for Ionic 8.8.1 fullscreen modal safe area bug -->
+<ion-footer></ion-footer>

@@ -3074,4 +3074,1095 @@
   inset: 0;
   z-index: 99;
   background: rgba(0,0,0,0.3);
+}/* ── Destination Selector Bubble ── */
+.destination-selector {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 71, 87, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .globe-icon {
+    font-size: 32px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .destination-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .destination-label {
+      font-size: 12px;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .destination-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+
+      &.placeholder {
+        color: #8e8e93;
+        font-weight: 400;
+      }
+    }
+  }
+
+  .arrow-icon {
+    font-size: 20px;
+    color: #8e8e93;
+  }
+}
+
+/* ── Limited Data Badge ── */
+.limited-badge-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #ffc107;
+
+  ion-icon {
+    font-size: 18px;
+    min-width: 18px;
+  }
+}
+
+/* ── Loading & Error States ── */
+.loading-container,
+.error-container,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  p {
+    margin-top: 16px;
+    color: #8e8e93;
+    font-size: 14px;
+  }
+}
+
+.empty-state {
+  .globe-animation {
+    font-size: 80px;
+    animation: float 3s ease-in-out infinite;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ── Globe Modal Fullscreen Override ── */
+::ng-deep .globe-modal-fullscreen {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+  --box-shadow: none;
+}
+
+::ng-deep .globe-modal-fullscreen .modal-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+}
+
+/* ── Custom Segment ── */
+.custom-segment {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 4px;
+  margin-bottom: 20px;
+
+  ion-segment-button {
+    --background: transparent;
+    --background-checked: var(--nets-red);
+    --color: #8e8e93;
+    --color-checked: #fff;
+    --indicator-color: transparent;
+    border-radius: 12px;
+    min-height: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+
+    ion-icon {
+      font-size: 18px;
+      margin-bottom: 2px;
+    }
+
+    ion-label {
+      font-size: 11px;
+    }
+  }
+}
+
+/* ── Tab Content ── */
+.tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Weather ── */
+.weather-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 16px;
+
+  .weather-main {
+    display: flex;
+    flex-direction: column;
+
+    .weather-temp {
+      font-size: 48px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .weather-desc {
+      font-size: 16px;
+      color: #8e8e93;
+      margin-top: 4px;
+      text-transform: capitalize;
+    }
+  }
+
+  .weather-icon {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+
+  .forecast-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 12px 8px;
+    text-align: center;
+
+    .forecast-day {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8e8e93;
+      margin-bottom: 4px;
+    }
+
+    .forecast-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .forecast-temp {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+    }
+  }
+}
+
+/* ── Places ── */
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.place-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .place-image {
+    height: 160px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+
+    .place-rating {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+  }
+
+  .place-info {
+    padding: 16px;
+
+    h4 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    p {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: #8e8e93;
+    }
+
+    .place-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      .tag {
+        font-size: 11px;
+        font-weight: 600;
+        color: #8e8e93;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+    }
+  }
+}
+
+/* ── FX ── */
+.fx-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .fx-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+
+    .fx-pair {
+      font-size: 14px;
+      font-weight: 600;
+      color: #8e8e93;
+    }
+
+    .fx-rate {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--nets-red);
+    }
+  }
+
+  .fx-updated {
+    font-size: 12px;
+    color: #555;
+    margin: 0 0 20px;
+  }
+
+  .fx-converter {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 16px;
+
+    .converter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+
+      .currency-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #8e8e93;
+      }
+
+      .converter-input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 24px;
+        font-weight: 700;
+        text-align: right;
+        width: 120px;
+        outline: none;
+
+        &::placeholder {
+          color: #555;
+        }
+      }
+
+      .converter-result {
+        font-size: 24px;
+        font-weight: 700;
+        color: #fff;
+      }
+    }
+
+    .converter-arrow {
+      text-align: center;
+      font-size: 20px;
+      color: #555;
+      padding: 4px 0;
+    }
+  }
+}
+
+.fx-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+
+  p {
+    margin-top: 12px;
+    color: #8e8e93;
+    font-size: 14px;
+  }
+
+  .fx-note {
+    font-size: 12px;
+    color: #555;
+    margin-top: 8px;
+  }
+}
+
+/* ── Packing ── */
+.packing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.packing-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  &.checked {
+    opacity: 0.5;
+
+    .packing-name {
+      text-decoration: line-through;
+      color: #555;
+    }
+  }
+
+  .packing-checkbox {
+    --checkbox-background: transparent;
+    --checkbox-background-checked: var(--nets-red);
+    --border-color: rgba(255, 255, 255, 0.2);
+    --border-color-checked: var(--nets-red);
+    --checkmark-color: #fff;
+    --size: 22px;
+  }
+
+  .packing-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+  }
+}
+
+/* ── News ── */
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.news-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .news-image {
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .news-info {
+    padding: 16px;
+
+    h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.4;
+    }
+
+    .news-source {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--nets-red);
+      margin: 0 0 8px;
+    }
+
+    .news-desc {
+      font-size: 13px;
+      color: #8e8e93;
+      margin: 0;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+}
+
+/* ── Destination Selector Bubble ── */
+.destination-selector {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 71, 87, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  .globe-icon {
+    font-size: 32px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .destination-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .destination-label {
+      font-size: 12px;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .destination-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+
+      &.placeholder {
+        color: #8e8e93;
+        font-weight: 400;
+      }
+    }
+  }
+
+  .arrow-icon {
+    font-size: 20px;
+    color: #8e8e93;
+  }
+}
+
+/* ── Limited Data Badge ── */
+.limited-badge-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #ffc107;
+
+  ion-icon {
+    font-size: 18px;
+    min-width: 18px;
+  }
+}
+
+/* ── Loading & Error States ── */
+.loading-container,
+.error-container,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  p {
+    margin-top: 16px;
+    color: #8e8e93;
+    font-size: 14px;
+  }
+}
+
+.empty-state {
+  .globe-animation {
+    font-size: 80px;
+    animation: float 3s ease-in-out infinite;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ── Globe Modal Fullscreen Override ── */
+::ng-deep .globe-modal-fullscreen {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+  --box-shadow: none;
+}
+
+::ng-deep .globe-modal-fullscreen .modal-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+}
+
+/* ── Custom Segment ── */
+.custom-segment {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 4px;
+  margin-bottom: 20px;
+
+  ion-segment-button {
+    --background: transparent;
+    --background-checked: var(--nets-red);
+    --color: #8e8e93;
+    --color-checked: #fff;
+    --indicator-color: transparent;
+    border-radius: 12px;
+    min-height: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+
+    ion-icon {
+      font-size: 18px;
+      margin-bottom: 2px;
+    }
+
+    ion-label {
+      font-size: 11px;
+    }
+  }
+}
+
+/* ── Tab Content ── */
+.tab-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Weather ── */
+.weather-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 16px;
+
+  .weather-main {
+    display: flex;
+    flex-direction: column;
+
+    .weather-temp {
+      font-size: 48px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .weather-desc {
+      font-size: 16px;
+      color: #8e8e93;
+      margin-top: 4px;
+      text-transform: capitalize;
+    }
+  }
+
+  .weather-icon {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+.forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+
+  .forecast-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 12px 8px;
+    text-align: center;
+
+    .forecast-day {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8e8e93;
+      margin-bottom: 4px;
+    }
+
+    .forecast-icon {
+      width: 40px;
+      height: 40px;
+    }
+
+    .forecast-temp {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+    }
+  }
+}
+
+/* ── Places ── */
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.place-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .place-image {
+    height: 160px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+
+    .place-rating {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+  }
+
+  .place-info {
+    padding: 16px;
+
+    h4 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    p {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: #8e8e93;
+    }
+
+    .place-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+
+      .tag {
+        font-size: 11px;
+        font-weight: 600;
+        color: #8e8e93;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+    }
+  }
+}
+
+/* ── FX ── */
+.fx-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .fx-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+
+    .fx-pair {
+      font-size: 14px;
+      font-weight: 600;
+      color: #8e8e93;
+    }
+
+    .fx-rate {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--nets-red);
+    }
+  }
+
+  .fx-updated {
+    font-size: 12px;
+    color: #555;
+    margin: 0 0 20px;
+  }
+
+  .fx-converter {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 16px;
+
+    .converter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+
+      .currency-label {
+        font-size: 14px;
+        font-weight: 700;
+        color: #8e8e93;
+      }
+
+      .converter-input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 24px;
+        font-weight: 700;
+        text-align: right;
+        width: 120px;
+        outline: none;
+
+        &::placeholder {
+          color: #555;
+        }
+      }
+
+      .converter-result {
+        font-size: 24px;
+        font-weight: 700;
+        color: #fff;
+      }
+    }
+
+    .converter-arrow {
+      text-align: center;
+      font-size: 20px;
+      color: #555;
+      padding: 4px 0;
+    }
+  }
+}
+
+.fx-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+
+  p {
+    margin-top: 12px;
+    color: #8e8e93;
+    font-size: 14px;
+  }
+
+  .fx-note {
+    font-size: 12px;
+    color: #555;
+    margin-top: 8px;
+  }
+}
+
+/* ── Packing ── */
+.packing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.packing-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  &.checked {
+    opacity: 0.5;
+
+    .packing-name {
+      text-decoration: line-through;
+      color: #555;
+    }
+  }
+
+  .packing-checkbox {
+    --checkbox-background: transparent;
+    --checkbox-background-checked: var(--nets-red);
+    --border-color: rgba(255, 255, 255, 0.2);
+    --border-color-checked: var(--nets-red);
+    --checkmark-color: #fff;
+    --size: 22px;
+  }
+
+  .packing-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+  }
+}
+
+/* ── News ── */
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.news-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  .news-image {
+    height: 140px;
+    background-size: cover;
+    background-position: center;
+  }
+
+  .news-info {
+    padding: 16px;
+
+    h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.4;
+    }
+
+    .news-source {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--nets-red);
+      margin: 0 0 8px;
+    }
+
+    .news-desc {
+      font-size: 13px;
+      color: #8e8e93;
+      margin: 0;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  }
+}
+
+/* ── News Sentiment Card ── */
+.news-sentiment-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sentiment-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.score-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8e8e93;
+}
+
+.score-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.score-value.positive {
+  color: #2ecc71;
+}
+
+.score-value.negative {
+  color: #e74c3c;
+}
+
+.article-count {
+  font-size: 12px;
+  color: #555;
+  margin: 8px 0 0;
+}/* Globe icon in destination bar */
+.destination-current .globe-icon {
+  color: var(--nets-red);
+  font-size: 20px;
+  margin-left: 8px;
+}
+
+/* Fullscreen globe modal */
+::ng-deep .globe-modal-fullscreen {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+}
+
+::ng-deep .globe-modal-fullscreen .modal-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0 !important;
+}
+/* Globe icon in destination bar */
+.destination-current .globe-icon {
+  color: var(--nets-red);
+  font-size: 20px;
+  margin-left: 8px;
+}
+
+/* Fullscreen globe modal - must be in global scope */
+ion-modal.globe-modal-fullscreen {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+  --backdrop-opacity: 0.8;
+}
+
+ion-modal.globe-modal-fullscreen .modal-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0 !important;
 }

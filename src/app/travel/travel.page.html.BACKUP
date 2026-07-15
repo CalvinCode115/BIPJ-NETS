@@ -15,14 +15,32 @@
 <ion-content class="travel-content scroll-content-visible">
 
   <!-- Sticky Destination Selector -->
-  <div class="destination-bar">
-    <div class="destination-current" (click)="openGlobeModal()">
-      <span class="destination-flag">{{ currentDestination.flag }}</span>
-      <span class="destination-name">{{ currentDestination.name }}</span>
-      <span class="destination-currency">{{ currentDestination.currencyCode }}</span>
-      <ion-icon name="globe-outline" class="globe-icon"></ion-icon>
+<div class="destination-bar">
+  <div class="destination-current" (click)="toggleDestinationDropdown()">
+    <span class="destination-flag">{{ currentDestination.flag }}</span>
+    <span class="destination-name">{{ currentDestination.name }}</span>
+    <span class="destination-currency">{{ currentDestination.currencyCode }}</span>
+    <ion-icon name="chevron-down" [class.open]="destinationDropdownOpen"></ion-icon>
+  </div>
+
+  <div class="destination-dropdown" *ngIf="destinationDropdownOpen">
+    <div 
+      class="destination-option" 
+      *ngFor="let dest of destinations"
+      [class.active]="dest.id === currentDestination.id"
+      (click)="selectDestination(dest.id)">
+      <span class="option-flag">{{ dest.flag }}</span>
+      <div class="option-info">
+        <span class="option-name">{{ dest.name }}</span>
+        <span class="option-country">{{ dest.country }}</span>
+      </div>
+      <span class="option-currency">{{ dest.currencyCode }}</span>
     </div>
   </div>
+</div>
+
+<!-- Click outside to close -->
+<div class="dropdown-backdrop" *ngIf="destinationDropdownOpen" (click)="destinationDropdownOpen = false"></div>
 
   <!-- ── WEATHER FORECAST STRIP ── -->
   <div class="weather-strip" *ngIf="forecast.length > 0">
@@ -755,14 +773,17 @@
   </ng-template>
 </ion-modal>
 
-<!-- FX FAB — hidden for unsupported currencies -->
-<div class="fx-fab-container" *ngIf="fxInsight" (click)="goToFxTracker()">
-  <div class="fx-fab" [style.border-color]="getFxTrendColor()">
+<!-- FX FAB -->
+<div class="fx-fab-container" (click)="goToFxTracker()">
+  <div class="fx-fab" *ngIf="fxInsight" [style.border-color]="getFxTrendColor()">
     <div class="fx-fab-inner">
       <span class="fx-fab-rate">{{ fxInsight.currentRate | number:'1.3-3' }}</span>
       <span class="fx-fab-unit">{{ currentDestination.currencyCode }}</span>
       <ion-icon [name]="getFxTrendIcon()" [style.color]="getFxTrendColor()"></ion-icon>
     </div>
+  </div>
+  <div class="fx-fab-loading" *ngIf="!fxInsight">
+    <ion-spinner name="crescent" style="color: white;"></ion-spinner>
   </div>
   <span class="fx-fab-label">FX</span>
 </div>

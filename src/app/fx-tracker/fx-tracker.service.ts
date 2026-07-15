@@ -63,7 +63,16 @@ export class FxTrackerService {
     destination: DestinationConfig,
     days: number = 30
   ): Observable<FxInsightWithPrediction> {
-    const [base, target] = destination.fxPair;
+    // Defensive: fxPair might be a string instead of array for exotic countries
+    let fxPair: string[];
+    if (Array.isArray(destination.fxPair)) {
+      fxPair = destination.fxPair;
+    } else if (typeof destination.fxPair === 'string') {
+      fxPair = ['SGD', destination.fxPair];
+    } else {
+      fxPair = ['SGD', destination.currencyCode || 'USD'];
+    }
+    const [base, target] = fxPair;
     const cacheKey = this.cache.key('fx', destination.id);
 
     const cached = this.cache.get<FxInsightWithPrediction>(cacheKey);
@@ -120,7 +129,16 @@ private fetchNewsSentiment(destination: DestinationConfig): Observable<NewsSenti
     return of(cached);
   }
 
-  const [base, target] = destination.fxPair;
+  // Defensive: fxPair might be a string instead of array
+  let fxPair: string[];
+  if (Array.isArray(destination.fxPair)) {
+    fxPair = destination.fxPair;
+  } else if (typeof destination.fxPair === 'string') {
+    fxPair = ['SGD', destination.fxPair];
+  } else {
+    fxPair = ['SGD', destination.currencyCode || 'USD'];
+  }
+  const [base, target] = fxPair;
   
   console.log('[FX] Fetching news sentiment for:', base, '→', target);
   console.log('[FX] Destination newsQuery:', destination.newsQuery);

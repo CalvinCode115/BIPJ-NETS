@@ -1,5 +1,4 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { ModalController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { TravelService } from './travel.service';
@@ -7,8 +6,6 @@ import { FxTrackerService } from '../fx-tracker/fx-tracker.service';
 import { AuthService } from '../services/auth.service';
 import { CardContextService } from '../services/card-context.service';
 import { GooglePlace } from './travel.model';
-import { CountryDataService, CountryInfo } from '../services/country-data.service';
-import { CountryGlobeComponent } from '../components/country-globe/country-globe.component';
 import {
   CardsService,
   WalletCard,
@@ -129,33 +126,13 @@ export class TravelPage implements OnInit {
     private cardContext: CardContextService,
     private cardsService: CardsService,
     public weatherService: WeatherService,
-    private cache: CacheService,
-    private modalCtrl: ModalController,
-    private countryData: CountryDataService
+    private cache: CacheService
   ) { }
 
   ngOnInit() {
     const savedDest = localStorage.getItem('nets_selected_destination');
-    if (savedDest) {
-      if (DESTINATIONS[savedDest]) {
-        this.currentDestination = DESTINATIONS[savedDest];
-      } else {
-        // Try to parse as dynamic destination
-        try {
-          const parsed = JSON.parse(savedDest);
-          if (parsed && parsed.id) {
-            // Ensure fxPair is always an array (fix for legacy stored data)
-            if (typeof parsed.fxPair === 'string') {
-              parsed.fxPair = ['SGD', parsed.fxPair];
-            } else if (!parsed.fxPair) {
-              parsed.fxPair = ['SGD', parsed.currencyCode || 'USD'];
-            }
-            this.currentDestination = parsed;
-          }
-        } catch {
-          // fallback to default
-        }
-      }
+    if (savedDest && DESTINATIONS[savedDest]) {
+      this.currentDestination = DESTINATIONS[savedDest];
     }
 
     this.loadTripMode();
@@ -163,12 +140,15 @@ export class TravelPage implements OnInit {
     this.loadCategoryBudgets();
     this.loadAll();
     if (this.isTripMode) this.loadBudget();
-    this.loadActiveCard();
+  this.loadActiveCard();
+
+
 
     // Only load budget if in trip mode
     if (this.isTripMode) {
       this.loadBudget();
     }
+
   }
 
   loadAll() {
@@ -254,21 +234,9 @@ loadTravelData() {
   // ========== FX FAB ==========
 
   loadFxCircle() {
-    // Skip FX for exotic currencies that may not be supported
-    const supportedFxCurrencies = ['MYR', 'THB', 'JPY', 'KRW', 'AUD', 'USD', 'EUR', 'GBP', 'SGD', 'CNY', 'IDR', 'PHP', 'VND', 'INR'];
-    const currency = this.currentDestination?.currencyCode;
-
-    if (currency && !supportedFxCurrencies.includes(currency)) {
-      this.fxInsight = null;
-      return;
-    }
-
     this.fxService.getFxInsightWithPrediction(this.currentDestination, 7).subscribe({
       next: (insight) => this.fxInsight = insight,
-      error: (err) => {
-        console.error('FX load failed:', err);
-        this.fxInsight = null;
-      }
+      error: (err) => console.error('FX load failed:', err)
     });
   }
 
@@ -1226,74 +1194,6 @@ loadTravelData() {
     if (this.isTripMode) {
       // Update budget destination context
       this.saveBudget(); // triggers re-save with new destination context
-    }
-  }
-
-  /** Select any country from the globe (rich or exotic) */
-  selectAnyCountry(country: CountryInfo) {
-    const richConfig = this.countryData.getRichConfig(country.id);
-
-    if (richConfig) {
-      // Rich destination — use existing config
-      this.selectDestination(richConfig.id);
-      return;
-    }
-
-    // Exotic country — build dynamic config
-    const dynamicDest: any = {
-      id: country.id,
-      name: country.name,
-      country: country.country,
-      lat: country.lat,
-      lon: country.lon,
-      currencyCode: country.currencyCode,
-      homeCurrencyCode: 'SGD',
-      fxPair: ['SGD', country.currencyCode], // ← MUST be array for FX service
-      flag: country.flag,
-      region: country.region,
-      categories: ['restaurant', 'tourist_attraction', 'shopping_mall', 'cafe', 'park'],
-      packingExtras: this.getRegionPacking(country.region),
-      newsQuery: `${country.country} tourism`
-    };
-
-    this.currentDestination = dynamicDest;
-    localStorage.setItem('nets_selected_destination', JSON.stringify(dynamicDest));
-
-    // Clear and reload
-    this.recommendations = [];
-    this.categories = [];
-    this.places = [];
-    this.forecast = [];
-    this.packingList = [];
-    this.itinerary = [];
-    this.weatherSortedPlaces = [];
-    this.fxInsight = null;
-
-    this.loadAll();
-  }
-
-  private getRegionPacking(region: string): string[] {
-    const map: { [key: string]: string[] } = {
-      'Asia': ['Light breathable clothing', 'Mosquito repellent', 'Sunscreen', 'Comfortable sandals'],
-      'Europe': ['Layered clothing', 'Umbrella', 'Comfortable walking shoes', 'Universal power adapter'],
-      'Americas': ['Layered clothing', 'Sunscreen', 'Comfortable shoes', 'Reusable water bottle'],
-      'Africa': ['Light cotton clothing', 'Sun hat', 'Insect repellent', 'Sturdy walking shoes'],
-      'Oceania': ['Swimwear', 'Sunscreen', 'Light clothing', 'Reusable water bottle'],
-    };
-    return map[region] || map['Asia'];
-  }
-
-  // ========== GLOBE MODAL ==========
-  async openGlobeModal() {
-    const modal = await this.modalCtrl.create({
-      component: CountryGlobeComponent,
-      cssClass: 'globe-modal-fullscreen',
-      backdropDismiss: true
-    });
-    await modal.present();
-    const { data } = await modal.onWillDismiss();
-    if (data) {
-      this.selectAnyCountry(data);
     }
   }
 

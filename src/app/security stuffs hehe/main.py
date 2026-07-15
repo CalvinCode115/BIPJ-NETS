@@ -374,3 +374,69 @@ def get_weather_forecast(
         
     except requests.RequestException as e:
         return {"error": str(e), "forecast": []}
+
+
+
+# ═════════════════════════════════════════════════════════════════
+# REST COUNTRIES API v5 PROXY (for 3D Globe)
+# v3.1 is deprecated. v5 requires API key.
+# Using demo key "rc_live_demo" — works without signup.
+# Sign up at restcountries.com for a production key.
+# ═════════════════════════════════════════════════════════════════
+
+RC_API_KEY = "rc_live_demo"  # Demo key — free, no signup required
+RC_BASE_URL = "https://api.restcountries.com/countries/v5"
+
+@app.get("/api/countries/all")
+def get_all_countries():
+    # Fallback: public countries JSON (no API key needed)
+    url = "https://raw.githubusercontent.com/mledoze/countries/master/countries.json"
+    try:
+        r = requests.get(url, timeout=60)
+        r.raise_for_status()
+        countries = r.json()
+        if isinstance(countries, list) and len(countries) > 100:
+            print(f"[API] Loaded {len(countries)} countries")
+            return countries
+    except Exception as e:
+        print(f"[API] Error: {e}")
+    return []
+
+@app.get("/api/countries/search")
+def search_countries(q: str = Query(..., description="Search query")):
+    """
+    Proxy to REST Countries API v5 — search by name.
+    """
+    url = f"{RC_BASE_URL}?q={requests.utils.quote(q)}&response_fields=names.common,codes.alpha_2,capitals,currencies,region,flag.emoji&limit=50"
+    headers = {"Authorization": f"Bearer {RC_API_KEY}"}
+
+    try:
+        r = requests.get(url, headers=headers, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        return data.get("data", {}).get("objects", [])
+
+    except Exception as e:
+        print(f"[API Error] /api/countries/search failed: {e}")
+        return []
+
+@app.get("/api/countries/debug")
+def debug_countries_api():
+    """Diagnostic endpoint"""
+    url = f"{RC_BASE_URL}?limit=3"
+    headers = {"Authorization": f"Bearer {RC_API_KEY}"}
+    try:
+        r = requests.get(url, headers=headers, timeout=30)
+        data = r.json()
+        return {
+            "status": r.status_code,
+            "has_data_key": "data" in data,
+            "has_objects": "objects" in data.get("data", {}),
+            "object_count": len(data.get("data", {}).get("objects", [])),
+            "first_item": data.get("data", {}).get("objects", [{}])[0] if data.get("data", {}).get("objects") else None,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+    
+
+    

@@ -47,8 +47,26 @@ export class FxTrackerPage implements OnInit {
   ngOnInit() {
     // Load selected destination from localStorage (shared with travel page)
     const savedDest = localStorage.getItem('nets_selected_destination');
-    if (savedDest && DESTINATIONS[savedDest]) {
-      this.currentDestination = DESTINATIONS[savedDest];
+    if (savedDest) {
+      if (DESTINATIONS[savedDest]) {
+        // Rich destination — simple ID lookup
+        this.currentDestination = DESTINATIONS[savedDest];
+      } else {
+        // Exotic destination — stored as JSON object
+        try {
+          const parsed = JSON.parse(savedDest);
+          if (parsed && parsed.id) {
+            // Ensure required fields exist
+            this.currentDestination = {
+              ...parsed,
+              homeCurrencyCode: parsed.homeCurrencyCode || 'SGD',
+              fxPair: Array.isArray(parsed.fxPair) ? parsed.fxPair : ['SGD', parsed.currencyCode || 'USD']
+            };
+          }
+        } catch {
+          // Invalid JSON, keep default
+        }
+      }
     }
     this.loadFxData();
   }

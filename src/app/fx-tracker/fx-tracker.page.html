@@ -56,12 +56,12 @@
     <!-- Currency Pair Header -->
     <div class="currency-pair">
       <div class="currency-from">
-        <span class="currency-flag">{{ isReversed ? '🇲🇾' : '🇸🇬' }}</span>
+        <span class="currency-flag">{{ isReversed ? currentDestination.flag : '🇸🇬' }}</span>
         <span class="currency-code">{{ baseCurrency }}</span>
       </div>
       <ion-icon name="arrow-forward" class="arrow-icon"></ion-icon>
       <div class="currency-to">
-        <span class="currency-flag">{{ isReversed ? '🇸🇬' : '🇲🇾' }}</span>
+        <span class="currency-flag">{{ isReversed ? '🇸🇬' : currentDestination.flag }}</span>
         <span class="currency-code">{{ targetCurrency }}</span>
       </div>
     </div>
