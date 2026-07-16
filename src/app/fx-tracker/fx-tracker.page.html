@@ -52,7 +52,7 @@
     <!-- Current Rate -->
     <div class="rate-card">
       <div class="rate-main">
-        <span class="rate-value">{{ insight.currentRate | number:'1.4-4' }}</span>
+        <span class="rate-value">{{ exchangeRate | number:'1.4-4' }}</span>
         <span class="rate-pair">{{ targetCurrency }}/{{ baseCurrency }}</span>
       </div>
       <div class="rate-change" [class.up]="insight.trend === 'up'" [class.down]="insight.trend === 'down'">
@@ -100,7 +100,8 @@
       </div>
       <p class="trend-desc">{{ $any(insight.prediction).narrative }}</p>
       <div class="forecast-badge" *ngIf="insight.prediction.forecastRates?.length">
-        <span>7-Day Forecast: {{ insight.prediction.forecastRates[insight.prediction.forecastRates.length - 1].rate | number:'1.4-4' }}</span>
+        <span>7-Day Forecast: {{ insight.prediction.forecastRates[insight.prediction.forecastRates.length - 1].rate |
+          number:'1.4-4' }}</span>
       </div>
     </div>
   </div>
@@ -116,7 +117,8 @@
     <div class="wallet-preview" *ngIf="wallet">
       <div class="wallet-row">
         <span class="wallet-label">Your {{ baseCurrency }}</span>
-        <span class="wallet-balance">{{ formatBalance(wallet.balances[baseCurrency], baseCurrency) }} {{ baseCurrency }}</span>
+        <span class="wallet-balance">{{ formatBalance(wallet.balances[baseCurrency], baseCurrency) }} {{ baseCurrency
+          }}</span>
       </div>
       <div class="wallet-currencies" *ngIf="walletCurrencies.length > 1">
         <span class="currency-chip" *ngFor="let curr of walletCurrencies" [class.active]="curr === targetCurrency">
@@ -149,15 +151,8 @@
 
       <div class="amount-input-wrapper">
         <label>Amount to Exchange</label>
-        <input
-          type="number"
-          [(ngModel)]="exchangeAmount"
-          (input)="updateExchangePreview()"
-          placeholder="0.00"
-          min="0"
-          step="0.01"
-          class="amount-input"
-        />
+        <input type="number" [(ngModel)]="exchangeAmount" (input)="updateExchangePreview()" placeholder="0.00" min="0"
+          step="0.01" class="amount-input" />
         <span class="amount-currency">{{ baseCurrency }}</span>
       </div>
 
@@ -173,7 +168,7 @@
         </div>
         <div class="preview-row rate">
           <span>Rate</span>
-          <span>1 {{ baseCurrency }} = {{ currentRate | number:'1.4-4' }} {{ targetCurrency }}</span>
+          <span>1 {{ baseCurrency }} = {{ exchangeRate | number:'1.4-4' }} {{ targetCurrency }}</span>
         </div>
         <div class="preview-row total">
           <span>You receive</span>
@@ -188,12 +183,8 @@
       </div>
 
       <!-- Button -->
-      <button
-        class="exchange-btn"
-        [disabled]="!canExchange() || isExchanging"
-        (click)="executeExchange()"
-        [class.loading]="isExchanging"
-      >
+      <button class="exchange-btn" [disabled]="!canExchange() || isExchanging" (click)="executeExchange()"
+        [class.loading]="isExchanging">
         <ion-spinner *ngIf="isExchanging" name="crescent"></ion-spinner>
         <span *ngIf="!isExchanging">💱 Exchange Now</span>
       </button>
@@ -205,7 +196,8 @@
           <p>{{ exchangeResult.message }}</p>
           <div class="new-balances" *ngIf="exchangeResult.newBalances">
             <span class="balance-chip" *ngFor="let item of exchangeResult.newBalances | keyvalue">
-              {{ getCurrencyFlag($any(item.key)) }} {{ item.key }}: {{ formatBalance($any(item.value), $any(item.key)) }}
+              {{ getCurrencyFlag($any(item.key)) }} {{ item.key }}: {{ formatBalance($any(item.value), $any(item.key))
+              }}
             </span>
           </div>
         </div>

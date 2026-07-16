@@ -172,6 +172,7 @@ export class TravelPage implements OnInit {
     }
 
     this.loadTripMode();
+    this.migrateOldPlans();
     this.loadPlan();
     this.loadCategoryBudgets();
     this.loadAll();
@@ -481,7 +482,6 @@ export class TravelPage implements OnInit {
   }
 
   // ========== PLAN / TO-DO ==========
-
   addToPlan(card: RecommendationCard) {
     if (!this.plannedVenues.find(v => v.venueName === card.venueName)) {
       this.plannedVenues.push(card);
@@ -499,17 +499,21 @@ export class TravelPage implements OnInit {
   }
 
   savePlan() {
-    localStorage.setItem(`nets_travel_plan_${this.userId}`, JSON.stringify(this.plannedVenues));
+    const planKey = `nets_travel_plan_${this.userId}_${this.currentDestination.id}`;
+    localStorage.setItem(planKey, JSON.stringify(this.plannedVenues));
   }
 
   loadPlan() {
-    const saved = localStorage.getItem(`nets_travel_plan_${this.userId}`);
+    const planKey = `nets_travel_plan_${this.userId}_${this.currentDestination.id}`;
+    const saved = localStorage.getItem(planKey);
     if (saved) {
       try {
         this.plannedVenues = JSON.parse(saved);
       } catch {
         this.plannedVenues = [];
       }
+    } else {
+      this.plannedVenues = [];
     }
   }
 
@@ -562,20 +566,25 @@ export class TravelPage implements OnInit {
     this.enterTripMode(budget, duration);  // Pass duration
   }
 
-
-  // Updated enterTripMode with user-selected budget
   enterTripMode(budgetAmount: number, durationDays: number = 4) {
     this.tripTotalDays = durationDays;
     this.isTripMode = true;
     this.tripStartDate = new Date().toISOString();
     this.tripDay = 1;
 
+    // 🔒 SET TRIP LOCK
+    this.isTripLocked = true;
+    this.currentTripCountry = this.currentDestination.id;
+    localStorage.setItem(this.TRIP_LOCK_KEY, 'true');
+    localStorage.setItem(this.TRIP_COUNTRY_KEY, this.currentDestination.id);
+
     localStorage.setItem('nets_trip_mode', JSON.stringify({
       active: true,
       startDate: this.tripStartDate,
       day: this.tripDay,
       destination: this.destination,
-      budget: budgetAmount
+      budget: budgetAmount,
+      duration: durationDays
     }));
 
     this.budget = {
@@ -594,14 +603,19 @@ export class TravelPage implements OnInit {
 
     localStorage.removeItem('nets_trip_mode');
     localStorage.removeItem(`nets_travel_budget_${this.userId}`);
+
+    // 🔓 CLEAR TRIP LOCK
+    this.isTripLocked = false;
+    this.currentTripCountry = null;
+    localStorage.removeItem(this.TRIP_LOCK_KEY);
+    localStorage.removeItem(this.TRIP_COUNTRY_KEY);
+
     this.isTripMode = false;
     this.tripDay = 1;
     this.tripStartDate = null;
 
-    // DON'T create a fake budget for planning mode
-    // Just clear it or leave it null
-    this.budget = null; // ← ADD THIS
-    this.transactions = []; // ← ADD THIS
+    this.budget = null;
+    this.transactions = [];
 
     this.tripToEndSummary = null;
     setTimeout(() => this.openReport(), 300);
@@ -1178,14 +1192,22 @@ export class TravelPage implements OnInit {
     return this.weatherService.getDayAdvice(day);
   }
 
-  /** Switch country — clears and reloads everything */
   selectDestination(destId: string) {
+    // 🔒 TRIP LOCK CHECK
+    if (this.isTripLocked && destId !== this.currentTripCountry) {
+      // Show alert or silently prevent — using alert for clarity
+      alert(`🔒 You're currently on a trip in ${this.currentDestination.name}!\n\nClick "Arrive Home" to end your trip before visiting another country.`);
+      this.destinationDropdownOpen = false;
+      return;
+    }
+
     if (destId === this.currentDestination.id) {
       this.destinationDropdownOpen = false;
       return;
     }
 
     this.currentDestination = DESTINATIONS[destId];
+    this.loadPlan();
     localStorage.setItem('nets_selected_destination', destId);
     this.destinationDropdownOpen = false;
 
@@ -1199,15 +1221,12 @@ export class TravelPage implements OnInit {
     this.weatherSortedPlaces = [];
     this.fxInsight = null;
 
-    // Reload everything for new country
     this.loadAll();
     if (this.isTripMode) {
-      // Update budget destination context
-      this.saveBudget(); // triggers re-save with new destination context
+      this.saveBudget();
     }
   }
 
-  /** Select any country from the globe (rich or exotic) */
   selectAnyCountry(country: CountryInfo) {
     const richConfig = this.countryData.getRichConfig(country.id);
 
@@ -1235,6 +1254,7 @@ export class TravelPage implements OnInit {
     };
 
     this.currentDestination = dynamicDest;
+    this.loadPlan();
     localStorage.setItem('nets_selected_destination', JSON.stringify(dynamicDest));
 
     // Clear and reload
@@ -1467,14 +1487,45 @@ export class TravelPage implements OnInit {
     this.isTripLocked = locked === 'true';
     this.currentTripCountry = country;
 
-    // If locked and we're not on that country's page, redirect or show warning
-    if (this.isTripLocked && this.currentTripCountry && this.currentDestination.id !== this.currentTripCountry) {
-      // Force destination to the locked country
-      const lockedDest = DESTINATIONS[this.currentTripCountry];
-      if (lockedDest) {
-        this.currentDestination = lockedDest;
-        localStorage.setItem('nets_selected_destination', this.currentTripCountry);
+    if (this.isTripLocked && this.currentTripCountry) {
+      // If locked but not in trip mode, restore trip mode (app restart case)
+      if (!this.isTripMode) {
+        const saved = localStorage.getItem('nets_trip_mode');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            this.isTripMode = true;
+            this.tripStartDate = parsed.startDate;
+            this.tripDay = parsed.day || 1;
+            this.tripTotalDays = parsed.duration || 4;
+            this.selectedTripDuration = parsed.duration || 4;
+          } catch { /* ignore */ }
+        }
       }
+
+      // Force destination to locked country
+      if (this.currentDestination.id !== this.currentTripCountry) {
+        const lockedDest = DESTINATIONS[this.currentTripCountry];
+        if (lockedDest) {
+          this.currentDestination = lockedDest;
+          localStorage.setItem('nets_selected_destination', this.currentTripCountry);
+        }
+      }
+    }
+  }
+  private migrateOldPlans(): void {
+    const oldKey = `nets_travel_plan_${this.userId}`;
+    const oldPlan = localStorage.getItem(oldKey);
+    if (oldPlan) {
+      try {
+        const venues: RecommendationCard[] = JSON.parse(oldPlan);
+        if (venues.length > 0) {
+          // Save to country-scoped key
+          const newKey = `nets_travel_plan_${this.userId}_${this.currentDestination.id}`;
+          localStorage.setItem(newKey, oldPlan);
+        }
+        localStorage.removeItem(oldKey); // Remove old key
+      } catch { /* ignore */ }
     }
   }
 }

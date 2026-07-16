@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
 
 export type CardType = 'prepaid' | 'cashcard' | 'others';
@@ -255,12 +255,14 @@ exchangeCurrency(
   cardId: string,
   payload: ExchangeCurrencyRequest
 ): Observable<ExchangeCurrencyResponse> {
-  return this.http.post<ExchangeCurrencyResponse>(
-    `${API_BASE_URL}/users/${userId}/cards/${cardId}/exchange`,
-    payload
-  ).pipe(
+  const url = `${API_BASE_URL}/users/${userId}/cards/${cardId}/exchange`;
+  console.log('POST URL:', url);
+  console.log('POST payload:', payload);
+  
+  return this.http.post<ExchangeCurrencyResponse>(url, payload).pipe(
+    tap(response => console.log('POST response:', response)),
     catchError(err => {
-      console.error('Exchange failed:', err);
+      console.error('POST error:', err.status, err.statusText, err.error);
       return of({
         success: false,
         message: err.error?.error || 'Exchange failed. Please try again.',

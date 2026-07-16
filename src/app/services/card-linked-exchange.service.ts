@@ -56,31 +56,30 @@ export class CardLinkedExchangeService {
     this.loadFromStorage();
   }
 
-  /** Get all currencies for a card — FROM BACKEND FIRST */
-  getAllCurrencies(cardId: string, _currentSgdBalance: number): Observable<CardCurrencyBalance[]> {
-    const userId = localStorage.getItem('nets_user_id') || 'user_1';
-    
-    return this.cardsService.getCardWallet(userId, cardId).pipe(
-      map((wallet) => {
-        // Cache locally
-        this.cacheWallet(cardId, wallet.balances);
-        
-        return Object.entries(wallet.balances).map(([currency, amount]) => ({
-          currency,
-          amount,
-          flag: this.getCurrencyFlag(currency)
-        })).filter(c => c.amount > 0.01);
-      }),
-      catchError(() => {
-        // Fallback to localStorage
-        const wallet = this.getLocalWallet(cardId, _currentSgdBalance);
-        return of([
-          { currency: 'SGD', amount: wallet.primaryBalance, flag: '🇸🇬' },
-          ...wallet.currencies.filter(c => c.amount > 0.01)
-        ]);
-      })
-    );
+getAllCurrencies(cardId: string, currentSgdBalance: number): Observable<CardCurrencyBalance[]> {
+  // Don't call getWallet() which might overwrite — build result directly
+  const localWallet = this._wallets[cardId];
+  
+  const result: CardCurrencyBalance[] = [{
+    currency: 'SGD',
+    amount: currentSgdBalance,  // ← Use the REAL Firestore value, not cached
+    flag: '🇸🇬'
+  }];
+
+  if (localWallet) {
+    for (const curr of localWallet.currencies) {
+      if (curr.currency !== 'SGD' && curr.amount > 0.01) {
+        result.push({
+          currency: curr.currency,
+          amount: curr.amount,
+          flag: this.getCurrencyFlag(curr.currency)
+        });
+      }
+    }
   }
+
+  return of(result);
+}
 
   /** Exchange — HITS BACKEND */
   exchange(req: ExchangeRequest, _currentSgdBalance: number): Observable<ExchangeResult> {

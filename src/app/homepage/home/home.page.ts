@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { CardType, AccountKind, CardsService, FALLBACK_REGISTRY, LINKABLE_BANKS, RegistryCard, TopUpMethod, WalletCard, formatCardPaymentLabel, getCardBrandBadge, getCardFundsAmount, getCardFundsLabel, getCardFundsSubtext, getCardThemeClass } from '../../services/cards.service';
+import { CardType, AccountKind, CardsService, FALLBACK_REGISTRY, LINKABLE_BANKS, RegistryCard, TopUpMethod, WalletCard, formatCardPaymentLabel, getCardBrandBadge, getCardFundsAmount, getCardFundsLabel, getCardFundsSubtext, getCardThemeClass, MultiCurrencyWallet } from '../../services/cards.service';
 import { CardContextService } from '../../services/card-context.service';
 import { AppNotification, NotificationsService } from '../../services/notifications.service';
 import { TransactionsService } from '../../services/transactions.service';
@@ -1198,25 +1198,15 @@ export class HomePage {
     this.walletLoadError = '';
     this.cardsService.getWallet(userId).subscribe({
       next: (wallet) => {
-        // ─── FIX: Patch SGD balance from localStorage if we have a recent exchange ───
-        const savedSgdBalance = localStorage.getItem('nets_current_sgd_balance');
-        const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
-        const hasRecentExchange = exchangeTime && (Date.now() - parseInt(exchangeTime, 10) < 24 * 60 * 60 * 1000); // 24h
-
-        if (savedSgdBalance && hasRecentExchange) {
-          const parsedBalance = parseFloat(savedSgdBalance);
-          if (!isNaN(parsedBalance)) {
-            // Patch every card in every type
-            (Object.keys(wallet) as CardType[]).forEach((type) => {
-              wallet[type] = wallet[type].map((card) => ({
-                ...card,
-                balance: parsedBalance,
-              }));
-            });
-          }
-        }
-
         this.cardsByType = wallet;
+
+        // ─── FIX: Sync SGD balance to localStorage for FX tracker ───
+        const allCards = [...wallet.prepaid, ...wallet.cashcard, ...wallet.others];
+        const selectedCardId = localStorage.getItem('nets_selected_card_id');
+        const selectedCard = allCards.find(c => c.id === selectedCardId) || allCards[0];
+        if (selectedCard) {
+          localStorage.setItem('nets_current_sgd_balance', String(selectedCard.balance));
+        }
 
         if (this.activeCardSlide >= this.activeCards.length && this.activeCards.length > 0) {
           this.activeCardSlide = this.activeCards.length - 1;
@@ -1244,17 +1234,11 @@ export class HomePage {
 
     if (this.currentCard) {
       localStorage.setItem('nets_selected_card_id', this.currentCard.id || 'default');
-      // ─── FIX: Only write SGD to localStorage if we DON'T have a newer exchange balance ───
-      const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
-      const hasRecentExchange = exchangeTime && (Date.now() - parseInt(exchangeTime, 10) < 24 * 60 * 60 * 1000);
-      if (!hasRecentExchange) {
-        localStorage.setItem('nets_current_sgd_balance', String(this.cardFundsAmount));
-      }
+      localStorage.setItem('nets_current_sgd_balance', String(this.cardFundsAmount));
     }
 
     this.loadMultiCurrencyBalances();
   }
-
   private reloadCardActivity(): void {
     this.syncSelectedCard();
     const card = this.currentCard;
@@ -1428,25 +1412,32 @@ export class HomePage {
     return `${clean.slice(0, 4)} ${clean.slice(4, 8)} ${clean.slice(8, 12)} ${clean.slice(12, 16)}`;
   }
 
-  loadMultiCurrencyBalances(): void {
-    const card = this.currentCard;
-    if (!card?.id) { this.cardCurrencyBalances = []; return; }
-
-    const userId = this.auth.userId ?? 'user_1';
-
-    this.cardsService.getCardWallet(userId, card.id).subscribe({
-      next: (wallet) => {
-        this.cardCurrencyBalances = Object.entries(wallet.balances).map(([currency, amount]) => ({
-          currency,
-          amount,
-          flag: this.cardExchange.getCurrencyFlag(currency)
-        })).filter(c => c.amount > 0.01);
-      },
-      error: () => {
-        this.cardCurrencyBalances = [];
-      }
-    });
+loadMultiCurrencyBalances(): void {
+  const card = this.currentCard;
+  if (!card?.id) { 
+    this.cardCurrencyBalances = []; 
+    return; 
   }
+
+  // Sync SGD from Firestore to localStorage
+  const realSgdBalance = this.cardFundsAmount;
+  localStorage.setItem('nets_current_sgd_balance', String(realSgdBalance));
+
+  // ─── FIX: Read from Firestore instead of local cache ───
+  this.cardsService.getCardWallet(this.auth.userId ?? 'user_1', card.id).subscribe({
+    next: (wallet: MultiCurrencyWallet) => {
+      // Convert Record<string, number> to CardCurrencyBalance[]
+      this.cardCurrencyBalances = Object.entries(wallet.balances).map(([currency, amount]) => ({
+        currency,
+        amount,
+        flag: this.cardExchange.getCurrencyFlag(currency)
+      }));
+    },
+    error: () => {
+      this.cardCurrencyBalances = [];
+    }
+  });
+}
 
   formatMultiCurrencyAmount(curr: CardCurrencyBalance): string {
     return this.cardExchange.getCurrencySymbol(curr.currency) + this.cardExchange.formatAmount(curr.amount, curr.currency);

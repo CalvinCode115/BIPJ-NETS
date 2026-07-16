@@ -7,6 +7,7 @@ import { DESTINATIONS, DEFAULT_DESTINATION } from '../services/destination.confi
 import { DestinationConfig } from '../services/destination.config';
 import { CardLinkedExchangeService, ExchangeRequest } from '../services/card-linked-exchange.service';
 import { CardsService, MultiCurrencyWallet, ExchangeCurrencyResponse } from '../services/cards.service';
+import { catchError, map, Observable, of } from 'rxjs';
 Chart.register(...registerables);
 
 @Component({
@@ -101,6 +102,8 @@ export class FxTrackerPage implements OnInit {
       this.cardId = savedCardId;
     }
 
+    this.syncSgdFromFirestore();
+
     this.loadFxData();
     this.loadWallet();
   }
@@ -135,32 +138,48 @@ export class FxTrackerPage implements OnInit {
     });
   }
 
-  // ─── EXCHANGE METHODS ───
   loadWallet() {
     const userId = localStorage.getItem('nets_user_id') || 'user_1';
 
-    this.cardsService.getCardWallet(userId, this.cardId).subscribe({
-      next: (wallet: MultiCurrencyWallet) => {  // ← ADD TYPE
-        this.wallet = {
-          cardId: wallet.cardId,
-          balances: wallet.balances,
-          currencies: wallet.currencies
-        };
+    // Get REAL data from Firestore
+    this.cardsService.getWallet(userId).subscribe({
+      next: (wallet) => {
+        const allCards = [...wallet.prepaid, ...wallet.cashcard, ...wallet.others];
+        const card = allCards.find(c => c.id === this.cardId);
+        const realSgdBalance = card?.balance ?? 500;
+
+        // Sync SGD to localStorage
+        localStorage.setItem('nets_current_sgd_balance', String(realSgdBalance));
+
+        // ─── FIX: Read multi_currency from Firestore, not local service ───
+        this.cardsService.getCardWallet(userId, this.cardId).subscribe({
+          next: (multiWallet: MultiCurrencyWallet) => {
+            this.wallet = {
+              cardId: this.cardId,
+              balances: multiWallet.balances,
+              currencies: multiWallet.currencies
+            };
+          },
+          error: () => {
+            // Fallback: just SGD
+            this.wallet = {
+              cardId: this.cardId,
+              balances: { SGD: realSgdBalance },
+              currencies: ['SGD']
+            };
+          }
+        });
       },
       error: () => {
-        this.wallet = { cardId: this.cardId, balances: { SGD: 500 }, currencies: ['SGD'] };
+        const savedSgd = localStorage.getItem('nets_current_sgd_balance');
+        const sgdBalance = savedSgd ? parseFloat(savedSgd) : 500;
+        this.wallet = {
+          cardId: this.cardId,
+          balances: { SGD: sgdBalance },
+          currencies: ['SGD']
+        };
       }
     });
-  }
-
-  private getCurrentSgdBalance(): number {
-    // Try to get from localStorage (set by home page)
-    const saved = localStorage.getItem('nets_current_sgd_balance');
-    if (saved) {
-      const parsed = parseFloat(saved);
-      if (!isNaN(parsed)) return parsed;
-    }
-    return 500; // Default
   }
 
   private currenciesToRecord(currencies: any[]): Record<string, number> {
@@ -177,7 +196,7 @@ export class FxTrackerPage implements OnInit {
       this.exchangeFee = 0;
       return;
     }
-    const rate = this.currentRate || 0;
+    const rate = this.exchangeRate;
     this.exchangeFee = this.exchangeAmount * 0.005;
     const amountAfterFee = this.exchangeAmount - this.exchangeFee;
     this.exchangePreview = amountAfterFee * rate;
@@ -193,53 +212,91 @@ export class FxTrackerPage implements OnInit {
     this.doExchange();
   }
 
-doExchange() {
-  if (!this.canExchange()) return;
-  this.isExchanging = true;
-  this.exchangeResult = null;
+  doExchange() {
+    if (!this.canExchange()) return;
+    this.isExchanging = true;
+    this.exchangeResult = null;
+    const userId = localStorage.getItem('nets_user_id') || 'user_1';
 
-  const userId = localStorage.getItem('nets_user_id') || 'user_1';
+    console.log('=== EXCHANGE DEBUG ===');
+    console.log('cardId being used:', this.cardId);
+    console.log('wallet before exchange:', this.wallet);
 
-  this.cardsService.exchangeCurrency(userId, this.cardId, {
-    fromCurrency: this.baseCurrency,
-    toCurrency: this.targetCurrency,
-    amount: this.exchangeAmount,
-    rate: this.currentRate || this.getMockRate(this.baseCurrency, this.targetCurrency)
-  }).subscribe({
-    next: (result: ExchangeCurrencyResponse) => {  // ← ADD TYPE
-      this.isExchanging = false;
-      this.exchangeResult = {
-        success: result.success,
-        message: result.message,
-        newBalances: result.newBalances
-      };
+    // Get real SGD first
+    this.cardsService.getWallet(userId).subscribe({
+      next: (wallet) => {
+        const allCards = [...wallet.prepaid, ...wallet.cashcard, ...wallet.others];
+        const card = allCards.find(c => c.id === this.cardId);
 
-      if (result.success) {
-        this.loadWallet();
-        window.dispatchEvent(new CustomEvent('nets:exchangeCompleted', {
-          detail: { cardId: this.cardId, newBalances: result.newBalances }
-        }));
+        console.log('Card found in Firestore:', card);
+        console.log('Card balance from Firestore:', card?.balance);
+        console.log('Card ID from Firestore:', card?.id);
+
+        const realSgdBalance = card?.balance ?? 500;
+
+        const rate = this.exchangeRate || this.getMockRate(this.baseCurrency, this.targetCurrency);
+        console.log('=== FRONTEND SENDING ===');
+        console.log('exchangeAmount:', this.exchangeAmount, typeof this.exchangeAmount);
+        console.log('baseCurrency:', this.baseCurrency);
+        console.log('targetCurrency:', this.targetCurrency);
+        console.log('rate:', rate);
+
+        this.cardsService.exchangeCurrency(userId, this.cardId, {
+          fromCurrency: this.baseCurrency,
+          toCurrency: this.targetCurrency,
+          amount: this.exchangeAmount,
+          rate: rate
+        }).subscribe({
+          next: (result: ExchangeCurrencyResponse) => {
+            this.isExchanging = false;
+            this.exchangeResult = {
+              success: result.success,
+              message: result.message,
+              newBalances: result.newBalances
+            };
+
+            if (result.success) {
+              this.loadWallet();
+              window.dispatchEvent(new CustomEvent('nets:exchangeCompleted', {
+                detail: { cardId: this.cardId, newBalances: result.newBalances }
+              }));
+            }
+
+            this.exchangeAmount = 0;
+            this.updateExchangePreview();
+          },
+          error: () => {
+            this.isExchanging = false;
+            this.exchangeResult = {
+              success: false,
+              message: 'Exchange failed. Please try again.'
+            };
+          }
+        });
+      },
+      error: () => {
+        this.isExchanging = false;
+        this.exchangeResult = {
+          success: false,
+          message: 'Could not verify balance. Please try again.'
+        };
       }
-
-      this.exchangeAmount = 0;
-      this.updateExchangePreview();
-    },
-    error: () => {
-      this.isExchanging = false;
-      this.exchangeResult = {
-        success: false,
-        message: 'Exchange failed. Please try again.'
-      };
-    }
-  });
-}
-
+    });
+  }
   private getMockRate(from: string, to: string): number {
     const rates: Record<string, Record<string, number>> = {
       SGD: { MYR: 3.45, THB: 26.2, JPY: 112.5, KRW: 985, USD: 0.74, EUR: 0.68, GBP: 0.58, AUD: 1.12 }
     };
+
     if (from === to) return 1;
-    return rates[from]?.[to] || rates[to]?.[from] ? 1 / rates[to][from] : 1;
+
+    // Forward: SGD → MYR = 3.45
+    if (rates[from] && rates[from][to]) return rates[from][to];
+
+    // Reverse: MYR → SGD = 1/3.45
+    if (rates[to] && rates[to][from]) return 1 / rates[to][from];
+
+    return 1;
   }
 
   swapExchangeDirection() {
@@ -270,6 +327,13 @@ doExchange() {
   }
 
   // ─── CHART & UI ───
+  private getChartRate(rate: number): number {
+    if (this.isReversed && rate > 0) {
+      return 1 / rate;
+    }
+    return rate;
+  }
+
 
   renderChart() {
     if (!this.fxChartRef || !this.insight) return;
@@ -292,13 +356,16 @@ doExchange() {
     });
 
     const allLabels = [...histLabels, ...predLabels];
-    const histData = [...hist.map(r => r.rate), ...new Array(pred.length).fill(null)];
-    const predData = [...new Array(hist.length - 1).fill(null), hist[hist.length - 1].rate, ...pred.map(r => r.rate)];
-    const upperData = [...new Array(hist.length).fill(null), ...upper];
-    const lowerData = [...new Array(hist.length).fill(null), ...lower];
-
-    const trendColor = this.insight.trend === 'up' ? '#d71920' :
-      this.insight.trend === 'down' ? '#34c759' : '#ff9500';
+    const histData = [...hist.map(r => this.getChartRate(r.rate)), ...new Array(pred.length).fill(null)];
+    const predData = [...new Array(hist.length - 1).fill(null), this.getChartRate(hist[hist.length - 1].rate), ...pred.map(r => this.getChartRate(r.rate))];
+    const upperData = [...new Array(hist.length).fill(null), ...upper.map(r => this.getChartRate(r))];
+    const lowerData = [...new Array(hist.length).fill(null), ...lower.map(r => this.getChartRate(r))];
+    const rawTrend = this.insight.trend;
+    const displayTrend = this.isReversed
+      ? (rawTrend === 'up' ? 'down' : rawTrend === 'down' ? 'up' : 'stable')
+      : rawTrend;
+    const trendColor = displayTrend === 'up' ? '#d71920' :
+      displayTrend === 'down' ? '#34c759' : '#ff9500';
     const predColor = '#8e8e93';
 
     this.chart = new Chart(ctx, {
@@ -324,7 +391,7 @@ doExchange() {
             pointHoverRadius: 0,
           },
           {
-            label: `${this.baseCurrency} → ${this.targetCurrency} (Historical)`,
+            label: `${this.baseCurrency}/${this.targetCurrency} (Historical)`,
             data: histData,
             borderColor: trendColor,
             backgroundColor: this.hexToRgba(trendColor, 0.1),
@@ -419,8 +486,14 @@ doExchange() {
 
   getTrendLabel(): string {
     if (!this.insight) return 'Stable';
-    if (this.insight.trend === 'up') return `${this.baseCurrency} Weakening`;
-    if (this.insight.trend === 'down') return `${this.baseCurrency} Strengthening`;
+
+    const rawTrend = this.insight.trend;
+    const trend = this.isReversed
+      ? (rawTrend === 'up' ? 'down' : rawTrend === 'down' ? 'up' : 'stable')
+      : rawTrend;
+
+    if (trend === 'up') return `${this.baseCurrency} Weakening`;
+    if (trend === 'down') return `${this.baseCurrency} Strengthening`;
     return 'Stable';
   }
 
@@ -445,5 +518,34 @@ doExchange() {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  get exchangeRate(): number {
+    const rate = this.insight?.currentRate || 0;
+    if (this.isReversed && rate > 0) {
+      return 1 / rate;  // MYR → SGD: 1 / 3.14 = 0.318
+    }
+    return rate;  // SGD → MYR: 3.14
+  }
+  private syncSgdFromFirestore(): void {
+    // The home page should have already synced this, but as a fallback:
+    // If no localStorage value exists, use default
+    const saved = localStorage.getItem('nets_current_sgd_balance');
+    if (!saved) {
+      localStorage.setItem('nets_current_sgd_balance', '500');
+    }
+  }
+
+  private getCurrentSgdBalance(): Observable<number> {
+    const userId = localStorage.getItem('nets_user_id') || 'user_1';
+    const cardId = this.cardId;
+
+    return this.cardsService.getWallet(userId).pipe(
+      map((wallet) => {
+        const allCards = [...wallet.prepaid, ...wallet.cashcard, ...wallet.others];
+        const card = allCards.find(c => c.id === cardId);
+        return card?.balance ?? 500;
+      }),
+      catchError(() => of(500))
+    );
   }
 }

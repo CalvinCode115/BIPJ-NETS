@@ -14,15 +14,20 @@
 
 <ion-content class="travel-content scroll-content-visible">
 
-  <!-- Sticky Destination Selector -->
-  <div class="destination-bar">
-    <div class="destination-current" (click)="openGlobeModal()">
-      <span class="destination-flag">{{ currentDestination.flag }}</span>
-      <span class="destination-name">{{ currentDestination.name }}</span>
-      <span class="destination-currency">{{ currentDestination.currencyCode }}</span>
-      <ion-icon name="globe-outline" class="globe-icon"></ion-icon>
-    </div>
+<!-- Sticky Destination Selector -->
+<div class="destination-bar" [class.locked]="isTripLocked">
+  <div class="destination-current" (click)="!isTripLocked && openGlobeModal()">
+    <span class="destination-flag">{{ currentDestination.flag }}</span>
+    <span class="destination-name">{{ currentDestination.name }}</span>
+    <span class="destination-currency">{{ currentDestination.currencyCode }}</span>
+    <ion-icon name="globe-outline" class="globe-icon" *ngIf="!isTripLocked"></ion-icon>
+    <ion-icon name="lock-closed-outline" class="globe-icon" *ngIf="isTripLocked" style="color: #d71920;"></ion-icon>
   </div>
+  <div class="trip-lock-badge" *ngIf="isTripLocked">
+    <ion-icon name="airplane"></ion-icon>
+    Trip in progress — Tap "Arrive Home" to switch countries
+  </div>
+</div>
 
   <!-- ── WEATHER FORECAST STRIP ── -->
   <div class="weather-strip" *ngIf="forecast.length > 0">
