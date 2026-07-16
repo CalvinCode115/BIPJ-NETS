@@ -18,6 +18,7 @@ import {
   getCardFundsAmount,
   getCardFundsSubtext,
   formatCardPaymentLabel,
+  MultiCurrencyWallet,
 } from '../services/cards.service';
 import { DestinationConfig, DESTINATIONS, DEFAULT_DESTINATION } from '../services/destination.config';
 import { CacheService } from '../services/cache.service';
@@ -88,6 +89,10 @@ export class TravelPage implements OnInit {
   tripDay = 1;
   tripTotalDays = 4;
   tripStartDate: string | null = null;
+  isTripLocked = false;
+  currentTripCountry: string | null = null;
+  readonly TRIP_LOCK_KEY = 'nets_trip_locked';
+  readonly TRIP_COUNTRY_KEY = 'nets_trip_country';
 
   // DNA Profile
   dnaProfile: any = null;
@@ -173,6 +178,7 @@ export class TravelPage implements OnInit {
     if (this.isTripMode) this.loadBudget();
     this.loadActiveCard();
     this.loadMultiCurrencyBalances();
+    this.loadTripLockState();
 
     // Only load budget if in trip mode
     if (this.isTripMode) {
@@ -1309,7 +1315,16 @@ export class TravelPage implements OnInit {
       return;
     }
     const sgdBalance = getCardFundsAmount(this.activeCard);
-    this.multiCurrencyBalances = this.cardExchange.getAllCurrencies(this.activeCard.id, sgdBalance);
+
+    // ← FIX: subscribe to Observable
+    this.cardExchange.getAllCurrencies(this.activeCard.id, sgdBalance).subscribe({
+      next: (balances: CardCurrencyBalance[]) => {
+        this.multiCurrencyBalances = balances;
+      },
+      error: () => {
+        this.multiCurrencyBalances = [];
+      }
+    });
   }
 
   getCurrencyBalance(currency: string): number {
@@ -1361,78 +1376,77 @@ export class TravelPage implements OnInit {
 
     this.isPaying = true;
     const category = this.inferCategory(this.selectedVenue.venueName);
+    const cardId = this.activeCard?.id || 'default';
+    const userId = this.auth.userId ?? 'user_1';
 
-    setTimeout(() => {
-      // Deduct from the correct currency balance
-      const cardId = this.activeCard?.id || 'default';
-      const sgdBalance = getCardFundsAmount(this.activeCard);
-
-      const deductResult = this.cardExchange.deductFromCurrency(
-        cardId,
-        this.paymentCurrency,
-        this.paymentAmount,
-        sgdBalance
-      );
-
-      if (!deductResult.success) {
-        alert(deductResult.message);
+    // ─── CALL BACKEND TO DEDUCT ───
+    this.cardsService.deductCurrency(userId, cardId, {
+      currency: this.paymentCurrency,
+      amount: this.paymentAmount
+    }).subscribe({
+      next: (result) => {
         this.isPaying = false;
-        return;
-      }
 
-      // Calculate SGD equivalent for budget tracking
-      let sgdEquivalent: number;
-      if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
-        sgdEquivalent = this.paymentAmount / this.fxInsight.currentRate;
-      } else {
-        sgdEquivalent = this.paymentAmount;
-      }
-
-      // Update travel budget
-      this.budget!.spentSoFar += sgdEquivalent;
-      this.budget!.remaining = Math.max(0, this.budget!.typicalTripSpend - this.budget!.spentSoFar);
-      this.budget!.percentage = Math.min(
-        100,
-        (this.budget!.spentSoFar / this.budget!.typicalTripSpend) * 100
-      );
-
-      // Record transaction
-      this.transactions.unshift({
-        id: Date.now().toString(),
-        venueName: this.selectedVenue!.venueName,
-        amount: sgdEquivalent,
-        timestamp: new Date().toISOString(),
-        cardLabel: this.activeCard ? formatCardPaymentLabel(this.activeCard) : 'NETS Card',
-        category,
-      });
-
-      if (this.transactions.length > 5) {
-        this.transactions = this.transactions.slice(0, 5);
-      }
-
-      this.saveBudget();
-      this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== this.selectedVenue?.venueName);
-      this.savePlan();
-
-
-      // Update home page via event
-      window.dispatchEvent(new CustomEvent('nets:travelPaymentCompleted', {
-        detail: {
-          cardId: cardId,
-          currency: this.paymentCurrency,
-          amount: this.paymentAmount,
-          sgdEquivalent: sgdEquivalent,
-          venue: this.selectedVenue?.venueName,
-          newBalances: deductResult.newBalances
+        if (!result.success) {
+          alert(result.message);
+          return;
         }
-      }));
 
-      // Reload balances to reflect deduction
-      this.loadMultiCurrencyBalances();
+        // Calculate SGD equivalent for budget tracking
+        let sgdEquivalent: number;
+        if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
+          sgdEquivalent = this.paymentAmount / this.fxInsight.currentRate;
+        } else {
+          sgdEquivalent = this.paymentAmount;
+        }
 
-      this.isPaying = false;
-      this.closePaymentModal();
-    }, 800);
+        // Update travel budget
+        this.budget!.spentSoFar += sgdEquivalent;
+        this.budget!.remaining = Math.max(0, this.budget!.typicalTripSpend - this.budget!.spentSoFar);
+        this.budget!.percentage = Math.min(
+          100,
+          (this.budget!.spentSoFar / this.budget!.typicalTripSpend) * 100
+        );
+
+        // Record transaction
+        this.transactions.unshift({
+          id: Date.now().toString(),
+          venueName: this.selectedVenue!.venueName,
+          amount: sgdEquivalent,
+          timestamp: new Date().toISOString(),
+          cardLabel: this.activeCard ? formatCardPaymentLabel(this.activeCard) : 'NETS Card',
+          category,
+        });
+
+        if (this.transactions.length > 5) {
+          this.transactions = this.transactions.slice(0, 5);
+        }
+
+        this.saveBudget();
+        this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== this.selectedVenue?.venueName);
+        this.savePlan();
+
+        // Update home page via event
+        window.dispatchEvent(new CustomEvent('nets:travelPaymentCompleted', {
+          detail: {
+            cardId: cardId,
+            currency: this.paymentCurrency,
+            amount: this.paymentAmount,
+            sgdEquivalent: sgdEquivalent,
+            venue: this.selectedVenue?.venueName,
+            newBalances: result.newBalances
+          }
+        }));
+
+        // Reload balances to reflect deduction
+        this.loadMultiCurrencyBalances();
+        this.closePaymentModal();
+      },
+      error: () => {
+        this.isPaying = false;
+        alert('Payment failed. Please try again.');
+      }
+    });
   }
 
   getCurrencySymbol(currency: string): string {
@@ -1445,5 +1459,22 @@ export class TravelPage implements OnInit {
   }
   selectTripDuration(days: number) {
     this.selectedTripDuration = days;
+  }
+
+  private loadTripLockState(): void {
+    const locked = localStorage.getItem(this.TRIP_LOCK_KEY);
+    const country = localStorage.getItem(this.TRIP_COUNTRY_KEY);
+    this.isTripLocked = locked === 'true';
+    this.currentTripCountry = country;
+
+    // If locked and we're not on that country's page, redirect or show warning
+    if (this.isTripLocked && this.currentTripCountry && this.currentDestination.id !== this.currentTripCountry) {
+      // Force destination to the locked country
+      const lockedDest = DESTINATIONS[this.currentTripCountry];
+      if (lockedDest) {
+        this.currentDestination = lockedDest;
+        localStorage.setItem('nets_selected_destination', this.currentTripCountry);
+      }
+    }
   }
 }

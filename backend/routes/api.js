@@ -884,5 +884,87 @@ function mapCard(row, view = 'summary') {
     expiryDate: row.expiry_date || '',
   };
 }
+// ═════════════════════════════════════════════════════════════════
+// MULTI-CURRENCY WALLET ENDPOINTS
+// ═════════════════════════════════════════════════════════════════
+
+/** Get multi-currency wallet for a card */
+router.get('/users/:userId/cards/:cardId/wallet', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const wallet = await db.getMultiCurrencyWallet(req.params.cardId);
+  if (!wallet) {
+    return res.status(404).json({ error: 'Card not found' });
+  }
+
+  res.json(wallet);
+}));
+
+/** Exchange currency */
+router.post('/users/:userId/cards/:cardId/exchange', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { fromCurrency, toCurrency, amount, rate } = req.body;
+  if (!fromCurrency || !toCurrency || !amount || !rate) {
+    return res.status(400).json({ error: 'fromCurrency, toCurrency, amount, and rate are required.' });
+  }
+
+  const result = await db.exchangeCurrency(
+    req.params.cardId,
+    fromCurrency,
+    toCurrency,
+    Number(amount),
+    Number(rate)
+  );
+
+  if (!result.ok) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  res.json({
+    success: true,
+    message: `Exchanged ${amount} ${fromCurrency} → ${result.received.toFixed(2)} ${toCurrency}`,
+    newBalances: result.newBalances,
+    card: mapCard(result.card, 'wallet'),
+  });
+}));
+
+/** Deduct currency for payment */
+router.post('/users/:userId/cards/:cardId/deduct', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { currency, amount } = req.body;
+  if (!currency || !amount) {
+    return res.status(400).json({ error: 'currency and amount are required.' });
+  }
+
+  const result = await db.exchangeCurrency(
+    req.params.cardId,
+    currency,
+    currency, // same currency, just deduct
+    Number(amount),
+    1
+  );
+
+  if (!result.ok) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  res.json({
+    success: true,
+    message: `Paid ${amount} ${currency}`,
+    newBalances: result.newBalances,
+    card: mapCard(result.card, 'wallet'),
+  });
+}));
 
 module.exports = router;

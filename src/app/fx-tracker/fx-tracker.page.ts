@@ -6,7 +6,7 @@ import { FxInsightWithPrediction } from './fx-tracker.model';
 import { DESTINATIONS, DEFAULT_DESTINATION } from '../services/destination.config';
 import { DestinationConfig } from '../services/destination.config';
 import { CardLinkedExchangeService, ExchangeRequest } from '../services/card-linked-exchange.service';
-
+import { CardsService, MultiCurrencyWallet, ExchangeCurrencyResponse } from '../services/cards.service';
 Chart.register(...registerables);
 
 @Component({
@@ -68,7 +68,8 @@ export class FxTrackerPage implements OnInit {
   constructor(
     private fxService: FxTrackerService,
     private exchangeService: CardLinkedExchangeService,
-    private location: Location
+    private location: Location,
+    private cardsService: CardsService,
   ) { }
 
   ngOnInit() {
@@ -135,14 +136,21 @@ export class FxTrackerPage implements OnInit {
   }
 
   // ─── EXCHANGE METHODS ───
-
   loadWallet() {
-    const wallet = this.exchangeService.getWallet(this.cardId, this.getCurrentSgdBalance());
-    this.wallet = {
-      cardId: wallet.cardId,
-      balances: { SGD: wallet.primaryBalance, ...this.currenciesToRecord(wallet.currencies) },
-      currencies: ['SGD', ...wallet.currencies.map(c => c.currency)]
-    };
+    const userId = localStorage.getItem('nets_user_id') || 'user_1';
+
+    this.cardsService.getCardWallet(userId, this.cardId).subscribe({
+      next: (wallet: MultiCurrencyWallet) => {  // ← ADD TYPE
+        this.wallet = {
+          cardId: wallet.cardId,
+          balances: wallet.balances,
+          currencies: wallet.currencies
+        };
+      },
+      error: () => {
+        this.wallet = { cardId: this.cardId, balances: { SGD: 500 }, currencies: ['SGD'] };
+      }
+    });
   }
 
   private getCurrentSgdBalance(): number {
@@ -185,41 +193,53 @@ export class FxTrackerPage implements OnInit {
     this.doExchange();
   }
 
-  doExchange() {
-    if (!this.canExchange()) return;
-    this.isExchanging = true;
-    this.exchangeResult = null;
+doExchange() {
+  if (!this.canExchange()) return;
+  this.isExchanging = true;
+  this.exchangeResult = null;
 
-    const result = this.exchangeService.exchange({
-      cardId: this.cardId,
-      fromCurrency: this.baseCurrency,
-      toCurrency: this.targetCurrency,
-      amount: this.exchangeAmount
-    }, this.getCurrentSgdBalance());
+  const userId = localStorage.getItem('nets_user_id') || 'user_1';
 
-    // FIX: Update localStorage FIRST with new SGD balance
-    if (result.success && result.newBalances) {
-      const newSgdBalance = result.newBalances['SGD'] || result.newBalances['sgd'];
-      if (newSgdBalance !== undefined) {
-        localStorage.setItem('nets_current_sgd_balance', String(newSgdBalance));
+  this.cardsService.exchangeCurrency(userId, this.cardId, {
+    fromCurrency: this.baseCurrency,
+    toCurrency: this.targetCurrency,
+    amount: this.exchangeAmount,
+    rate: this.currentRate || this.getMockRate(this.baseCurrency, this.targetCurrency)
+  }).subscribe({
+    next: (result: ExchangeCurrencyResponse) => {  // ← ADD TYPE
+      this.isExchanging = false;
+      this.exchangeResult = {
+        success: result.success,
+        message: result.message,
+        newBalances: result.newBalances
+      };
+
+      if (result.success) {
+        this.loadWallet();
+        window.dispatchEvent(new CustomEvent('nets:exchangeCompleted', {
+          detail: { cardId: this.cardId, newBalances: result.newBalances }
+        }));
       }
+
+      this.exchangeAmount = 0;
+      this.updateExchangePreview();
+    },
+    error: () => {
+      this.isExchanging = false;
+      this.exchangeResult = {
+        success: false,
+        message: 'Exchange failed. Please try again.'
+      };
     }
+  });
+}
 
-    this.isExchanging = false;
-    this.exchangeResult = result;
-
-    if (result.success) {
-      // Now loadWallet will read the updated localStorage
-      this.loadWallet();
-
-      // Dispatch event to notify home page
-      window.dispatchEvent(new CustomEvent('nets:exchangeCompleted', {
-        detail: { cardId: this.cardId, newBalances: result.newBalances }
-      }));
-    }
-
-    this.exchangeAmount = 0;
-    this.updateExchangePreview();
+  private getMockRate(from: string, to: string): number {
+    const rates: Record<string, Record<string, number>> = {
+      SGD: { MYR: 3.45, THB: 26.2, JPY: 112.5, KRW: 985, USD: 0.74, EUR: 0.68, GBP: 0.58, AUD: 1.12 }
+    };
+    if (from === to) return 1;
+    return rates[from]?.[to] || rates[to]?.[from] ? 1 / rates[to][from] : 1;
   }
 
   swapExchangeDirection() {

@@ -142,6 +142,31 @@ export interface TopUpResponse {
   sourceCard?: WalletCard;
 }
 
+export interface MultiCurrencyWallet {
+  cardId: string;
+  balances: Record<string, number>;
+  currencies: string[];
+}
+
+export interface ExchangeCurrencyRequest {
+  fromCurrency: string;
+  toCurrency: string;
+  amount: number;
+  rate: number;
+}
+
+export interface DeductCurrencyRequest {
+  currency: string;
+  amount: number;
+}
+
+export interface ExchangeCurrencyResponse {
+  success: boolean;
+  message: string;
+  newBalances: Record<string, number>;
+  card: WalletCard;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -213,6 +238,59 @@ export class CardsService {
   getReceiveSettings(userId: string): Observable<ReceiveSettings> {
     return this.http.get<ReceiveSettings>(`${API_BASE_URL}/users/${userId}/receive-settings`);
   }
+
+  getCardWallet(userId: string, cardId: string): Observable<MultiCurrencyWallet> {
+  return this.http.get<MultiCurrencyWallet>(
+    `${API_BASE_URL}/users/${userId}/cards/${cardId}/wallet`
+  ).pipe(
+    catchError(err => {
+      console.error('Wallet load failed:', err);
+      return of({ cardId, balances: { SGD: 500 }, currencies: ['SGD'] });
+    })
+  );
+}
+
+exchangeCurrency(
+  userId: string,
+  cardId: string,
+  payload: ExchangeCurrencyRequest
+): Observable<ExchangeCurrencyResponse> {
+  return this.http.post<ExchangeCurrencyResponse>(
+    `${API_BASE_URL}/users/${userId}/cards/${cardId}/exchange`,
+    payload
+  ).pipe(
+    catchError(err => {
+      console.error('Exchange failed:', err);
+      return of({
+        success: false,
+        message: err.error?.error || 'Exchange failed. Please try again.',
+        newBalances: {},
+        card: {} as WalletCard
+      });
+    })
+  );
+}
+
+deductCurrency(
+  userId: string,
+  cardId: string,
+  payload: DeductCurrencyRequest
+): Observable<ExchangeCurrencyResponse> {
+  return this.http.post<ExchangeCurrencyResponse>(
+    `${API_BASE_URL}/users/${userId}/cards/${cardId}/deduct`,
+    payload
+  ).pipe(
+    catchError(err => {
+      console.error('Deduct failed:', err);
+      return of({
+        success: false,
+        message: err.error?.error || 'Payment failed. Please try again.',
+        newBalances: {},
+        card: {} as WalletCard
+      });
+    })
+  );
+}
 }
 
 export interface ReceiveSettings {
@@ -359,3 +437,5 @@ function normalizeRegistryCard(card: Partial<RegistryCard>): RegistryCard {
     creditLimit: card.creditLimit ?? fallback?.creditLimit,
   };
 }
+
+

@@ -543,4 +543,125 @@ module.exports = {
   markNotificationRead,
   markAllNotificationsRead,
   setCardTopUpEnabled,
+  getMultiCurrencyWallet,
+  updateMultiCurrencyBalance,
+  exchangeCurrency,
+  deductCurrency,
 };
+
+// ═════════════════════════════════════════════════════════════════
+// MULTI-CURRENCY WALLET HELPERS
+// ═════════════════════════════════════════════════════════════════
+
+async function getMultiCurrencyWallet(cardId) {
+  const cardDoc = await findCardDocById(cardId);
+  if (!cardDoc) {
+    return null;
+  }
+
+  const card = cardFromDoc(cardDoc);
+  // Migrate: if no multiCurrency, initialize from balance
+  const multiCurrency = card.multi_currency || { SGD: card.balance };
+  
+  return {
+    cardId: card.id,
+    balances: multiCurrency,
+    currencies: Object.keys(multiCurrency),
+  };
+}
+
+async function updateMultiCurrencyBalance(cardId, currency, amount) {
+  const cardDoc = await findCardDocById(cardId);
+  if (!cardDoc) {
+    return null;
+  }
+
+  const card = cardFromDoc(cardDoc);
+  const db = getFirestore();
+  const ref = userCardsRef(db, card.user_id).doc(cardId);
+
+  // Get current multiCurrency or initialize
+  const currentMulti = card.multi_currency || { SGD: card.balance };
+  const nextMulti = { ...currentMulti };
+
+  // Update the specific currency
+  if (currency === 'SGD') {
+    // Also update the main balance field for backward compat
+    const nextBalance = Math.round(Math.max(0, amount) * 100) / 100;
+    nextMulti.SGD = nextBalance;
+    await ref.update({ 
+      balance: nextBalance,
+      multi_currency: nextMulti 
+    });
+  } else {
+    nextMulti[currency] = Math.round(Math.max(0, amount) * 100) / 100;
+    // Remove if depleted
+    if (nextMulti[currency] < 0.01) {
+      delete nextMulti[currency];
+    }
+    await ref.update({ multi_currency: nextMulti });
+  }
+
+  const updated = await ref.get();
+  return syncAutoTopUpPreference(cardFromDoc(updated));
+}
+
+async function exchangeCurrency(cardId, fromCurrency, toCurrency, amount, rate) {
+  const cardDoc = await findCardDocById(cardId);
+  if (!cardDoc) {
+    return { ok: false, error: 'Card not found.' };
+  }
+
+  const card = cardFromDoc(cardDoc);
+  const db = getFirestore();
+  const ref = userCardsRef(db, card.user_id).doc(cardId);
+
+  // Get current multiCurrency or initialize
+  const currentMulti = card.multi_currency || { SGD: card.balance };
+  const nextMulti = { ...currentMulti };
+
+  // Check sufficient balance
+  const fromBalance = nextMulti[fromCurrency] || 0;
+  if (fromBalance < amount) {
+    return { 
+      ok: false, 
+      error: `Insufficient ${fromCurrency} balance. Available: ${fromBalance.toFixed(2)}, Need: ${amount.toFixed(2)}` 
+    };
+  }
+
+  // Calculate
+  const fee = amount * 0.005;
+  const amountAfterFee = amount - fee;
+  const received = amountAfterFee * rate;
+
+  // Update balances
+  nextMulti[fromCurrency] = Math.round(Math.max(0, (nextMulti[fromCurrency] || 0) - amount) * 100) / 100;
+  nextMulti[toCurrency] = Math.round(((nextMulti[toCurrency] || 0) + received) * 100) / 100;
+
+  // Remove depleted currencies (except SGD)
+  if (fromCurrency !== 'SGD' && nextMulti[fromCurrency] < 0.01) {
+    delete nextMulti[fromCurrency];
+  }
+
+  // Update Firestore
+  const updateData = { multi_currency: nextMulti };
+  if (fromCurrency === 'SGD' || toCurrency === 'SGD') {
+    updateData.balance = nextMulti.SGD;
+  }
+
+  await ref.update(updateData);
+  const updated = await ref.get();
+  const refreshedCard = syncAutoTopUpPreference(cardFromDoc(updated));
+
+  return {
+    ok: true,
+    card: refreshedCard,
+    newBalances: nextMulti,
+    fee: fee,
+    received: received,
+  };
+}
+
+async function deductCurrency(cardId, currency, amount) {
+  return exchangeCurrency(cardId, currency, currency, amount, 1);
+}

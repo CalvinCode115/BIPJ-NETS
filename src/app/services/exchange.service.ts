@@ -28,7 +28,7 @@ export interface ExchangeResult {
 export class ExchangeService {
   private apiUrl = 'http://localhost:8000';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getWallet(cardId: string): Observable<Wallet> {
     return this.http.get<Wallet>(`${this.apiUrl}/api/wallet/${cardId}`).pipe(
@@ -56,6 +56,19 @@ export class ExchangeService {
       catchError(err => {
         console.error('History load failed:', err);
         return of([]);
+      })
+    );
+  }
+
+  // In exchange.service.ts
+  deduct(req: { cardId: string; currency: string; amount: number }): Observable<ExchangeResult> {
+    return this.http.post<ExchangeResult>(`${this.apiUrl}/api/wallet/deduct`, req).pipe(
+      catchError(err => {
+        console.error('Deduct failed:', err);
+        return of({
+          success: false,
+          message: err.error?.detail || 'Payment failed. Please try again.'
+        });
       })
     );
   }

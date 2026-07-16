@@ -244,7 +244,6 @@ export class HomePage {
       this.syncSelectedCard();
     }
     this.loadTrackedCurrencies();
-    this.loadCardsForUser(user?.id ?? 'user_1');
     this.loadMultiCurrencyBalances();
     this.loadNotifications(user?.id ?? 'user_1', showLoginAlerts);
     this.loadMultiCurrencyBalances();
@@ -1199,7 +1198,26 @@ export class HomePage {
     this.walletLoadError = '';
     this.cardsService.getWallet(userId).subscribe({
       next: (wallet) => {
+        // ─── FIX: Patch SGD balance from localStorage if we have a recent exchange ───
+        const savedSgdBalance = localStorage.getItem('nets_current_sgd_balance');
+        const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
+        const hasRecentExchange = exchangeTime && (Date.now() - parseInt(exchangeTime, 10) < 24 * 60 * 60 * 1000); // 24h
+
+        if (savedSgdBalance && hasRecentExchange) {
+          const parsedBalance = parseFloat(savedSgdBalance);
+          if (!isNaN(parsedBalance)) {
+            // Patch every card in every type
+            (Object.keys(wallet) as CardType[]).forEach((type) => {
+              wallet[type] = wallet[type].map((card) => ({
+                ...card,
+                balance: parsedBalance,
+              }));
+            });
+          }
+        }
+
         this.cardsByType = wallet;
+
         if (this.activeCardSlide >= this.activeCards.length && this.activeCards.length > 0) {
           this.activeCardSlide = this.activeCards.length - 1;
         }
@@ -1219,28 +1237,6 @@ export class HomePage {
   private syncSelectedCard(): void {
     this.topUpError = '';
 
-    // CHECK: Did an exchange just happen? Use that balance instead of backend's
-    const pendingExchange = localStorage.getItem('nets_pending_exchange_balance');
-    const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
-    if (pendingExchange && exchangeTime) {
-      const timeDiff = Date.now() - parseInt(exchangeTime, 10);
-      if (timeDiff < 30000) { // Within last 30 seconds, trust the exchange balance
-        const exchangedBalance = parseFloat(pendingExchange);
-        if (!isNaN(exchangedBalance) && this.currentCard) {
-          this.currentCard.balance = exchangedBalance;
-          // Also update cardsByType
-          const type = this.currentCard.cardType;
-          this.cardsByType[type] = this.cardsByType[type].map((card) =>
-            card.id === this.currentCard!.id ? { ...card, balance: exchangedBalance } : card
-          );
-        }
-      } else {
-        // Older than 30s, clear the pending flag
-        localStorage.removeItem('nets_pending_exchange_balance');
-        localStorage.removeItem('nets_exchange_applied_at');
-      }
-    }
-
     if (this.currentCard) {
       this.cardContext.selectCard(this.currentCard);
       this.maybeClearLowBalanceDismiss(this.currentCard);
@@ -1248,7 +1244,12 @@ export class HomePage {
 
     if (this.currentCard) {
       localStorage.setItem('nets_selected_card_id', this.currentCard.id || 'default');
-      localStorage.setItem('nets_current_sgd_balance', String(this.cardFundsAmount));
+      // ─── FIX: Only write SGD to localStorage if we DON'T have a newer exchange balance ───
+      const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
+      const hasRecentExchange = exchangeTime && (Date.now() - parseInt(exchangeTime, 10) < 24 * 60 * 60 * 1000);
+      if (!hasRecentExchange) {
+        localStorage.setItem('nets_current_sgd_balance', String(this.cardFundsAmount));
+      }
     }
 
     this.loadMultiCurrencyBalances();
@@ -1430,8 +1431,21 @@ export class HomePage {
   loadMultiCurrencyBalances(): void {
     const card = this.currentCard;
     if (!card?.id) { this.cardCurrencyBalances = []; return; }
-    const sgdBalance = this.cardFundsAmount;
-    this.cardCurrencyBalances = this.cardExchange.getAllCurrencies(card.id, sgdBalance);
+
+    const userId = this.auth.userId ?? 'user_1';
+
+    this.cardsService.getCardWallet(userId, card.id).subscribe({
+      next: (wallet) => {
+        this.cardCurrencyBalances = Object.entries(wallet.balances).map(([currency, amount]) => ({
+          currency,
+          amount,
+          flag: this.cardExchange.getCurrencyFlag(currency)
+        })).filter(c => c.amount > 0.01);
+      },
+      error: () => {
+        this.cardCurrencyBalances = [];
+      }
+    });
   }
 
   formatMultiCurrencyAmount(curr: CardCurrencyBalance): string {
@@ -1443,32 +1457,14 @@ export class HomePage {
   }
 
   private setupExchangeListener(): void {
-    window.addEventListener('nets:exchangeCompleted', (event: any) => {
-      const detail = event.detail;
-      if (detail?.newBalances && this.currentCard) {
-        const newSgdBalance = detail.newBalances['SGD'] || detail.newBalances['sgd'];
-        if (newSgdBalance !== undefined) {
-          // 1. Update the card object immediately
-          this.currentCard.balance = newSgdBalance;
-
-          // 2. Update in cardsByType
-          const type = this.currentCard.cardType;
-          this.cardsByType[type] = this.cardsByType[type].map((card) =>
-            card.id === this.currentCard!.id ? { ...card, balance: newSgdBalance } : card
-          );
-
-          // 3. Write to localStorage BEFORE anything else can overwrite it
-          localStorage.setItem('nets_current_sgd_balance', String(newSgdBalance));
-          localStorage.setItem('nets_exchange_applied_at', Date.now().toString());
-
-          // 4. Mark that we have a pending exchange so loadCardsForUser doesn't overwrite
-          localStorage.setItem('nets_pending_exchange_balance', String(newSgdBalance));
-        }
-      }
+    window.addEventListener('nets:exchangeCompleted', () => {
       this.loadMultiCurrencyBalances();
+      this.loadCardsForUser(this.auth.userId ?? 'user_1');
     });
-      window.addEventListener('nets:travelPaymentCompleted', () => {
-    this.loadMultiCurrencyBalances();
-  });
+
+    window.addEventListener('nets:travelPaymentCompleted', () => {
+      this.loadMultiCurrencyBalances();
+      this.loadCardsForUser(this.auth.userId ?? 'user_1');
+    });
   }
 }
