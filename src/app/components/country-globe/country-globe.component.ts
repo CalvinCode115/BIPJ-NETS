@@ -14,7 +14,7 @@ declare global {
 // Region colors for pins
 const REGION_COLORS: { [key: string]: string } = {
   'Asia': '#FF6B6B',
-  'Europe': '#4ECDC4', 
+  'Europe': '#4ECDC4',
   'Americas': '#45B7D1',
   'Africa': '#FFE66D',
   'Oceania': '#96CEB4',
@@ -44,6 +44,7 @@ export class CountryGlobeComponent implements OnInit, AfterViewInit, OnDestroy {
   error: string | null = null;
   loadProgress = 0;
   hoveredCountry: CountryInfo | null = null;
+  isFeaturedCollapsed = false;
 
   private destroy$ = new Subject<void>();
   private search$ = new Subject<string>();
@@ -59,7 +60,7 @@ export class CountryGlobeComponent implements OnInit, AfterViewInit, OnDestroy {
     private http: HttpClient,
     private modalCtrl: ModalController,
     public countryData: CountryDataService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.search$.pipe(
@@ -70,7 +71,7 @@ export class CountryGlobeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadCountriesProgressive();
   }
 
-  ngAfterViewInit() {}
+  ngAfterViewInit() { }
 
   ngOnDestroy() {
     this.destroy$.next();
@@ -494,10 +495,10 @@ export class CountryGlobeComponent implements OnInit, AfterViewInit, OnDestroy {
     const lat2 = country.lat * Math.PI / 180;
     const dLat = (country.lat - 1.35) * Math.PI / 180;
     const dLon = (country.lon - 103.8) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
 
     if (distance < 1000) return Math.round(distance) + ' km';
@@ -538,5 +539,9 @@ export class CountryGlobeComponent implements OnInit, AfterViewInit, OnDestroy {
       { id: 'th', name: 'Bangkok', country: 'Thailand', lat: 13.7, lon: 100.5, currencyCode: 'THB', flag: '🇹🇭', region: 'Asia' },
       { id: 'au', name: 'Canberra', country: 'Australia', lat: -35.2, lon: 149.1, currencyCode: 'AUD', flag: '🇦🇺', region: 'Oceania' },
     ];
+  }
+
+  toggleFeatured() {
+    this.isFeaturedCollapsed = !this.isFeaturedCollapsed;
   }
 }

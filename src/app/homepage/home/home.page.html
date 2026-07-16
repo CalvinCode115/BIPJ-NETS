@@ -8,7 +8,7 @@
           <button class="notification-btn" type="button" (click)="openNotifications()" aria-label="Notifications">
             <ion-icon name="notifications-outline"></ion-icon>
             @if (notificationUnreadCount > 0) {
-              <span class="notification-dot">{{ notificationUnreadCount > 9 ? '9+' : notificationUnreadCount }}</span>
+            <span class="notification-dot">{{ notificationUnreadCount > 9 ? '9+' : notificationUnreadCount }}</span>
             }
           </button>
         </div>
@@ -23,45 +23,31 @@
           </button>
         </div>
 
-      @if (visibleLoginAlert) {
-        <button
-          type="button"
-          class="paynow-alert-banner"
-          (click)="openLoginAlertDetails()"
-          aria-live="polite"
-        >
+        @if (visibleLoginAlert) {
+        <button type="button" class="paynow-alert-banner" (click)="openLoginAlertDetails()" aria-live="polite">
           <span class="paynow-alert-icon" aria-hidden="true">
             <ion-icon name="arrow-down-circle"></ion-icon>
           </span>
           <span class="paynow-alert-copy">
             <span class="paynow-alert-title">PayNow received</span>
             @if (notificationAmount(visibleLoginAlert); as amount) {
-              <span class="paynow-alert-amount">{{ amount }}</span>
+            <span class="paynow-alert-amount">{{ amount }}</span>
             }
             <span class="paynow-alert-sender">from {{ notificationSender(visibleLoginAlert) }}</span>
             @if (loginAlertOverflowCount > 0) {
-              <span class="paynow-alert-more">+{{ loginAlertOverflowCount }} more</span>
+            <span class="paynow-alert-more">+{{ loginAlertOverflowCount }} more</span>
             }
           </span>
-          <span
-            class="paynow-alert-dismiss"
-            role="button"
-            tabindex="0"
-            aria-label="Dismiss notification"
-            (click)="dismissLoginAlert($event)"
-          >
+          <span class="paynow-alert-dismiss" role="button" tabindex="0" aria-label="Dismiss notification"
+            (click)="dismissLoginAlert($event)">
             <ion-icon name="close"></ion-icon>
           </span>
         </button>
-      }
+        }
 
-      @if (showLowBalanceAlert) {
-        <button
-          type="button"
-          class="paynow-alert-banner low-balance-alert"
-          (click)="openLowBalanceTopUp()"
-          aria-live="polite"
-        >
+        @if (showLowBalanceAlert) {
+        <button type="button" class="paynow-alert-banner low-balance-alert" (click)="openLowBalanceTopUp()"
+          aria-live="polite">
           <span class="paynow-alert-icon" aria-hidden="true">
             <ion-icon name="notifications"></ion-icon>
           </span>
@@ -70,38 +56,29 @@
             <span class="paynow-alert-amount">{{ lowBalanceAlertBalance }}</span>
             <span class="paynow-alert-sender">{{ lowBalanceAlertCardLabel }} is below $50. Tap to top up.</span>
           </span>
-          <span
-            class="paynow-alert-dismiss"
-            role="button"
-            tabindex="0"
-            aria-label="Dismiss low balance reminder"
-            (click)="dismissLowBalanceAlert($event)"
-          >
+          <span class="paynow-alert-dismiss" role="button" tabindex="0" aria-label="Dismiss low balance reminder"
+            (click)="dismissLowBalanceAlert($event)">
             <ion-icon name="close"></ion-icon>
           </span>
         </button>
-      }
+        }
 
-      @if (walletLoadError) {
+        @if (walletLoadError) {
         <div class="wallet-error-banner">
           <ion-icon name="warning"></ion-icon>
           <p>{{ walletLoadError }}</p>
         </div>
-      }
+        }
 
-      <div class="account-tabs">
-        @for (tab of accountTabs; track tab.id) {
-          <button
-            type="button"
-            class="account-tab"
-            [class.active]="activeAccountTab === tab.id"
+        <div class="account-tabs">
+          @for (tab of accountTabs; track tab.id) {
+          <button type="button" class="account-tab" [class.active]="activeAccountTab === tab.id"
             [class.others-active]="tab.id === 'others' && activeAccountTab === 'others'"
-            (click)="selectAccountTab(tab.id)"
-          >
+            (click)="selectAccountTab(tab.id)">
             {{ tab.label }}
           </button>
-        }
-      </div>
+          }
+        </div>
       </div>
     </div>
 
@@ -113,54 +90,57 @@
 
       <div class="carousel-viewport">
         @if (currentCard) {
-          <div class="balance-card" [ngClass]="cardThemeClass">
-            <div class="card-face-header">
-              <p class="balance-label">{{ cardFundsLabel }}</p>
-              <div class="card-header-actions">
-                <span class="card-currency-badge">SGD</span>
-                @if (cardBrandBadge) {
-                  <span class="card-brand-badge">{{ cardBrandBadge }}</span>
-                }
-                <button
-                  type="button"
-                  class="card-visibility-toggle"
-                  (click)="toggleCardSensitiveDetails()"
-                  [attr.aria-label]="showCardSensitiveDetails ? 'Hide balance and card number' : 'Show balance and card number'"
-                >
-                  <ion-icon [name]="showCardSensitiveDetails ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
-                </button>
-              </div>
-            </div>
-            <h1 class="balance-amount">{{ displayedCardBalance }}</h1>
-            @if (showCardFundsSubtext) {
-              <p class="balance-subtext">{{ cardFundsSubtext }}</p>
-            }
-            <div class="card-footer">
-              <span class="card-number">{{ displayedCardNumber }}</span>
-              @if (currentCard.cardType === 'prepaid' || currentCard.cardType === 'cashcard') {
-                <div class="top-up-toggle" title="Turns on automatically when balance is below $50">
-                  <span>TOP UP</span>
-                  <ion-toggle
-                    [checked]="isAutoTopUpActive"
-                    [disabled]="true"
-                    mode="ios"
-                  ></ion-toggle>
-                </div>
-              } @else {
-                <div class="card-expiry">
-                  <span>EXP {{ displayedCardExpiry }}</span>
-                </div>
+        <div class="balance-card" [ngClass]="cardThemeClass">
+          <div class="card-face-header">
+            <p class="balance-label">{{ cardFundsLabel }}</p>
+            <div class="card-header-actions">
+              <span class="card-currency-badge">SGD</span>
+              @if (cardBrandBadge) {
+              <span class="card-brand-badge">{{ cardBrandBadge }}</span>
               }
+              <button type="button" class="card-visibility-toggle" (click)="toggleCardSensitiveDetails()"
+                [attr.aria-label]="showCardSensitiveDetails ? 'Hide balance and card number' : 'Show balance and card number'">
+                <ion-icon [name]="showCardSensitiveDetails ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+              </button>
             </div>
           </div>
-        } @else {
-          <button type="button" class="add-card-slide" (click)="openAddCardModal()">
-            <div class="add-card-icon">
-              <ion-icon name="add"></ion-icon>
+          <h1 class="balance-amount">{{ displayedCardBalance }}</h1>
+          @if (showCardFundsSubtext) {
+          <p class="balance-subtext">{{ cardFundsSubtext }}</p>
+          }
+          <div class="card-footer">
+            <span class="card-number">{{ displayedCardNumber }}</span>
+            @if (currentCard.cardType === 'prepaid' || currentCard.cardType === 'cashcard') {
+            <div class="top-up-toggle" title="Turns on automatically when balance is below $50">
+              <span>TOP UP</span>
+              <ion-toggle [checked]="isAutoTopUpActive" [disabled]="true" mode="ios"></ion-toggle>
             </div>
-            <h3>Add New Card</h3>
-            <p>{{ addCardSlideSubtitle }}</p>
-          </button>
+            } @else {
+            <div class="card-expiry">
+              <span>EXP {{ displayedCardExpiry }}</span>
+            </div>
+            }
+          </div>
+        </div>
+        @if (cardCurrencyBalances.length > 1) {
+        <div class="multi-currency-balances">
+          @for (curr of cardCurrencyBalances; track curr.currency) {
+          <div class="currency-balance-chip" [class.primary]="curr.currency === 'SGD'">
+            <span class="currency-flag">{{ curr.flag }}</span>
+            <span class="currency-code">{{ curr.currency }}</span>
+            <span class="currency-amount">{{ formatMultiCurrencyAmount(curr) }}</span>
+          </div>
+          }
+        </div>
+        }
+        } @else {
+        <button type="button" class="add-card-slide" (click)="openAddCardModal()">
+          <div class="add-card-icon">
+            <ion-icon name="add"></ion-icon>
+          </div>
+          <h3>Add New Card</h3>
+          <p>{{ addCardSlideSubtitle }}</p>
+        </button>
         }
       </div>
 
@@ -171,94 +151,101 @@
 
     <div class="carousel-dots">
       @for (slide of cardSlides; track slide) {
-        <button
-          type="button"
-          class="dot"
-          [class.active]="activeCardSlide === slide"
-          (click)="goToCardSlide(slide)"
-          [attr.aria-label]="'Go to card ' + (slide + 1)"
-        ></button>
+      <button type="button" class="dot" [class.active]="activeCardSlide === slide" (click)="goToCardSlide(slide)"
+        [attr.aria-label]="'Go to card ' + (slide + 1)"></button>
       }
     </div>
+    @if (currentCard && cardCurrencyBalances.length > 1) {
+    <section class="multi-currency-wallet">
+      <div class="wallet-header">
+        <h3>Your Currencies</h3>
+        <span class="wallet-count">{{ cardCurrencyBalances.length }} currencies</span>
+      </div>
+      <div class="wallet-list">
+        @for (curr of cardCurrencyBalances; track curr.currency) {
+        <div class="wallet-item" [class.primary]="curr.currency === 'SGD'">
+          <div class="wallet-item-left">
+            <span class="wallet-flag">{{ curr.flag }}</span>
+            <div class="wallet-info">
+              <span class="wallet-currency">{{ curr.currency }}</span>
+              <span class="wallet-label">{{ curr.currency === 'SGD' ? 'Primary' : 'Exchanged' }}</span>
+            </div>
+          </div>
+          <span class="wallet-amount">{{ formatMultiCurrencyAmount(curr) }}</span>
+        </div>
+        }
+      </div>
+      <button type="button" class="wallet-exchange-btn" (click)="goToFxTracker()">
+        <ion-icon name="swap-horizontal"></ion-icon> Exchange Currency
+      </button>
+    </section>
+    }
 
     @if (currentCard) {
-      <section class="fx-currency-panel" aria-label="Currency conversions">
-        <div class="fx-currency-header">
-          <div>
-            <p class="fx-currency-eyebrow">Also in other currencies</p>
-            <p class="fx-currency-hint">Same SGD balance, shown in currencies you add</p>
-          </div>
+    <section class="fx-currency-panel" aria-label="Currency conversions">
+      <div class="fx-currency-header">
+        <div>
+          <p class="fx-currency-eyebrow">Also in other currencies</p>
+          <p class="fx-currency-hint">Same SGD balance, shown in currencies you add</p>
         </div>
+      </div>
 
-        @if (trackedCurrencies.length === 0) {
-          <p class="fx-currency-empty">Add a currency to see this balance abroad.</p>
-        } @else {
-          <ul class="fx-currency-list">
-            @for (item of trackedCurrencies; track item.destinationId) {
-              <li class="fx-currency-row">
-                <div class="fx-currency-meta">
-                  <span class="fx-currency-flag" aria-hidden="true">{{ item.flag }}</span>
-                  <div>
-                    <p class="fx-currency-code">{{ item.currencyCode }}</p>
-                    <p class="fx-currency-country">{{ item.country }}</p>
-                  </div>
-                </div>
-                <div class="fx-currency-amount-wrap">
-                  @if (item.isLoading) {
-                    <ion-spinner name="crescent" class="fx-currency-spinner"></ion-spinner>
-                  }
-                  <p class="fx-currency-amount">{{ formatTrackedCurrencyAmount(item) }}</p>
-                  <button
-                    type="button"
-                    class="fx-currency-remove"
-                    (click)="removeTrackedCurrency(item.destinationId)"
-                    [attr.aria-label]="'Remove ' + item.currencyCode"
-                  >
-                    <ion-icon name="close"></ion-icon>
-                  </button>
-                </div>
-              </li>
+      @if (trackedCurrencies.length === 0) {
+      <p class="fx-currency-empty">Add a currency to see this balance abroad.</p>
+      } @else {
+      <ul class="fx-currency-list">
+        @for (item of trackedCurrencies; track item.destinationId) {
+        <li class="fx-currency-row">
+          <div class="fx-currency-meta">
+            <span class="fx-currency-flag" aria-hidden="true">{{ item.flag }}</span>
+            <div>
+              <p class="fx-currency-code">{{ item.currencyCode }}</p>
+              <p class="fx-currency-country">{{ item.country }}</p>
+            </div>
+          </div>
+          <div class="fx-currency-amount-wrap">
+            @if (item.isLoading) {
+            <ion-spinner name="crescent" class="fx-currency-spinner"></ion-spinner>
             }
-          </ul>
+            <p class="fx-currency-amount">{{ formatTrackedCurrencyAmount(item) }}</p>
+            <button type="button" class="fx-currency-remove" (click)="removeTrackedCurrency(item.destinationId)"
+              [attr.aria-label]="'Remove ' + item.currencyCode">
+              <ion-icon name="close"></ion-icon>
+            </button>
+          </div>
+        </li>
         }
+      </ul>
+      }
 
-        <button
-          type="button"
-          class="fx-currency-add"
-          (click)="openAddCurrencySheet()"
-          [disabled]="availableDestinationsToAdd.length === 0"
-        >
-          <ion-icon name="add"></ion-icon>
-          <span>{{ availableDestinationsToAdd.length === 0 ? 'All currencies added' : 'Add currency' }}</span>
-        </button>
-      </section>
+      <button type="button" class="fx-currency-add" (click)="openAddCurrencySheet()"
+        [disabled]="availableDestinationsToAdd.length === 0">
+        <ion-icon name="add"></ion-icon>
+        <span>{{ availableDestinationsToAdd.length === 0 ? 'All currencies added' : 'Add currency' }}</span>
+      </button>
+    </section>
     }
 
     <!-- Quick Actions -->
     <div class="quick-actions">
       @for (action of quickActions; track action.label) {
-        <button
-          type="button"
-          class="quick-action"
-          [class.is-disabled]="isQuickActionDisabled(action)"
-          [attr.aria-disabled]="isQuickActionDisabled(action)"
-          [title]="getQuickActionTitle(action)"
-          (click)="onQuickAction(action)"
-        >
-          <div class="quick-action-icon" [style.background]="action.color">
-            <ion-icon [name]="action.icon"></ion-icon>
-          </div>
-          <span>{{ action.label }}</span>
-        </button>
+      <button type="button" class="quick-action" [class.is-disabled]="isQuickActionDisabled(action)"
+        [attr.aria-disabled]="isQuickActionDisabled(action)" [title]="getQuickActionTitle(action)"
+        (click)="onQuickAction(action)">
+        <div class="quick-action-icon" [style.background]="action.color">
+          <ion-icon [name]="action.icon"></ion-icon>
+        </div>
+        <span>{{ action.label }}</span>
+      </button>
       }
     </div>
 
     @if (topUpSuccess && !isTopUpModalOpen) {
-      <p class="top-up-notice success">{{ topUpSuccess }}</p>
+    <p class="top-up-notice success">{{ topUpSuccess }}</p>
     }
 
     @if (topUpError && !isTopUpModalOpen) {
-      <p class="top-up-notice">{{ topUpError }}</p>
+    <p class="top-up-notice">{{ topUpError }}</p>
     }
 
     <!-- User DNA Insight (all cards — stays the same when you swipe) -->
@@ -266,11 +253,11 @@
       <p class="insight-eyebrow">Overall insight · all your cards</p>
 
       @if (dnaTraits.length) {
-        <div class="dna-trait-chips">
-          @for (trait of dnaTraits; track trait) {
-            <span class="dna-trait-chip">{{ trait }}</span>
-          }
-        </div>
+      <div class="dna-trait-chips">
+        @for (trait of dnaTraits; track trait) {
+        <span class="dna-trait-chip">{{ trait }}</span>
+        }
+      </div>
       }
 
       <div class="insight-row">
@@ -281,129 +268,128 @@
           <h3>{{ insight.title }}</h3>
           <p>{{ insight.message }}</p>
           @if (insightLoadError) {
-            <p class="insight-error">{{ insightLoadError }}</p>
+          <p class="insight-error">{{ insightLoadError }}</p>
           }
-          <button type="button" class="link-btn insight-link" (click)="openAiInsights()">View all insights &rarr;</button>
+          <button type="button" class="link-btn insight-link" (click)="openAiInsights()">View all insights
+            &rarr;</button>
         </div>
       </div>
     </div>
 
     @if (currentCard) {
-      <div class="card-activity-section" [class.is-refreshing]="isRefreshingCardActivity">
-        <div class="card-activity-header">
-          <h2>Spending on this card</h2>
-          <p>{{ currentCard.label }} · {{ currentCard.cardNumber }}</p>
-        </div>
+    <div class="card-activity-section" [class.is-refreshing]="isRefreshingCardActivity">
+      <div class="card-activity-header">
+        <h2>Spending on this card</h2>
+        <p>{{ currentCard.label }} · {{ currentCard.cardNumber }}</p>
+      </div>
 
-        @if (showCardActivitySkeleton) {
-          <div class="card-activity-skeleton" aria-busy="true" aria-label="Loading spending data">
-            <div class="skeleton-line skeleton-line--title"></div>
-            <div class="summary-cards">
-              <div class="skeleton-card"></div>
-              <div class="skeleton-card"></div>
-            </div>
-            <div class="skeleton-chart"></div>
-            <div class="skeleton-line skeleton-line--subtitle"></div>
-            <div class="skeleton-tx"></div>
-            <div class="skeleton-tx"></div>
-          </div>
-        } @else {
-        <div class="section-header">
-          <h3>{{ monthlySummary.month }}</h3>
-          <button type="button" class="link-btn" (click)="openFullReport()">Full report &rarr;</button>
-        </div>
-
+      @if (showCardActivitySkeleton) {
+      <div class="card-activity-skeleton" aria-busy="true" aria-label="Loading spending data">
+        <div class="skeleton-line skeleton-line--title"></div>
         <div class="summary-cards">
-          <div class="summary-card">
-            <div class="summary-icon-box expense">
-              <ion-icon name="trending-down"></ion-icon>
-            </div>
-            <p class="summary-amount">${{ monthlySummary.totalSpent }}</p>
-            <p class="summary-label">Total Spent</p>
-            <span class="summary-badge negative">&darr; {{ Math.abs(monthlySummary.totalSpentChange) }}% vs May</span>
-          </div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+        <div class="skeleton-chart"></div>
+        <div class="skeleton-line skeleton-line--subtitle"></div>
+        <div class="skeleton-tx"></div>
+        <div class="skeleton-tx"></div>
+      </div>
+      } @else {
+      <div class="section-header">
+        <h3>{{ monthlySummary.month }}</h3>
+        <button type="button" class="link-btn" (click)="openFullReport()">Full report &rarr;</button>
+      </div>
 
-          <div class="summary-card">
-            <div class="summary-icon-box income">
-              <ion-icon name="trending-up"></ion-icon>
-            </div>
-            <p class="summary-amount">${{ monthlySummary.totalIn }}</p>
-            <p class="summary-label">Total In</p>
-            <span class="summary-badge positive">&uarr; {{ monthlySummary.totalInChange }}% vs May</span>
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="summary-icon-box expense">
+            <ion-icon name="trending-down"></ion-icon>
+          </div>
+          <p class="summary-amount">${{ monthlySummary.totalSpent }}</p>
+          <p class="summary-label">Total Spent</p>
+          <span class="summary-badge negative">&darr; {{ Math.abs(monthlySummary.totalSpentChange) }}% vs May</span>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-icon-box income">
+            <ion-icon name="trending-up"></ion-icon>
+          </div>
+          <p class="summary-amount">${{ monthlySummary.totalIn }}</p>
+          <p class="summary-label">Total In</p>
+          <span class="summary-badge positive">&uarr; {{ monthlySummary.totalInChange }}% vs May</span>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Spending breakdown</h3>
+          <div class="period-dropdown">
+            <button type="button" class="period-select" (click)="toggleSpendingPeriodMenu()">
+              {{ spendingPeriodButtonLabel }} &#9662;
+            </button>
           </div>
         </div>
 
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>Spending breakdown</h3>
-            <div class="period-dropdown">
-              <button type="button" class="period-select" (click)="toggleSpendingPeriodMenu()">
-                {{ spendingPeriodButtonLabel }} &#9662;
-              </button>
+        @if (spendingCategories.length) {
+        <div class="bar-chart" [attr.data-count]="spendingCategories.length">
+          @for (category of spendingCategories; track category.label) {
+          <div class="bar-column">
+            <span class="bar-amount">${{ category.amount }}</span>
+            <div class="bar-track">
+              <div class="bar-fill" [style.height.%]="getBarHeight(category.amount)"
+                [style.background]="category.color"></div>
             </div>
+            <span class="bar-label">{{ category.label }}</span>
           </div>
-
-          @if (spendingCategories.length) {
-            <div class="bar-chart" [attr.data-count]="spendingCategories.length">
-              @for (category of spendingCategories; track category.label) {
-                <div class="bar-column">
-                  <span class="bar-amount">${{ category.amount }}</span>
-                  <div class="bar-track">
-                    <div
-                      class="bar-fill"
-                      [style.height.%]="getBarHeight(category.amount)"
-                      [style.background]="category.color"
-                    ></div>
-                  </div>
-                  <span class="bar-label">{{ category.label }}</span>
-                </div>
-              }
-            </div>
-
-            <div class="chart-legend">
-              @for (category of spendingCategories; track category.label) {
-                <div class="legend-item">
-                  <span class="legend-dot" [style.background]="category.color"></span>
-                  <span>{{ category.label }}</span>
-                </div>
-              }
-            </div>
-          } @else {
-            <p class="card-activity-empty-copy">No spending on this card yet this {{ spendingPeriod === 'Weekly' ? 'week' : 'month' }}.</p>
           }
         </div>
 
-        <div class="section-header">
-          <h3>Recent on this card</h3>
-          <button type="button" class="link-btn" (click)="openAllTransactions()">See all &rarr;</button>
-        </div>
-
-        <div class="transactions-list">
-          @for (tx of recentTransactions; track tx.merchant + tx.date + tx.time) {
-            <div class="transaction-card">
-              <div class="tx-icon" [style.background]="tx.iconColor + '18'" [style.color]="tx.iconColor">
-                <ion-icon [name]="tx.icon"></ion-icon>
-              </div>
-              <div class="tx-details">
-                <p class="tx-merchant">{{ tx.merchant }}</p>
-                <p class="tx-subtitle">{{ tx.subtitle }}</p>
-              </div>
-              <div class="tx-meta">
-                <span class="tx-amount" [class.credit]="tx.type === 'credit'" [class.debit]="tx.type === 'debit'">
-                  {{ formatAmount(tx.amount) }}
-                </span>
-                <span class="tx-datetime">{{ tx.date }}, {{ tx.time }}</span>
-              </div>
-            </div>
+        <div class="chart-legend">
+          @for (category of spendingCategories; track category.label) {
+          <div class="legend-item">
+            <span class="legend-dot" [style.background]="category.color"></span>
+            <span>{{ category.label }}</span>
+          </div>
           }
+        </div>
+        } @else {
+        <p class="card-activity-empty-copy">No spending on this card yet this {{ spendingPeriod === 'Weekly' ? 'week' :
+          'month' }}.</p>
+        }
+      </div>
+
+      <div class="section-header">
+        <h3>Recent on this card</h3>
+        <button type="button" class="link-btn" (click)="openAllTransactions()">See all &rarr;</button>
+      </div>
+
+      <div class="transactions-list">
+        @for (tx of recentTransactions; track tx.merchant + tx.date + tx.time) {
+        <div class="transaction-card">
+          <div class="tx-icon" [style.background]="tx.iconColor + '18'" [style.color]="tx.iconColor">
+            <ion-icon [name]="tx.icon"></ion-icon>
+          </div>
+          <div class="tx-details">
+            <p class="tx-merchant">{{ tx.merchant }}</p>
+            <p class="tx-subtitle">{{ tx.subtitle }}</p>
+          </div>
+          <div class="tx-meta">
+            <span class="tx-amount" [class.credit]="tx.type === 'credit'" [class.debit]="tx.type === 'debit'">
+              {{ formatAmount(tx.amount) }}
+            </span>
+            <span class="tx-datetime">{{ tx.date }}, {{ tx.time }}</span>
+          </div>
         </div>
         }
       </div>
+      }
+    </div>
     } @else {
-      <div class="card-activity-empty">
-        <ion-icon name="swap-horizontal"></ion-icon>
-        <p>Swipe to a linked card above to see its balance, spending, and transactions.</p>
-      </div>
+    <div class="card-activity-empty">
+      <ion-icon name="swap-horizontal"></ion-icon>
+      <p>Swipe to a linked card above to see its balance, spending, and transactions.</p>
+    </div>
     }
 
     <!-- Rewards -->
@@ -421,26 +407,18 @@
     <!-- Secondary Actions -->
     <div class="secondary-grid">
       @for (action of secondaryActions; track action.label) {
-        <button
-          type="button"
-          class="secondary-action"
-          [style.border-color]="action.color"
-          (click)="onSecondaryAction(action)"
-        >
-          <ion-icon [name]="action.icon" [style.color]="action.color"></ion-icon>
-          <span>{{ action.label }}</span>
-        </button>
+      <button type="button" class="secondary-action" [style.border-color]="action.color"
+        (click)="onSecondaryAction(action)">
+        <ion-icon [name]="action.icon" [style.color]="action.color"></ion-icon>
+        <span>{{ action.label }}</span>
+      </button>
       }
     </div>
   </div>
 </ion-content>
 
 @if (isAddCardModalOpen) {
-<ion-modal
-  [isOpen]="true"
-  (didDismiss)="closeAddCardModal()"
-  class="add-card-modal"
->
+<ion-modal [isOpen]="true" (didDismiss)="closeAddCardModal()" class="add-card-modal">
   <ng-template>
     <div class="add-card-panel">
       <div class="add-card-panel-header">
@@ -460,85 +438,59 @@
 
         <div class="form-group">
           <label for="cardNumber">Card Number</label>
-          <ion-input
-            id="cardNumber"
-            class="rounded-input"
-            type="text"
-            inputmode="numeric"
-            placeholder="1234 5678 9012 3456"
-            maxlength="19"
-            [value]="newCardForm.cardNumber"
-            (ionInput)="onCardNumberInput($event)"
-          ></ion-input>
+          <ion-input id="cardNumber" class="rounded-input" type="text" inputmode="numeric"
+            placeholder="1234 5678 9012 3456" maxlength="19" [value]="newCardForm.cardNumber"
+            (ionInput)="onCardNumberInput($event)"></ion-input>
         </div>
 
         @if (showBankCardFields) {
-          <div class="form-group">
-            <label>Bank</label>
-            <ion-select interface="popover" [value]="linkBankName" (ionChange)="linkBankName = $any($event.detail.value)">
-              @for (bank of linkBankOptions; track bank) {
-                <ion-select-option [value]="bank">{{ bank }}</ion-select-option>
-              }
-            </ion-select>
-          </div>
+        <div class="form-group">
+          <label>Bank</label>
+          <ion-select interface="popover" [value]="linkBankName" (ionChange)="linkBankName = $any($event.detail.value)">
+            @for (bank of linkBankOptions; track bank) {
+            <ion-select-option [value]="bank">{{ bank }}</ion-select-option>
+            }
+          </ion-select>
+        </div>
 
-          <div class="form-group">
-            <label>Card type</label>
-            <div class="top-up-quick-grid">
-              <button type="button" class="top-up-quick-btn" [class.selected]="linkAccountKind === 'debit'" (click)="selectLinkAccountKind('debit')">Debit</button>
-              <button type="button" class="top-up-quick-btn" [class.selected]="linkAccountKind === 'credit'" (click)="selectLinkAccountKind('credit')">Credit</button>
-            </div>
+        <div class="form-group">
+          <label>Card type</label>
+          <div class="top-up-quick-grid">
+            <button type="button" class="top-up-quick-btn" [class.selected]="linkAccountKind === 'debit'"
+              (click)="selectLinkAccountKind('debit')">Debit</button>
+            <button type="button" class="top-up-quick-btn" [class.selected]="linkAccountKind === 'credit'"
+              (click)="selectLinkAccountKind('credit')">Credit</button>
           </div>
+        </div>
 
-          @if (linkAccountKind === 'debit') {
-            <label class="default-receive-row">
-              <input type="checkbox" [checked]="linkDefaultReceive" (change)="linkDefaultReceive = $any($event.target).checked" />
-              Use as default for incoming transfers
-            </label>
-          }
+        @if (linkAccountKind === 'debit') {
+        <label class="default-receive-row">
+          <input type="checkbox" [checked]="linkDefaultReceive"
+            (change)="linkDefaultReceive = $any($event.target).checked" />
+          Use as default for incoming transfers
+        </label>
+        }
         }
 
         @if (showCardholderField) {
-          <div class="form-group">
-            <label for="cardholderName">Cardholder Name</label>
-            <ion-input
-              id="cardholderName"
-              class="rounded-input"
-              type="text"
-              placeholder="ADAM LIM"
-              [value]="newCardForm.cardholderName"
-              (ionInput)="onCardholderNameInput($event)"
-            ></ion-input>
-          </div>
+        <div class="form-group">
+          <label for="cardholderName">Cardholder Name</label>
+          <ion-input id="cardholderName" class="rounded-input" type="text" placeholder="ADAM LIM"
+            [value]="newCardForm.cardholderName" (ionInput)="onCardholderNameInput($event)"></ion-input>
+        </div>
         }
 
         <div class="form-row">
           <div class="form-group">
             <label for="expiryDate">Expiry Date</label>
-            <ion-input
-              id="expiryDate"
-              class="rounded-input"
-              type="text"
-              inputmode="numeric"
-              placeholder="MM/YY"
-              maxlength="5"
-              [value]="newCardForm.expiryDate"
-              (ionInput)="onExpiryInput($event)"
-            ></ion-input>
+            <ion-input id="expiryDate" class="rounded-input" type="text" inputmode="numeric" placeholder="MM/YY"
+              maxlength="5" [value]="newCardForm.expiryDate" (ionInput)="onExpiryInput($event)"></ion-input>
           </div>
 
           <div class="form-group">
             <label for="cvv">CVV</label>
-            <ion-input
-              id="cvv"
-              class="rounded-input"
-              type="password"
-              inputmode="numeric"
-              placeholder="123"
-              maxlength="3"
-              [value]="newCardForm.cvv"
-              (ionInput)="onCvvInput($event)"
-            ></ion-input>
+            <ion-input id="cvv" class="rounded-input" type="password" inputmode="numeric" placeholder="123"
+              maxlength="3" [value]="newCardForm.cvv" (ionInput)="onCvvInput($event)"></ion-input>
           </div>
         </div>
 
@@ -547,7 +499,7 @@
         </p>
 
         @if (formError) {
-          <p class="form-error">{{ formError }}</p>
+        <p class="form-error">{{ formError }}</p>
         }
 
         <ion-button expand="block" class="add-card-btn" [disabled]="isLinkingCard" (click)="addCard()">
@@ -564,11 +516,7 @@
 }
 
 @if (isTopUpModalOpen && currentCard) {
-<ion-modal
-  [isOpen]="true"
-  (didDismiss)="closeTopUpModal()"
-  class="top-up-modal"
->
+<ion-modal [isOpen]="true" (didDismiss)="closeTopUpModal()" class="top-up-modal">
   <ng-template>
     <div class="top-up-panel">
       <div class="top-up-panel-header">
@@ -588,67 +536,50 @@
         <p class="top-up-field-label">Enter Amount</p>
         <div class="top-up-amount-box">
           <span class="top-up-currency">$</span>
-          <ion-input
-            class="top-up-amount-input"
-            type="text"
-            inputmode="decimal"
-            [value]="topUpAmountText"
-            (ionInput)="onTopUpAmountInput($event)"
-          ></ion-input>
+          <ion-input class="top-up-amount-input" type="text" inputmode="decimal" [value]="topUpAmountText"
+            (ionInput)="onTopUpAmountInput($event)"></ion-input>
         </div>
 
         <p class="top-up-field-label">Quick Select</p>
         <div class="top-up-quick-grid">
           @for (amount of quickTopUpAmounts; track amount) {
-            <button
-              type="button"
-              class="top-up-quick-btn"
-              [class.selected]="topUpAmount === amount"
-              (click)="selectTopUpAmount(amount)"
-            >
-              ${{ amount }}
-            </button>
+          <button type="button" class="top-up-quick-btn" [class.selected]="topUpAmount === amount"
+            (click)="selectTopUpAmount(amount)">
+            ${{ amount }}
+          </button>
           }
         </div>
 
         <p class="top-up-field-label">Top Up From</p>
         <div class="top-up-methods">
           @for (method of topUpFundingOptions; track method.id) {
-            <button
-              type="button"
-              class="top-up-method"
-              [class.selected]="selectedTopUpFundingId === method.id"
-              (click)="selectTopUpFunding(method.id)"
-            >
-              <div class="top-up-method-icon" [style.background]="method.iconBg" [style.color]="method.iconColor">
-                <ion-icon [name]="method.icon"></ion-icon>
-              </div>
-              <div class="top-up-method-copy">
-                <p class="top-up-method-title">{{ displayedFundingTitle(method.title) }}</p>
-                <p class="top-up-method-subtitle">{{ displayedFundingSubtitle(method.subtitle) }}</p>
-              </div>
-              @if (selectedTopUpFundingId === method.id) {
-                <ion-icon name="checkmark-circle" class="top-up-method-check"></ion-icon>
-              }
-            </button>
+          <button type="button" class="top-up-method" [class.selected]="selectedTopUpFundingId === method.id"
+            (click)="selectTopUpFunding(method.id)">
+            <div class="top-up-method-icon" [style.background]="method.iconBg" [style.color]="method.iconColor">
+              <ion-icon [name]="method.icon"></ion-icon>
+            </div>
+            <div class="top-up-method-copy">
+              <p class="top-up-method-title">{{ displayedFundingTitle(method.title) }}</p>
+              <p class="top-up-method-subtitle">{{ displayedFundingSubtitle(method.subtitle) }}</p>
+            </div>
+            @if (selectedTopUpFundingId === method.id) {
+            <ion-icon name="checkmark-circle" class="top-up-method-check"></ion-icon>
+            }
+          </button>
           }
         </div>
 
         @if (topUpError) {
-          <p class="form-error">{{ topUpError }}</p>
+        <p class="form-error">{{ topUpError }}</p>
         }
 
-        <ion-button
-          expand="block"
-          class="top-up-submit-btn"
-          [disabled]="isToppingUp || topUpAmount < 0.01"
-          (click)="submitTopUp()"
-        >
+        <ion-button expand="block" class="top-up-submit-btn" [disabled]="isToppingUp || topUpAmount < 0.01"
+          (click)="submitTopUp()">
           @if (isToppingUp) {
-            <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
-            Processing...
+          <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+          Processing...
           } @else {
-            {{ topUpButtonLabel }}
+          {{ topUpButtonLabel }}
           }
         </ion-button>
 
@@ -662,85 +593,71 @@
 }
 
 @if (isNotificationsOpen) {
-  <ion-modal [isOpen]="true" (didDismiss)="closeNotifications()" class="notifications-modal">
-    <ng-template>
-      <div class="notifications-panel">
-        <div class="notifications-panel-header">
-          <h2>Notifications</h2>
-          <ion-button fill="clear" (click)="closeNotifications()">
-            <ion-icon slot="icon-only" name="close"></ion-icon>
-          </ion-button>
-        </div>
-        <div class="notifications-panel-body scroll-area-visible">
-          @if (!notifications.length) {
-            <p class="notifications-empty">No notifications yet.</p>
-          }
-          @for (item of notifications; track item.id) {
-            <article class="notification-item" [class.unread]="!item.read">
-              <div class="notification-item-icon">
-                <ion-icon name="arrow-down-circle"></ion-icon>
-              </div>
-              <div class="notification-item-body">
-                <h3>{{ item.title }}</h3>
-                @if (notificationAmount(item); as amount) {
-                  <p class="notification-item-amount">{{ amount }}</p>
-                }
-                <p class="notification-item-detail">
-                  @if (item.type === 'transfer_received') {
-                    from {{ notificationSender(item) }}
-                  } @else {
-                    {{ item.message }}
-                  }
-                </p>
-              </div>
-            </article>
-          }
-        </div>
+<ion-modal [isOpen]="true" (didDismiss)="closeNotifications()" class="notifications-modal">
+  <ng-template>
+    <div class="notifications-panel">
+      <div class="notifications-panel-header">
+        <h2>Notifications</h2>
+        <ion-button fill="clear" (click)="closeNotifications()">
+          <ion-icon slot="icon-only" name="close"></ion-icon>
+        </ion-button>
       </div>
-    </ng-template>
-  </ion-modal>
-}
-
-<app-period-select-sheet
-  [isOpen]="isPeriodSheetOpen"
-  title="Select Period"
-  [options]="spendingPeriodOptions"
-  [selectedId]="spendingPeriod"
-  (selected)="onSpendingPeriodSelected($event)"
-  (dismissed)="closeSpendingPeriodSheet()"
-></app-period-select-sheet>
-
-@if (isAddCurrencySheetOpen) {
-  <div class="fx-add-overlay" (click)="closeAddCurrencySheet()" role="presentation">
-    <div
-      class="fx-add-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Add currency"
-      (click)="$event.stopPropagation()"
-    >
-      <div class="fx-add-grabber" aria-hidden="true"></div>
-      <h2 class="fx-add-title">Add currency</h2>
-      <p class="fx-add-subtitle">Build your own list — start empty, add what you need.</p>
-
-      <div class="fx-add-list">
-        @for (destination of availableDestinationsToAdd; track destination.id) {
-          <button
-            type="button"
-            class="fx-add-row"
-            (click)="addTrackedCurrency(destination.id)"
-          >
-            <span class="fx-add-flag" aria-hidden="true">{{ destination.flag }}</span>
-            <span class="fx-add-meta">
-              <span class="fx-add-code">{{ destination.currencyCode }}</span>
-              <span class="fx-add-country">{{ destination.country }}</span>
-            </span>
-            <ion-icon name="add-circle-outline" class="fx-add-icon"></ion-icon>
-          </button>
+      <div class="notifications-panel-body scroll-area-visible">
+        @if (!notifications.length) {
+        <p class="notifications-empty">No notifications yet.</p>
+        }
+        @for (item of notifications; track item.id) {
+        <article class="notification-item" [class.unread]="!item.read">
+          <div class="notification-item-icon">
+            <ion-icon name="arrow-down-circle"></ion-icon>
+          </div>
+          <div class="notification-item-body">
+            <h3>{{ item.title }}</h3>
+            @if (notificationAmount(item); as amount) {
+            <p class="notification-item-amount">{{ amount }}</p>
+            }
+            <p class="notification-item-detail">
+              @if (item.type === 'transfer_received') {
+              from {{ notificationSender(item) }}
+              } @else {
+              {{ item.message }}
+              }
+            </p>
+          </div>
+        </article>
         }
       </div>
-
-      <button type="button" class="fx-add-cancel" (click)="closeAddCurrencySheet()">Cancel</button>
     </div>
+  </ng-template>
+</ion-modal>
+}
+
+<app-period-select-sheet [isOpen]="isPeriodSheetOpen" title="Select Period" [options]="spendingPeriodOptions"
+  [selectedId]="spendingPeriod" (selected)="onSpendingPeriodSelected($event)"
+  (dismissed)="closeSpendingPeriodSheet()"></app-period-select-sheet>
+
+@if (isAddCurrencySheetOpen) {
+<div class="fx-add-overlay" (click)="closeAddCurrencySheet()" role="presentation">
+  <div class="fx-add-sheet" role="dialog" aria-modal="true" aria-label="Add currency"
+    (click)="$event.stopPropagation()">
+    <div class="fx-add-grabber" aria-hidden="true"></div>
+    <h2 class="fx-add-title">Add currency</h2>
+    <p class="fx-add-subtitle">Build your own list — start empty, add what you need.</p>
+
+    <div class="fx-add-list">
+      @for (destination of availableDestinationsToAdd; track destination.id) {
+      <button type="button" class="fx-add-row" (click)="addTrackedCurrency(destination.id)">
+        <span class="fx-add-flag" aria-hidden="true">{{ destination.flag }}</span>
+        <span class="fx-add-meta">
+          <span class="fx-add-code">{{ destination.currencyCode }}</span>
+          <span class="fx-add-country">{{ destination.country }}</span>
+        </span>
+        <ion-icon name="add-circle-outline" class="fx-add-icon"></ion-icon>
+      </button>
+      }
+    </div>
+
+    <button type="button" class="fx-add-cancel" (click)="closeAddCurrencySheet()">Cancel</button>
   </div>
+</div>
 }

@@ -12,13 +12,8 @@
     <!-- Search -->
     <div class="globe-search-bar">
       <ion-icon name="search" class="search-icon"></ion-icon>
-      <input
-        type="text"
-        [(ngModel)]="searchQuery"
-        (input)="onSearchInput($event)"
-        placeholder="Search countries..."
-        class="search-input"
-      />
+      <input type="text" [(ngModel)]="searchQuery" (input)="onSearchInput($event)" placeholder="Search countries..."
+        class="search-input" />
       <ion-button *ngIf="searchQuery" fill="clear" size="small" (click)="clearSearch()">
         <ion-icon name="close-circle"></ion-icon>
       </ion-button>
@@ -72,39 +67,40 @@
         </div>
       </div>
 
-      <!-- Sidebar -->
       <div class="globe-sidebar">
-        <!-- Featured -->
         <div class="sidebar-section" *ngIf="!searchQuery">
-          <h4>✨ Featured</h4>
-          <div
-            class="sidebar-item featured"
-            *ngFor="let c of featuredCountries"
-            [class.active]="selectedCountry?.id === c.id"
-            (click)="selectFromSidebar(c)">
-            <span class="item-flag">{{ c.flag }}</span>
-            <div class="item-info">
-              <span class="item-name">{{ c.country }}</span>
-              <span class="item-meta">{{ c.currencyCode }} · {{ getDistanceFromSingapore(c) }}</span>
+          <div class="sidebar-header" (click)="toggleFeatured()"
+            style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 0 14px;">
+            <h4>✨ Featured</h4>
+            <ion-icon [name]="isFeaturedCollapsed ? 'chevron-down' : 'chevron-up'"
+              style="font-size: 12px; color: #888;"></ion-icon>
+          </div>
+
+          <div *ngIf="!isFeaturedCollapsed">
+            <div class="sidebar-item featured" *ngFor="let c of featuredCountries"
+              [class.active]="selectedCountry?.id === c.id" (click)="selectFromSidebar(c)">
+              <span class="item-flag">{{ c.flag }}</span>
+              <div class="item-info">
+                <span class="item-name">{{ c.country }}</span>
+                <span class="item-meta">{{ c.currencyCode }} · {{ getDistanceFromSingapore(c) }}</span>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- All Countries / Search Results -->
         <div class="sidebar-section" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
-          <h4>{{ searchQuery ? 'Results (' + filteredCountries.length + ')' : 'All Countries (' + allCountries.length + ')' }}</h4>
+          <h4>{{ searchQuery ? 'Results (' + filteredCountries.length + ')' : 'All Countries (' + allCountries.length +
+            ')' }}</h4>
 
-          <div *ngIf="filteredCountries.length === 0 && !isLoading" class="sidebar-empty" style="padding: 20px; text-align: center; color: #666; font-size: 13px;">
+          <div *ngIf="filteredCountries.length === 0 && !isLoading" class="sidebar-empty"
+            style="padding: 20px; text-align: center; color: #666; font-size: 13px;">
             No countries loaded. Check API connection.
           </div>
 
           <div class="sidebar-scroll" *ngIf="filteredCountries.length > 0">
-            <div
-              class="sidebar-item"
-              *ngFor="let c of filteredCountries"
-              [class.active]="selectedCountry?.id === c.id"
-              [class.featured]="countryData.isRich(c.id)"
-              [style.border-left-color]="getRegionColor(c.region)"
+            <div class="sidebar-item" *ngFor="let c of filteredCountries" [class.active]="selectedCountry?.id === c.id"
+              [class.featured]="countryData.isRich(c.id)" [style.border-left-color]="getRegionColor(c.region)"
               (click)="selectFromSidebar(c)">
               <span class="region-indicator" [style.background-color]="getRegionColor(c.region)"></span>
               <span class="item-flag">{{ c.flag }}</span>

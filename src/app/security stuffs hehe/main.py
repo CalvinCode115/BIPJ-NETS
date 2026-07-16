@@ -439,4 +439,152 @@ def debug_countries_api():
         return {"error": str(e)}
     
 
-    
+
+# ─── MULTI-CURRENCY EXCHANGE API ───
+# Add these endpoints to your main.py
+
+from fastapi import HTTPException
+from pydantic import BaseModel
+from typing import Dict, List, Optional
+from datetime import datetime
+import json
+
+# In-memory storage (replace with your DB in production)
+_exchange_wallets: Dict[str, dict] = {}
+_exchange_history: Dict[str, list] = {}
+
+class ExchangeRequest(BaseModel):
+    cardId: str
+    fromCurrency: str
+    toCurrency: str
+    amount: float
+
+class WalletResponse(BaseModel):
+    cardId: str
+    balances: Dict[str, float]
+    currencies: List[str]
+
+class ExchangeTransaction(BaseModel):
+    id: str
+    cardId: str
+    fromCurrency: str
+    toCurrency: str
+    amount: float
+    rate: float
+    fee: float
+    received: float
+    timestamp: str
+
+@app.get("/api/wallet/{card_id}")
+def get_wallet(card_id: str):
+    """Get multi-currency wallet for a card"""
+    wallet = _exchange_wallets.get(card_id, {
+        "cardId": card_id,
+        "balances": {"SGD": 500.00},
+        "currencies": ["SGD"]
+    })
+    return wallet
+
+@app.post("/api/exchange")
+def exchange_currency(req: ExchangeRequest):
+    """Exchange currency: deduct fromCurrency, add toCurrency"""
+    card_id = req.cardId
+
+    # Get or create wallet
+    wallet = _exchange_wallets.get(card_id, {
+        "cardId": card_id,
+        "balances": {"SGD": 500.00},
+        "currencies": ["SGD"]
+    })
+
+    # Validate balance
+    from_balance = wallet["balances"].get(req.fromCurrency, 0)
+    if from_balance < req.amount:
+        raise HTTPException(status_code=400, detail=f"Insufficient {req.fromCurrency} balance. Available: {from_balance:.2f}")
+
+    # Get exchange rate (use Frankfurter or fallback)
+    rate = _get_exchange_rate(req.fromCurrency, req.toCurrency)
+    if rate == 0:
+        raise HTTPException(status_code=400, detail=f"Exchange rate not available for {req.fromCurrency} → {req.toCurrency}")
+
+    # Calculate
+    fee = req.amount * 0.005  # 0.5% fee
+    amount_after_fee = req.amount - fee
+    received = amount_after_fee * rate
+
+    # Update balances
+    wallet["balances"][req.fromCurrency] = from_balance - req.amount
+    wallet["balances"][req.toCurrency] = wallet["balances"].get(req.toCurrency, 0) + received
+
+    # Track currencies
+    if req.toCurrency not in wallet["currencies"]:
+        wallet["currencies"].append(req.toCurrency)
+
+    # Save wallet
+    _exchange_wallets[card_id] = wallet
+
+    # Record transaction
+    tx = {
+        "id": f"ex_{datetime.now().strftime('%Y%m%d%H%M%S')}_{card_id}",
+        "cardId": card_id,
+        "fromCurrency": req.fromCurrency,
+        "toCurrency": req.toCurrency,
+        "amount": req.amount,
+        "rate": rate,
+        "fee": fee,
+        "received": received,
+        "timestamp": datetime.now().isoformat()
+    }
+
+    if card_id not in _exchange_history:
+        _exchange_history[card_id] = []
+    _exchange_history[card_id].insert(0, tx)
+
+    return {
+        "success": True,
+        "message": f"Successfully exchanged {req.amount:.2f} {req.fromCurrency} → {received:.2f} {req.toCurrency}",
+        "newBalances": wallet["balances"],
+        "transaction": tx
+    }
+
+@app.get("/api/exchange/history/{card_id}")
+def get_exchange_history(card_id: str, limit: int = 10):
+    """Get recent exchange transactions"""
+    history = _exchange_history.get(card_id, [])
+    return history[:limit]
+
+def _get_exchange_rate(from_curr: str, to_curr: str) -> float:
+    """Get exchange rate from Frankfurter or use fallback"""
+    try:
+        url = f"https://api.frankfurter.app/latest?from={from_curr}&to={to_curr}"
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            return data.get("rates", {}).get(to_curr, 0)
+    except Exception:
+        pass
+
+    # Fallback rates (approximate)
+    fallback = {
+        ("SGD", "MYR"): 3.45,
+        ("SGD", "THB"): 26.2,
+        ("SGD", "JPY"): 112.5,
+        ("SGD", "KRW"): 985.0,
+        ("SGD", "USD"): 0.74,
+        ("SGD", "EUR"): 0.68,
+        ("SGD", "GBP"): 0.58,
+        ("SGD", "AUD"): 1.12,
+        ("SGD", "CAD"): 1.01,
+        ("SGD", "CHF"): 0.66,
+        ("SGD", "CNY"): 5.35,
+        ("SGD", "HKD"): 5.78,
+        ("SGD", "INR"): 61.5,
+        ("SGD", "IDR"): 11500,
+        ("SGD", "PHP"): 42.5,
+        ("SGD", "VND"): 18500,
+        ("SGD", "NZD"): 1.22,
+        ("USD", "SGD"): 1.35,
+        ("EUR", "SGD"): 1.47,
+        ("GBP", "SGD"): 1.72,
+    }
+    return fallback.get((from_curr, to_curr), 1.0)    

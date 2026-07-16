@@ -5,6 +5,7 @@ import { FxTrackerService } from './fx-tracker.service';
 import { FxInsightWithPrediction } from './fx-tracker.model';
 import { DESTINATIONS, DEFAULT_DESTINATION } from '../services/destination.config';
 import { DestinationConfig } from '../services/destination.config';
+import { CardLinkedExchangeService, ExchangeRequest } from '../services/card-linked-exchange.service';
 
 Chart.register(...registerables);
 
@@ -25,6 +26,18 @@ export class FxTrackerPage implements OnInit {
   // Dynamic destination loaded from localStorage
   currentDestination: DestinationConfig = DESTINATIONS[DEFAULT_DESTINATION];
 
+  // ─── EXCHANGE FEATURE ───
+  exchangeAmount = 0;
+  exchangePreview = 0;
+  exchangeFee = 0;
+  isExchanging = false;
+  exchangeResult: { success: boolean; message: string; newBalances?: any } | null = null;
+  wallet: { cardId: string; balances: Record<string, number>; currencies: string[] } | null = null;
+  recentExchanges: any[] = [];
+
+  // Use actual card ID from localStorage or default
+  cardId: string = 'default';
+
   get baseCurrency(): string {
     return this.isReversed ? this.currentDestination.currencyCode : this.currentDestination.homeCurrencyCode;
   }
@@ -37,26 +50,37 @@ export class FxTrackerPage implements OnInit {
     return this.currentDestination.country;
   }
 
+  get currentRate(): number {
+    return this.insight?.currentRate || 0;
+  }
+
+  get walletCurrencies(): string[] {
+    return this.wallet?.currencies || ['SGD'];
+  }
+
+  get availableCurrencies(): string[] {
+    const all = ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'HKD', 'KRW', 'THB', 'MYR', 'INR', 'IDR', 'PHP', 'VND', 'NZD', 'SGD'];
+    return all.filter(c => c !== this.baseCurrency);
+  }
+
   chart: Chart | null = null;
 
   constructor(
     private fxService: FxTrackerService,
+    private exchangeService: CardLinkedExchangeService,
     private location: Location
-  ) {}
+  ) { }
 
   ngOnInit() {
-    // Load selected destination from localStorage (shared with travel page)
+    // Load selected destination from localStorage
     const savedDest = localStorage.getItem('nets_selected_destination');
     if (savedDest) {
       if (DESTINATIONS[savedDest]) {
-        // Rich destination — simple ID lookup
         this.currentDestination = DESTINATIONS[savedDest];
       } else {
-        // Exotic destination — stored as JSON object
         try {
           const parsed = JSON.parse(savedDest);
           if (parsed && parsed.id) {
-            // Ensure required fields exist
             this.currentDestination = {
               ...parsed,
               homeCurrencyCode: parsed.homeCurrencyCode || 'SGD',
@@ -68,13 +92,23 @@ export class FxTrackerPage implements OnInit {
         }
       }
     }
+
+
+    // Get card ID from localStorage (set by home page when card is selected)
+    const savedCardId = localStorage.getItem('nets_selected_card_id');
+    if (savedCardId) {
+      this.cardId = savedCardId;
+    }
+
     this.loadFxData();
+    this.loadWallet();
   }
 
   setDirection(reversed: boolean) {
     if (this.isReversed === reversed) return;
     this.isReversed = reversed;
     this.loadFxData();
+    this.updateExchangePreview();
   }
 
   loadFxData() {
@@ -86,7 +120,6 @@ export class FxTrackerPage implements OnInit {
       this.chart = null;
     }
 
-    // Pass destination object — prediction is included!
     this.fxService.getFxInsightWithPrediction(this.currentDestination, 30).subscribe({
       next: (insight) => {
         this.insight = insight;
@@ -100,6 +133,124 @@ export class FxTrackerPage implements OnInit {
       }
     });
   }
+
+  // ─── EXCHANGE METHODS ───
+
+  loadWallet() {
+    const wallet = this.exchangeService.getWallet(this.cardId, this.getCurrentSgdBalance());
+    this.wallet = {
+      cardId: wallet.cardId,
+      balances: { SGD: wallet.primaryBalance, ...this.currenciesToRecord(wallet.currencies) },
+      currencies: ['SGD', ...wallet.currencies.map(c => c.currency)]
+    };
+  }
+
+  private getCurrentSgdBalance(): number {
+    // Try to get from localStorage (set by home page)
+    const saved = localStorage.getItem('nets_current_sgd_balance');
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed)) return parsed;
+    }
+    return 500; // Default
+  }
+
+  private currenciesToRecord(currencies: any[]): Record<string, number> {
+    const result: Record<string, number> = {};
+    for (const c of currencies) {
+      result[c.currency] = c.amount;
+    }
+    return result;
+  }
+
+  updateExchangePreview() {
+    if (this.exchangeAmount <= 0) {
+      this.exchangePreview = 0;
+      this.exchangeFee = 0;
+      return;
+    }
+    const rate = this.currentRate || 0;
+    this.exchangeFee = this.exchangeAmount * 0.005;
+    const amountAfterFee = this.exchangeAmount - this.exchangeFee;
+    this.exchangePreview = amountAfterFee * rate;
+  }
+
+  canExchange(): boolean {
+    if (!this.wallet || this.exchangeAmount <= 0) return false;
+    const balance = this.wallet.balances[this.baseCurrency] || 0;
+    return this.exchangeAmount <= balance;
+  }
+
+  executeExchange() {
+    this.doExchange();
+  }
+
+  doExchange() {
+    if (!this.canExchange()) return;
+    this.isExchanging = true;
+    this.exchangeResult = null;
+
+    const result = this.exchangeService.exchange({
+      cardId: this.cardId,
+      fromCurrency: this.baseCurrency,
+      toCurrency: this.targetCurrency,
+      amount: this.exchangeAmount
+    }, this.getCurrentSgdBalance());
+
+    // FIX: Update localStorage FIRST with new SGD balance
+    if (result.success && result.newBalances) {
+      const newSgdBalance = result.newBalances['SGD'] || result.newBalances['sgd'];
+      if (newSgdBalance !== undefined) {
+        localStorage.setItem('nets_current_sgd_balance', String(newSgdBalance));
+      }
+    }
+
+    this.isExchanging = false;
+    this.exchangeResult = result;
+
+    if (result.success) {
+      // Now loadWallet will read the updated localStorage
+      this.loadWallet();
+
+      // Dispatch event to notify home page
+      window.dispatchEvent(new CustomEvent('nets:exchangeCompleted', {
+        detail: { cardId: this.cardId, newBalances: result.newBalances }
+      }));
+    }
+
+    this.exchangeAmount = 0;
+    this.updateExchangePreview();
+  }
+
+  swapExchangeDirection() {
+    this.swapDirection();
+  }
+
+  swapDirection() {
+    this.isReversed = !this.isReversed;
+    this.updateExchangePreview();
+  }
+
+  formatBalance(value: number, currency: string): string {
+    return (value || 0).toFixed(2);
+  }
+
+  getCurrencyFlag(currency: string): string {
+    const flags: Record<string, string> = {
+      SGD: '🇸🇬', MYR: '🇲🇾', THB: '🇹🇭', JPY: '🇯🇵', KRW: '🇰🇷',
+      AUD: '🇦🇺', USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', CNY: '🇨🇳',
+      HKD: '🇭🇰', CAD: '🇨🇦', CHF: '🇨🇭', INR: '🇮🇳', IDR: '🇮🇩',
+      PHP: '🇵🇭', VND: '🇻🇳', NZD: '🇳🇿'
+    };
+    return flags[currency] || '💱';
+  }
+
+  getWalletCurrencies(): string[] {
+    return this.wallet?.currencies || ['SGD'];
+  }
+
+  // ─── CHART & UI ───
+
   renderChart() {
     if (!this.fxChartRef || !this.insight) return;
     const ctx = this.fxChartRef.nativeElement.getContext('2d');
@@ -111,7 +262,6 @@ export class FxTrackerPage implements OnInit {
     const upper = this.insight.prediction.confidenceUpper;
     const lower = this.insight.prediction.confidenceLower;
 
-    // All dates for x-axis
     const histLabels = hist.map(r => {
       const d = new Date(r.date);
       return `${d.getDate()}/${d.getMonth() + 1}`;
@@ -121,14 +271,9 @@ export class FxTrackerPage implements OnInit {
       return `${d.getDate()}/${d.getMonth() + 1}`;
     });
 
-    // Gap between historical and prediction (connecting point)
     const allLabels = [...histLabels, ...predLabels];
-
-    // Historical data + null padding for prediction period
     const histData = [...hist.map(r => r.rate), ...new Array(pred.length).fill(null)];
-    // Null padding for historical period + prediction data
     const predData = [...new Array(hist.length - 1).fill(null), hist[hist.length - 1].rate, ...pred.map(r => r.rate)];
-    // Confidence bands
     const upperData = [...new Array(hist.length).fill(null), ...upper];
     const lowerData = [...new Array(hist.length).fill(null), ...lower];
 
@@ -141,7 +286,6 @@ export class FxTrackerPage implements OnInit {
       data: {
         labels: allLabels,
         datasets: [
-          // Confidence band (fill between upper and lower)
           {
             label: 'Confidence',
             data: upperData,
@@ -159,7 +303,6 @@ export class FxTrackerPage implements OnInit {
             pointRadius: 0,
             pointHoverRadius: 0,
           },
-          // Historical line (solid)
           {
             label: `${this.baseCurrency} → ${this.targetCurrency} (Historical)`,
             data: histData,
@@ -174,7 +317,6 @@ export class FxTrackerPage implements OnInit {
             pointBorderColor: '#fff',
             pointBorderWidth: 2,
           },
-          // Prediction line (dotted)
           {
             label: '7-Day Forecast',
             data: predData,
@@ -204,7 +346,7 @@ export class FxTrackerPage implements OnInit {
               usePointStyle: true,
               pointStyle: 'circle',
               font: { size: 11 },
-              filter: (item) => item.text !== 'Confidence' && item.text !== 'Confidence Lower',
+              filter: (item: any) => item.text !== 'Confidence' && item.text !== 'Confidence Lower',
             }
           },
           tooltip: {
@@ -215,7 +357,7 @@ export class FxTrackerPage implements OnInit {
             padding: 12,
             displayColors: true,
             callbacks: {
-              label: (context) => {
+              label: (context: any) => {
                 const value = context.parsed.y;
                 if (value == null) return '';
                 const isPred = context.dataset.label?.includes('Forecast');
@@ -231,7 +373,7 @@ export class FxTrackerPage implements OnInit {
           },
           y: {
             grid: { color: '#f0f0f0' },
-            ticks: { color: '#8e8e93', font: { size: 10 }, callback: (v) => Number(v).toFixed(4) }
+            ticks: { color: '#8e8e93', font: { size: 10 }, callback: (v: any) => Number(v).toFixed(4) }
           }
         }
       }

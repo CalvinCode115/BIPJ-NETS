@@ -18,9 +18,10 @@ import {
   clearLowBalanceDismiss,
   isLowBalanceAlertsEnabled,
 } from '../../utils/notification-preferences';
-import { FxTrackerService} from 'src/app/fx-tracker/fx-tracker.service';
+import { FxTrackerService } from 'src/app/fx-tracker/fx-tracker.service';
 import { DESTINATIONS, DestinationConfig } from '../../services/destination.config';
-
+import { CardLinkedExchangeService, CardCurrencyBalance } from '../../services/card-linked-exchange.service';
+import { MultiCurrencyService } from 'src/app/services/multi-currency.service';
 interface AccountTab {
   id: CardType;
   label: string;
@@ -141,7 +142,8 @@ export class HomePage {
     private transactionsService: TransactionsService,
     private notificationsService: NotificationsService,
     private fxTrackerService: FxTrackerService,
-  ) {}
+    private cardExchange: CardLinkedExchangeService,
+  ) { }
 
   quickActions: QuickAction[] = [
     { label: 'Pay', icon: 'paper-plane', color: '#d71920', route: '/tabs/pay' },
@@ -160,7 +162,7 @@ export class HomePage {
     color: '#6c63ff',
     bg: '#ede7f6',
   };
-
+  cardCurrencyBalances: CardCurrencyBalance[] = [];
   dnaTraits: string[] = [];
   insightLoadError = '';
   notifications: AppNotification[] = [];
@@ -227,9 +229,26 @@ export class HomePage {
     if (this.currentCard) {
       this.isCardActivityLoading = true;
     }
+
+    const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
+    const skipReload = exchangeTime && (Date.now() - parseInt(exchangeTime, 10) < 30000);
+
+    window.addEventListener('nets:travelPaymentCompleted', () => {
+      this.loadMultiCurrencyBalances();
+    });
+
+    if (!skipReload) {
+      this.loadCardsForUser(user?.id ?? 'user_1');
+    } else {
+      // Just sync the selected card without backend call
+      this.syncSelectedCard();
+    }
     this.loadTrackedCurrencies();
     this.loadCardsForUser(user?.id ?? 'user_1');
+    this.loadMultiCurrencyBalances();
     this.loadNotifications(user?.id ?? 'user_1', showLoginAlerts);
+    this.loadMultiCurrencyBalances();
+    this.setupExchangeListener();
   }
 
   ionViewWillLeave(): void {
@@ -1199,12 +1218,40 @@ export class HomePage {
 
   private syncSelectedCard(): void {
     this.topUpError = '';
-    // Keep the last real card when user is on the "Add card" carousel slide.
-    // Made Pay/QR show "No card selected".
+
+    // CHECK: Did an exchange just happen? Use that balance instead of backend's
+    const pendingExchange = localStorage.getItem('nets_pending_exchange_balance');
+    const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
+    if (pendingExchange && exchangeTime) {
+      const timeDiff = Date.now() - parseInt(exchangeTime, 10);
+      if (timeDiff < 30000) { // Within last 30 seconds, trust the exchange balance
+        const exchangedBalance = parseFloat(pendingExchange);
+        if (!isNaN(exchangedBalance) && this.currentCard) {
+          this.currentCard.balance = exchangedBalance;
+          // Also update cardsByType
+          const type = this.currentCard.cardType;
+          this.cardsByType[type] = this.cardsByType[type].map((card) =>
+            card.id === this.currentCard!.id ? { ...card, balance: exchangedBalance } : card
+          );
+        }
+      } else {
+        // Older than 30s, clear the pending flag
+        localStorage.removeItem('nets_pending_exchange_balance');
+        localStorage.removeItem('nets_exchange_applied_at');
+      }
+    }
+
     if (this.currentCard) {
       this.cardContext.selectCard(this.currentCard);
       this.maybeClearLowBalanceDismiss(this.currentCard);
     }
+
+    if (this.currentCard) {
+      localStorage.setItem('nets_selected_card_id', this.currentCard.id || 'default');
+      localStorage.setItem('nets_current_sgd_balance', String(this.cardFundsAmount));
+    }
+
+    this.loadMultiCurrencyBalances();
   }
 
   private reloadCardActivity(): void {
@@ -1362,6 +1409,7 @@ export class HomePage {
       card.id === updatedCard.id ? { ...updatedCard } : card
     );
     this.maybeClearLowBalanceDismiss(updatedCard);
+    this.loadMultiCurrencyBalances();
   }
 
   private maybeClearLowBalanceDismiss(card: WalletCard): void {
@@ -1377,5 +1425,50 @@ export class HomePage {
   private formatCardNumber(digits: string): string {
     const clean = digits.replace(/\s/g, '').slice(0, 16);
     return `${clean.slice(0, 4)} ${clean.slice(4, 8)} ${clean.slice(8, 12)} ${clean.slice(12, 16)}`;
+  }
+
+  loadMultiCurrencyBalances(): void {
+    const card = this.currentCard;
+    if (!card?.id) { this.cardCurrencyBalances = []; return; }
+    const sgdBalance = this.cardFundsAmount;
+    this.cardCurrencyBalances = this.cardExchange.getAllCurrencies(card.id, sgdBalance);
+  }
+
+  formatMultiCurrencyAmount(curr: CardCurrencyBalance): string {
+    return this.cardExchange.getCurrencySymbol(curr.currency) + this.cardExchange.formatAmount(curr.amount, curr.currency);
+  }
+
+  goToFxTracker(): void {
+    this.router.navigate(['/tabs/fx-tracker']);
+  }
+
+  private setupExchangeListener(): void {
+    window.addEventListener('nets:exchangeCompleted', (event: any) => {
+      const detail = event.detail;
+      if (detail?.newBalances && this.currentCard) {
+        const newSgdBalance = detail.newBalances['SGD'] || detail.newBalances['sgd'];
+        if (newSgdBalance !== undefined) {
+          // 1. Update the card object immediately
+          this.currentCard.balance = newSgdBalance;
+
+          // 2. Update in cardsByType
+          const type = this.currentCard.cardType;
+          this.cardsByType[type] = this.cardsByType[type].map((card) =>
+            card.id === this.currentCard!.id ? { ...card, balance: newSgdBalance } : card
+          );
+
+          // 3. Write to localStorage BEFORE anything else can overwrite it
+          localStorage.setItem('nets_current_sgd_balance', String(newSgdBalance));
+          localStorage.setItem('nets_exchange_applied_at', Date.now().toString());
+
+          // 4. Mark that we have a pending exchange so loadCardsForUser doesn't overwrite
+          localStorage.setItem('nets_pending_exchange_balance', String(newSgdBalance));
+        }
+      }
+      this.loadMultiCurrencyBalances();
+    });
+      window.addEventListener('nets:travelPaymentCompleted', () => {
+    this.loadMultiCurrencyBalances();
+  });
   }
 }

@@ -35,6 +35,7 @@ import {
 } from './travel.model';
 
 import { PackingItem, WeatherService, DailyForecast } from './weather.service';
+import { CardCurrencyBalance, CardLinkedExchangeService } from '../services/card-linked-exchange.service';
 @Component({
   selector: 'app-travel',
   templateUrl: './travel.page.html',
@@ -120,6 +121,12 @@ export class TravelPage implements OnInit {
   places: any[] = [];
   placesApiKey: string = '';
 
+  multiCurrencyBalances: CardCurrencyBalance[] = [];
+  paymentCurrency: string = 'SGD';
+  paymentInForeignCurrency: boolean = false;
+
+  tripDurationOptions = [1, 2, 3, 4, 5, 6, 7, 10, 14];
+  selectedTripDuration = 4;
   constructor(
     private http: HttpClient,
     private travelService: TravelService,
@@ -131,7 +138,8 @@ export class TravelPage implements OnInit {
     public weatherService: WeatherService,
     private cache: CacheService,
     private modalCtrl: ModalController,
-    private countryData: CountryDataService
+    private countryData: CountryDataService,
+    public cardExchange: CardLinkedExchangeService,
   ) { }
 
   ngOnInit() {
@@ -164,6 +172,7 @@ export class TravelPage implements OnInit {
     this.loadAll();
     if (this.isTripMode) this.loadBudget();
     this.loadActiveCard();
+    this.loadMultiCurrencyBalances();
 
     // Only load budget if in trip mode
     if (this.isTripMode) {
@@ -188,42 +197,42 @@ export class TravelPage implements OnInit {
 
 
   // ========== TRAVEL DATA ==========
-// Update loadTravelData to call onPlacesLoaded
-loadTravelData() {
-  this.isLoading = true;
-  this.error = null;
-  const now = new Date();
+  // Update loadTravelData to call onPlacesLoaded
+  loadTravelData() {
+    this.isLoading = true;
+    this.error = null;
+    const now = new Date();
 
-  this.travelService.getTravelRecommendations(
-    this.userId,
-    this.currentDestination,
-    now.getMonth() + 1,
-    now.getFullYear()
-  ).subscribe({
-    next: (result) => {
-      this.recommendations = result.dnaPicks || [];
-      this.categories = (result.categories || []).map((cat: CategorySection) => ({
-        ...cat,
-        visibleCount: 3
-      }));
-      this.places = result.places || [];
+    this.travelService.getTravelRecommendations(
+      this.userId,
+      this.currentDestination,
+      now.getMonth() + 1,
+      now.getFullYear()
+    ).subscribe({
+      next: (result) => {
+        this.recommendations = result.dnaPicks || [];
+        this.categories = (result.categories || []).map((cat: CategorySection) => ({
+          ...cat,
+          visibleCount: 3
+        }));
+        this.places = result.places || [];
 
-      if (result.budget && !this.budget) {
-        this.budget = result.budget;
-        this.saveBudget();
+        if (result.budget && !this.budget) {
+          this.budget = result.budget;
+          this.saveBudget();
+        }
+
+        // ← KEY: trigger itinerary rebuild now that places are here
+        this.onPlacesLoaded();
+
+        this.isLoading = false;
+      },
+      error: (err: any) => {
+        this.error = err.message || 'Something went wrong';
+        this.isLoading = false;
       }
-
-      // ← KEY: trigger itinerary rebuild now that places are here
-      this.onPlacesLoaded();
-
-      this.isLoading = false;
-    },
-    error: (err: any) => {
-      this.error = err.message || 'Something went wrong';
-      this.isLoading = false;
-    }
-  });
-}
+    });
+  }
 
 
   loadMoreCards(category: CategorySection) {
@@ -365,13 +374,6 @@ loadTravelData() {
     });
   }
 
-  openPaymentModal(venue: RecommendationCard) {
-    this.selectedVenue = venue;
-    this.paymentAmount = this.estimateAmount(venue.priceLevel);
-    this.paymentAmountText = this.paymentAmount > 0 ? String(this.paymentAmount) : '';
-    this.isPaymentModalOpen = true;
-  }
-
   closePaymentModal() {
     this.isPaymentModalOpen = false;
     this.selectedVenue = null;
@@ -397,39 +399,6 @@ loadTravelData() {
     const { text, amount } = sanitizeDecimalAmountInput(String(event.detail.value ?? ''));
     this.paymentAmountText = text;
     this.paymentAmount = amount;
-  }
-
-  confirmPayment() {
-    if (!this.budget || !this.selectedVenue || this.paymentAmount < 0.01) return;
-
-    this.isPaying = true;
-    const category = this.inferCategory(this.selectedVenue.venueName);
-
-    setTimeout(() => {
-      this.budget!.spentSoFar += this.paymentAmount;
-      this.budget!.remaining = Math.max(0, this.budget!.typicalTripSpend - this.budget!.spentSoFar);
-      this.budget!.percentage = Math.min(
-        100,
-        (this.budget!.spentSoFar / this.budget!.typicalTripSpend) * 100
-      );
-
-      this.transactions.unshift({
-        id: Date.now().toString(),
-        venueName: this.selectedVenue!.venueName,
-        amount: this.paymentAmount,
-        timestamp: new Date().toISOString(),
-        cardLabel: this.activeCard ? formatCardPaymentLabel(this.activeCard) : 'NETS Card',
-        category
-      });
-
-      if (this.transactions.length > 5) {
-        this.transactions = this.transactions.slice(0, 5);
-      }
-
-      this.saveBudget();
-      this.isPaying = false;
-      this.closePaymentModal();
-    }, 800);
   }
 
   // ========== CARD DISPLAY HELPERS ==========
@@ -577,18 +546,20 @@ loadTravelData() {
 
   confirmBudgetAndStartTrip() {
     const budget = this.customBudget ? parseInt(this.customBudget) : this.selectedBudgetOption;
+    const duration = this.selectedTripDuration;
 
     if (!budget || budget < 50) {
-      // Show error or just use minimum
       return;
     }
 
     this.isBudgetPickerOpen = false;
-    this.enterTripMode(budget);
+    this.enterTripMode(budget, duration);  // Pass duration
   }
 
+
   // Updated enterTripMode with user-selected budget
-  enterTripMode(budgetAmount: number) {
+  enterTripMode(budgetAmount: number, durationDays: number = 4) {
+    this.tripTotalDays = durationDays;
     this.isTripMode = true;
     this.tripStartDate = new Date().toISOString();
     this.tripDay = 1;
@@ -667,8 +638,9 @@ loadTravelData() {
         this.isTripMode = parsed.active;
         this.tripStartDate = parsed.startDate;
         this.tripDay = parsed.day || 1;
+        this.tripTotalDays = parsed.duration || 4;  // ADD THIS
+        this.selectedTripDuration = parsed.duration || 4;  // ADD THIS
 
-        // Restore budget if saved
         if (parsed.budget && !this.budget) {
           this.budget = {
             spentSoFar: 0,
@@ -1305,27 +1277,173 @@ loadTravelData() {
     return `${this.currentDestination.name}, ${this.currentDestination.country}`;
   }
 
-private loadForecastAndBuildItinerary() {
-  this.weatherService.getForecast(this.currentDestination).subscribe({
-    next: (forecast) => {
-      this.forecast = forecast;
-      this.packingList = this.weatherService.getPackingList(forecast, this.currentDestination);
-      
-      // Try to build itinerary — places might already be loaded from cache
-      this.tryBuildWeatherItinerary();
-    }
-  });
-}
+  private loadForecastAndBuildItinerary() {
+    this.weatherService.getForecast(this.currentDestination).subscribe({
+      next: (forecast) => {
+        this.forecast = forecast;
+        this.packingList = this.weatherService.getPackingList(forecast, this.currentDestination);
 
-private onPlacesLoaded() {
-  // Try to build itinerary — forecast might already be loaded
-  this.tryBuildWeatherItinerary();
-}
-
-/** Safe rebuild — only runs when BOTH places AND forecast are ready */
-private tryBuildWeatherItinerary() {
-  if (this.places.length > 0 && this.forecast.length > 0) {
-    this.buildWeatherItinerary();
+        // Try to build itinerary — places might already be loaded from cache
+        this.tryBuildWeatherItinerary();
+      }
+    });
   }
-}
+
+  private onPlacesLoaded() {
+    // Try to build itinerary — forecast might already be loaded
+    this.tryBuildWeatherItinerary();
+  }
+
+  /** Safe rebuild — only runs when BOTH places AND forecast are ready */
+  private tryBuildWeatherItinerary() {
+    if (this.places.length > 0 && this.forecast.length > 0) {
+      this.buildWeatherItinerary();
+    }
+  }
+
+  // ========== MULTI-CURRENCY PAYMENT ==========
+
+  loadMultiCurrencyBalances() {
+    if (!this.activeCard?.id) {
+      this.multiCurrencyBalances = [];
+      return;
+    }
+    const sgdBalance = getCardFundsAmount(this.activeCard);
+    this.multiCurrencyBalances = this.cardExchange.getAllCurrencies(this.activeCard.id, sgdBalance);
+  }
+
+  getCurrencyBalance(currency: string): number {
+    const balance = this.multiCurrencyBalances.find(b => b.currency === currency);
+    return balance?.amount || 0;
+  }
+
+  hasSufficientBalance(amount: number, currency: string): boolean {
+    return this.getCurrencyBalance(currency) >= amount;
+  }
+
+  get paymentCurrencySymbol(): string {
+    return this.cardExchange.getCurrencySymbol(this.paymentCurrency);
+  }
+
+  // Override openPaymentModal to handle foreign currency
+  openPaymentModal(venue: RecommendationCard) {
+    this.selectedVenue = venue;
+    this.paymentCurrency = this.currentDestination.currencyCode || 'SGD';
+    this.paymentInForeignCurrency = this.paymentCurrency !== 'SGD';
+
+    // Estimate amount in destination currency
+    const estimatedSgd = this.estimateAmount(venue.priceLevel);
+    if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
+      // Convert SGD estimate to foreign currency
+      this.paymentAmount = Math.round(estimatedSgd * this.fxInsight.currentRate);
+    } else {
+      this.paymentAmount = estimatedSgd;
+    }
+
+    this.paymentAmountText = this.paymentAmount > 0 ? String(this.paymentAmount) : '';
+
+    // Load latest balances before showing modal
+    this.loadMultiCurrencyBalances();
+
+    this.isPaymentModalOpen = true;
+  }
+
+  confirmPayment() {
+    if (!this.budget || !this.selectedVenue || this.paymentAmount < 0.01) return;
+
+    // Check balance in the correct currency
+    if (!this.hasSufficientBalance(this.paymentAmount, this.paymentCurrency)) {
+      const bal = this.getCurrencyBalance(this.paymentCurrency);
+      const sym = this.paymentCurrencySymbol;
+      alert(`Insufficient ${this.paymentCurrency} balance.\n\nAvailable: ${sym}${bal.toFixed(2)}\nNeed: ${sym}${this.paymentAmount.toFixed(2)}\n\nPlease exchange currency in FX Tracker first.`);
+      return;
+    }
+
+    this.isPaying = true;
+    const category = this.inferCategory(this.selectedVenue.venueName);
+
+    setTimeout(() => {
+      // Deduct from the correct currency balance
+      const cardId = this.activeCard?.id || 'default';
+      const sgdBalance = getCardFundsAmount(this.activeCard);
+
+      const deductResult = this.cardExchange.deductFromCurrency(
+        cardId,
+        this.paymentCurrency,
+        this.paymentAmount,
+        sgdBalance
+      );
+
+      if (!deductResult.success) {
+        alert(deductResult.message);
+        this.isPaying = false;
+        return;
+      }
+
+      // Calculate SGD equivalent for budget tracking
+      let sgdEquivalent: number;
+      if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
+        sgdEquivalent = this.paymentAmount / this.fxInsight.currentRate;
+      } else {
+        sgdEquivalent = this.paymentAmount;
+      }
+
+      // Update travel budget
+      this.budget!.spentSoFar += sgdEquivalent;
+      this.budget!.remaining = Math.max(0, this.budget!.typicalTripSpend - this.budget!.spentSoFar);
+      this.budget!.percentage = Math.min(
+        100,
+        (this.budget!.spentSoFar / this.budget!.typicalTripSpend) * 100
+      );
+
+      // Record transaction
+      this.transactions.unshift({
+        id: Date.now().toString(),
+        venueName: this.selectedVenue!.venueName,
+        amount: sgdEquivalent,
+        timestamp: new Date().toISOString(),
+        cardLabel: this.activeCard ? formatCardPaymentLabel(this.activeCard) : 'NETS Card',
+        category,
+      });
+
+      if (this.transactions.length > 5) {
+        this.transactions = this.transactions.slice(0, 5);
+      }
+
+      this.saveBudget();
+      this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== this.selectedVenue?.venueName);
+      this.savePlan();
+
+
+      // Update home page via event
+      window.dispatchEvent(new CustomEvent('nets:travelPaymentCompleted', {
+        detail: {
+          cardId: cardId,
+          currency: this.paymentCurrency,
+          amount: this.paymentAmount,
+          sgdEquivalent: sgdEquivalent,
+          venue: this.selectedVenue?.venueName,
+          newBalances: deductResult.newBalances
+        }
+      }));
+
+      // Reload balances to reflect deduction
+      this.loadMultiCurrencyBalances();
+
+      this.isPaying = false;
+      this.closePaymentModal();
+    }, 800);
+  }
+
+  getCurrencySymbol(currency: string): string {
+    return this.cardExchange.getCurrencySymbol(currency);
+  }
+
+  // Update payment modal HTML to show currency
+  get paymentCurrencyLabel(): string {
+    return this.getCurrencySymbol(this.paymentCurrency);
+  }
+  selectTripDuration(days: number) {
+    this.selectedTripDuration = days;
+  }
 }

@@ -39,25 +39,23 @@
     <p>{{ weatherService.getDayAdvice(forecast[activeDayIndex]) }}</p>
   </div>
 
-<ion-card class="packing-card" *ngIf="packingList.length > 0">
-  <ion-card-header>
-    <ion-card-title>🎒 Smart Packing List</ion-card-title>
-    <ion-card-subtitle>Based on your 5-day forecast</ion-card-subtitle>
-  </ion-card-header>
-  <ion-card-content>
-    <div class="packing-grid">
-      <div class="pack-item" *ngFor="let item of packingList">
-        <ion-checkbox 
-          [checked]="item.checked"
-          (ionChange)="item.checked = $event.detail.checked">
-        </ion-checkbox>
-        <span [class.checked]="item.checked">{{ item.text }}</span>
+  <ion-card class="packing-card" *ngIf="packingList.length > 0">
+    <ion-card-header>
+      <ion-card-title>🎒 Smart Packing List</ion-card-title>
+      <ion-card-subtitle>Based on your {{ selectedTripDuration }}-day forecast</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="packing-grid">
+        <div class="pack-item" *ngFor="let item of packingList">
+          <ion-checkbox [checked]="item.checked" (ionChange)="item.checked = $event.detail.checked">
+          </ion-checkbox>
+          <span [class.checked]="item.checked">{{ item.text }}</span>
+        </div>
       </div>
-    </div>
-  </ion-card-content>
-</ion-card>
+    </ion-card-content>
+  </ion-card>
 
-  <!-- ── 3-DAY ITINERARY ── -->
+  <!-- ── WEATHER-OPTIMIZED ITINERARY ── -->
   <ion-card class="itinerary-card" *ngIf="itinerary.length > 0">
     <ion-card-header>
       <ion-card-title>🗓️ Weather-Optimized Itinerary</ion-card-title>
@@ -78,7 +76,6 @@
 
         <div class="day-activities">
           <div class="activity-chip" *ngFor="let place of plan.activities">
-            <!-- Use method on component instead of service in template -->
             <span class="activity-type">{{ isIndoorPlace(place.types) ? '🏠' : '🌳' }}</span>
             <span>{{ place.displayName?.text || place.name }}</span>
           </div>
@@ -99,7 +96,6 @@
     </ion-card-header>
     <ion-list>
       <ion-item *ngFor="let place of weatherSortedPlaces.slice(0, 5)">
-        <!-- Use your existing photo proxy instead of exposing API key -->
         <ion-thumbnail slot="start" *ngIf="place.photos?.[0]">
           <img [src]="'http://localhost:8000/api/photo?photo_name=' + place.photos[0].name" />
         </ion-thumbnail>
@@ -121,7 +117,7 @@
   <div class="trip-toggle-bar">
     <div class="trip-toggle-label">
       <ion-icon [name]="isTripMode ? 'airplane' : 'home'"></ion-icon>
-      <span>{{ isTripMode ? '✈️ In JB · Day ' + tripDay + ' of ' + tripTotalDays : '🏠 Planning at Home' }}</span>
+      <span>{{ isTripMode ? '✈️ In ' + currentDestination.name + ' · Day ' + tripDay + ' of ' + tripTotalDays : '🏠 Planning at Home' }}</span>
     </div>
     <ion-toggle #tripToggle [checked]="isTripMode" (ionChange)="toggleTripMode()"></ion-toggle>
   </div>
@@ -130,24 +126,23 @@
   <div class="budget-widget" *ngIf="budget && isTripMode">
     <div class="budget-header">
       <ion-icon name="wallet-outline" style="color: var(--nets-red);"></ion-icon>
-      <span class="budget-title">{{ isTripMode ? 'Trip Budget' : 'Planned Budget' }}</span>
+      <span class="budget-title">Trip Budget</span>
       <span class="budget-amount">${{ budget.spentSoFar | number:'1.2-2' }} / ${{ budget.typicalTripSpend |
         number:'1.2-2' }}</span>
     </div>
     <div class="budget-bar-bg">
       <div class="budget-bar-fill" [style.width.%]="budget.percentage" [style.background]="getBudgetColor()"></div>
     </div>
-    <p class="budget-remaining">${{ budget.remaining | number:'1.2-2' }} remaining</p>
+    <p class="budget-remaining">${{ budget.remaining | number:'1.2-2' }} remaining · {{ tripTotalDays }} days</p>
 
-    <!-- Simulator Button (Trip Mode Only) -->
+    <!-- Simulator Button -->
     <ion-button *ngIf="isTripMode" expand="block" fill="clear" size="small" class="simulator-btn"
       (click)="openSimulator()">
       <ion-icon name="options-outline" slot="start"></ion-icon>
       Budget Simulator
     </ion-button>
 
-
-    <!-- Smart Advisor (Trip Mode Only) -->
+    <!-- Smart Advisor -->
     <div class="smart-advisor" *ngIf="isTripMode">
       <div class="advisor-card pace-card">
         <div class="pace-header">
@@ -175,7 +170,7 @@
       <div class="advisor-card allowance-card" *ngIf="daysRemaining > 0">
         <ion-icon name="calendar-outline"></ion-icon>
         <div class="allowance-text">
-          <span class="allowance-label">{{ daysRemaining }} days left</span>
+          <span class="allowance-label">{{ daysRemaining }} of {{ tripTotalDays }} days left</span>
           <span class="allowance-value">${{ dailyAllowanceRemaining | number:'1.0-0' }}/day to stay on track</span>
         </div>
       </div>
@@ -197,27 +192,45 @@
       </div>
     </div>
   </div>
-  <!-- Plan Section (Planning Mode — shown separately) -->
-  <div class="plan-section plan-mode" *ngIf="!isTripMode && plannedVenues.length > 0">
+
+  <!-- PLAN SECTION — Visible in BOTH modes -->
+  <div class="plan-section" *ngIf="plannedVenues.length > 0">
     <div class="plan-header">
       <ion-icon name="list-outline"></ion-icon>
       <span>Your Plan ({{ plannedVenues.length }})</span>
-      <span class="plan-header-sub">Tap to view details</span>
+      <span class="plan-header-sub" *ngIf="!isTripMode">Tap to view details</span>
+      <span class="plan-header-sub" *ngIf="isTripMode">Ready to explore!</span>
     </div>
+
     <div class="plan-list">
       <div class="plan-item" *ngFor="let venue of plannedVenues" (click)="openDetailModal(venue)">
         <div class="plan-image" *ngIf="venue.photoUrl" [style.backgroundImage]="'url(' + venue.photoUrl + ')'"></div>
         <div class="plan-image placeholder" *ngIf="!venue.photoUrl">
           <ion-icon name="compass-outline"></ion-icon>
         </div>
+
         <div class="plan-info">
           <span class="plan-name">{{ venue.venueName }}</span>
-          <span class="plan-meta">{{ getStars(venue.rating) }} {{ venue.rating }} · {{ getPriceLevel(venue.priceLevel)
-            }}</span>
+          <span class="plan-meta">{{ getStars(venue.rating) }} {{ venue.rating }} · {{ getPriceLevel(venue.priceLevel) }}</span>
         </div>
-        <ion-button fill="clear" size="small" (click)="removeFromPlan(venue); $event.stopPropagation()">
+
+        <!-- Planning Mode: Remove button -->
+        <ion-button *ngIf="!isTripMode" fill="clear" size="small"
+          (click)="removeFromPlan(venue); $event.stopPropagation()">
           <ion-icon name="close-circle" color="danger"></ion-icon>
         </ion-button>
+
+        <!-- Trip Mode: Pay + Directions -->
+        <div class="plan-trip-actions" *ngIf="isTripMode" (click)="$event.stopPropagation()">
+          <ion-button fill="clear" size="small" class="directions-btn" (click)="openInMaps(venue)">
+            <ion-icon name="navigate-outline"></ion-icon>
+            <span class="action-label">Go</span>
+          </ion-button>
+          <ion-button fill="clear" size="small" class="pay-btn" (click)="openPaymentModal(venue)">
+            <ion-icon name="card-outline"></ion-icon>
+            <span class="action-label">Pay</span>
+          </ion-button>
+        </div>
       </div>
     </div>
   </div>
@@ -226,7 +239,7 @@
   <div class="loading-container" *ngIf="isLoading">
     <ion-spinner name="crescent" color="primary" style="color: var(--nets-red);"></ion-spinner>
     <p class="loading-text">Analyzing your DNA...</p>
-    <p class="loading-sub">Curating spots in Johor Bahru just for you</p>
+    <p class="loading-sub">Curating spots just for you</p>
   </div>
 
   <!-- Error State -->
@@ -306,7 +319,6 @@
             <span class="stars-small">{{ getStars(card.rating) }}</span>
             <span *ngIf="card.rating">{{ card.rating }}</span>
           </div>
-          <!-- Category budget indicator (Trip Mode only) -->
           <div class="cat-budget-indicator" *ngIf="isTripMode && categoryBudgets[getCategoryFromCard(card)] > 0">
             <div class="cat-budget-bar">
               <div class="cat-budget-fill" [style.width.%]="getCategoryBudgetPercent(card)"
@@ -513,7 +525,6 @@
             <span class="sim-slider-max">${{ budget?.typicalTripSpend | number:'1.0-0' }}</span>
           </div>
 
-          <!-- Show if already spent in this category -->
           <div class="sim-cat-spent" *ngIf="cat.current > 0">
             Already spent: ${{ cat.current | number:'1.0-0' }} ·
             <span [class.over]="cat.current > cat.adjusted">
@@ -546,7 +557,7 @@
 
       <div class="report-header">
         <div class="report-badge">🛫 Trip Complete</div>
-        <h2 class="report-title">Johor Bahru</h2>
+        <h2 class="report-title">{{ currentDestination.name }}</h2>
         <p class="report-subtitle">{{ tripReport.days }} days · {{ tripReport.venuesVisited }} venues</p>
       </div>
 
@@ -625,6 +636,7 @@
     </div>
   </ng-template>
 </ion-modal>
+
 <!-- End Trip Confirmation Modal -->
 <ion-modal [isOpen]="isConfirmingEndTrip" (didDismiss)="cancelEndTrip()" class="confirm-modal"
   [backdropDismiss]="false">
@@ -638,7 +650,7 @@
       </div>
 
       <h2 class="confirm-title">Arrive Home?</h2>
-      <p class="confirm-sub">You're about to end your JB trip</p>
+      <p class="confirm-sub">You're about to end your {{ currentDestination.name }} trip</p>
 
       <div class="confirm-stats">
         <div class="confirm-stat">
@@ -685,7 +697,7 @@
   </ng-template>
 </ion-modal>
 
-<!-- Budget Picker Modal -->
+<!-- Budget Picker Modal — WITH DURATION SELECTOR -->
 <ion-modal [isOpen]="isBudgetPickerOpen" (didDismiss)="closeBudgetPicker()" class="budget-picker-modal"
   [backdropDismiss]="false">
   <ng-template>
@@ -694,8 +706,20 @@
 
       <div class="budget-picker-header">
         <ion-icon name="airplane-outline"></ion-icon>
-        <h2>Ready for JB?</h2>
-        <p>Set your trip budget</p>
+        <h2>Ready for {{ currentDestination.name }}?</h2>
+        <p>Set your trip budget & duration</p>
+      </div>
+
+      <!-- Trip Duration Selector -->
+      <div class="duration-section">
+        <p class="duration-label">How many days?</p>
+        <div class="duration-options">
+          <button *ngFor="let days of tripDurationOptions" (click)="selectTripDuration(days)"
+            [class.selected]="selectedTripDuration === days">
+            <span class="duration-days">{{ days }}</span>
+            <span class="duration-unit">days</span>
+          </button>
+        </div>
       </div>
 
       <!-- DNA Recommendation -->
@@ -705,11 +729,10 @@
           <span>Based on your DNA</span>
         </div>
         <p class="dna-rec-text">
-          Your 4-day spending pattern suggests <strong>${{ dnaBudgetRecommendation | number:'1.0-0' }}</strong>
+          Your {{ selectedTripDuration }}-day spending pattern suggests <strong>${{ dnaBudgetRecommendation | number:'1.0-0' }}</strong>
         </p>
         <p class="dna-rec-sub" *ngIf="dnaDailyAverage > 0">
-          That's about ${{ dnaDailyAverage * 4 | number:'1.0-0' }} for 4 days (${{ dnaDailyAverage | number:'1.0-0'
-          }}/day)
+          That's about ${{ dnaDailyAverage * selectedTripDuration | number:'1.0-0' }} for {{ selectedTripDuration }} days (${{ dnaDailyAverage | number:'1.0-0' }}/day)
         </p>
       </div>
 
@@ -720,8 +743,7 @@
           [class.dna-match]="opt === dnaBudgetRecommendation">
           <span class="budget-opt-amount">${{ opt }}</span>
           <span class="budget-opt-label" *ngIf="opt === dnaBudgetRecommendation">DNA Match</span>
-          <span class="budget-opt-label" *ngIf="opt !== dnaBudgetRecommendation">${{ opt / 4 | number:'1.0-0'
-            }}/day</span>
+          <span class="budget-opt-label" *ngIf="opt !== dnaBudgetRecommendation">${{ opt / selectedTripDuration | number:'1.0-0' }}/day</span>
         </button>
       </div>
 
@@ -739,13 +761,13 @@
       <div class="budget-summary">
         <span class="budget-summary-label">Trip Budget</span>
         <span class="budget-summary-value">${{ selectedBudgetOption | number:'1.0-0' }}</span>
-        <span class="budget-summary-daily">~${{ selectedBudgetOption / 4 | number:'1.0-0' }} per day</span>
+        <span class="budget-summary-daily">~${{ selectedBudgetOption / selectedTripDuration | number:'1.0-0' }} per day · {{ selectedTripDuration }} days</span>
       </div>
 
       <!-- Actions -->
       <ion-button expand="block" class="budget-start-btn" (click)="confirmBudgetAndStartTrip()">
         <ion-icon name="airplane" slot="start"></ion-icon>
-        Start Trip
+        Start {{ selectedTripDuration }}-Day Trip
       </ion-button>
 
       <ion-button expand="block" fill="clear" class="budget-cancel-btn" (click)="closeBudgetPicker()">
@@ -767,7 +789,7 @@
   <span class="fx-fab-label">FX</span>
 </div>
 
-<!-- Payment Modal -->
+<!-- Payment Modal — Multi-Currency -->
 <ion-modal [isOpen]="isPaymentModalOpen" (didDismiss)="closePaymentModal()">
   <ng-template>
     <div class="payment-panel">
@@ -776,6 +798,17 @@
         <ion-button fill="clear" (click)="closePaymentModal()">
           <ion-icon slot="icon-only" name="close"></ion-icon>
         </ion-button>
+      </div>
+
+      <!-- Multi-currency balances -->
+      <div class="payment-balance-bar" *ngIf="multiCurrencyBalances.length > 0">
+        <div class="balance-item" *ngFor="let bal of multiCurrencyBalances"
+          [class.target-currency]="bal.currency === paymentCurrency"
+          [class.insufficient]="bal.currency === paymentCurrency && bal.amount < paymentAmount">
+          <span class="balance-flag">{{ bal.flag }}</span>
+          <span class="balance-currency">{{ bal.currency }}</span>
+          <span class="balance-amount">{{ cardExchange.formatAmount(bal.amount, bal.currency) }}</span>
+        </div>
       </div>
 
       <div class="payment-card-display" [ngClass]="cardThemeClass" *ngIf="activeCard">
@@ -792,23 +825,40 @@
         <p>No card selected. Go to Home to select a card.</p>
       </div>
 
-      <p class="payment-field-label">Amount</p>
+      <p class="payment-field-label">
+        Amount <span class="currency-badge" *ngIf="paymentInForeignCurrency">{{ paymentCurrency }}</span>
+      </p>
       <div class="payment-amount-box">
-        <span class="payment-currency">$</span>
+        <span class="payment-currency">{{ paymentCurrencySymbol }}</span>
         <ion-input type="text" inputmode="decimal" [value]="paymentAmountText"
           (ionInput)="onPaymentAmountInput($event)"></ion-input>
+      </div>
+
+      <!-- SGD equivalent -->
+      <p class="payment-equivalent" *ngIf="paymentInForeignCurrency && fxInsight?.currentRate && paymentAmount > 0">
+        ≈ SGD {{ paymentAmount && fxInsight && fxInsight.currentRate ? (paymentAmount / fxInsight.currentRate).toFixed(2) : '0.00' }}
+      </p>
+
+      <!-- Insufficient balance warning -->
+      <div class="payment-insufficient"
+        *ngIf="paymentInForeignCurrency && paymentAmount > 0 && !hasSufficientBalance(paymentAmount, paymentCurrency)">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <span>Insufficient {{ paymentCurrency }} balance. Exchange in FX Tracker first.</span>
       </div>
 
       <div class="payment-quick-chips">
         <button type="button" *ngFor="let amt of quickPayAmounts" (click)="selectPaymentAmount(amt)"
           [class.selected]="paymentAmount === amt">
-          ${{ amt }}
+          {{ paymentCurrencySymbol }}{{ amt }}
         </button>
       </div>
 
       <ion-button expand="block" class="payment-confirm-btn" (click)="confirmPayment()"
-        [disabled]="paymentAmount < 0.01 || isPaying || !activeCard">
-        {{ isPaying ? 'Processing...' : 'Confirm Payment' }}
+        [disabled]="paymentAmount < 0.01 || isPaying || !activeCard || (paymentInForeignCurrency && !hasSufficientBalance(paymentAmount, paymentCurrency))">
+        <ion-spinner name="crescent" *ngIf="isPaying"></ion-spinner>
+        <span *ngIf="!isPaying">
+          Pay {{ paymentCurrencySymbol }}{{ paymentAmount | number:'1.2-2' }} {{ paymentCurrency }}
+        </span>
       </ion-button>
     </div>
   </ng-template>
