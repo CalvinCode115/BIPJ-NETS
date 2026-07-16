@@ -152,9 +152,48 @@ the app, here's what you need to know:
   QR/Pay, let's sync on this specifically — happy to write the exact
   check/apply function for you to call.
 
+- **⚠️ XP and cosmetic rewards need Payogotchi (new, not started):**
+  several daily/weekly quests and partner challenges give rewards beyond
+  NETS Points — things like `+100 XP`, `'Coffee Bean Pet Theme'`, or a
+  `Legendary Cosmetic Unlock`. These don't mean anything on their own; they
+  only matter once applied to a user's Payogotchi (the virtual pet — XP
+  drives its level/growth, cosmetics change its appearance).
+
+  Right now, claiming one of these quests only awards the **points** part
+  of the reward — the XP and cosmetic portions are stored in the quest's
+  reward list but nothing happens with them. This needs a hook, symmetrical
+  to the points-per-transaction one above: whoever owns Payogotchi needs a
+  function this feature can call at the moment a quest/challenge is
+  claimed, something like:
+  ```
+  awardPetProgress(userId, { xp?: number, cosmeticId?: string })
+  ```
+  which credits XP toward the pet's level and unlocks the named cosmetic.
+  Until that exists, claiming a quest with an XP/cosmetic reward will show
+  the reward in the UI but it won't actually apply to the pet anywhere.
+
+  Worth syncing on: what the pet's XP/leveling system actually looks like,
+  and what cosmetic IDs/names it expects, so the reward data in the quest
+  templates can be updated to match real cosmetic IDs instead of just
+  display text like `"Coffee Bean Pet Theme"`.
+
 ---
 
-## 5. Screens at a glance
+## 5. Current build status
+
+| Piece | Status |
+|---|---|
+| Daily Quests | ✅ Backend + front-end built — ⚠️ XP/cosmetic rewards not yet applied to the pet (see Integration points) |
+| Weekly Quests | ✅ Backend + front-end built — ⚠️ same XP/cosmetic caveat as above |
+| Partner Challenges | ✅ Backend + front-end built |
+| Points History | ✅ Backend + front-end built (search + date range filter) |
+| Send Points to Friends | ✅ Backend + front-end built |
+| Rewards Marketplace | ✅ Backend + front-end built |
+| My Vouchers | ✅ Backend + front-end built, including auto-apply discount at NETS QR payment |
+
+---
+
+## 6. Screens at a glance
 
 ```
 Rewards (home)
