@@ -183,6 +183,16 @@ export class CardsService {
     return this.http.post<LinkCardResponse>(`${API_BASE_URL}/users/${userId}/cards/link`, payload);
   }
 
+  generateCardNumber(
+    userId: string,
+    cardType: 'prepaid' | 'cashcard'
+  ): Observable<{ success: boolean; cardNumber: string }> {
+    return this.http.post<{ success: boolean; cardNumber: string }>(
+      `${API_BASE_URL}/users/${userId}/cards/generate-number`,
+      { cardType }
+    );
+  }
+
   getPayableCards(userId: string): Observable<WalletCard[]> {
     return this.http
       .get<{ cards: WalletCard[] }>(`${API_BASE_URL}/users/${userId}/payable-cards`)
@@ -238,7 +248,7 @@ export class CardsService {
   getReceiveSettings(userId: string): Observable<ReceiveSettings> {
     return this.http.get<ReceiveSettings>(`${API_BASE_URL}/users/${userId}/receive-settings`);
   }
-
+  // For Multi-currency
   getCardWallet(userId: string, cardId: string): Observable<MultiCurrencyWallet> {
   return this.http.get<MultiCurrencyWallet>(
     `${API_BASE_URL}/users/${userId}/cards/${cardId}/wallet`
@@ -249,7 +259,7 @@ export class CardsService {
     })
   );
 }
-
+ // For Multi-currency
 exchangeCurrency(
   userId: string,
   cardId: string,

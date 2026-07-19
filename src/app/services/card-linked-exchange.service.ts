@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { CardsService } from './cards.service';
+import { AuthService } from './auth.service';
 
 export interface CardCurrencyBalance {
   currency: string;
@@ -51,7 +52,8 @@ export class CardLinkedExchangeService {
 
   constructor(
     private http: HttpClient,
-    private cardsService: CardsService
+    private cardsService: CardsService,
+    private auth: AuthService
   ) {
     this.loadFromStorage();
   }
@@ -82,39 +84,73 @@ getAllCurrencies(cardId: string, currentSgdBalance: number): Observable<CardCurr
 }
 
   /** Exchange — HITS BACKEND */
-  exchange(req: ExchangeRequest, _currentSgdBalance: number): Observable<ExchangeResult> {
-    const userId = localStorage.getItem('nets_user_id') || 'user_1';
+  exchange(
+    req: ExchangeRequest,
+    _currentSgdBalance: number
+  ): Observable<ExchangeResult> {
+    const userId = this.auth.userId;
+  
+    if (!userId) {
+      return of({
+        success: false,
+        message: 'Please log in before exchanging currency.',
+      });
+    }
+  
     const rate = this.getMockRate(req.fromCurrency, req.toCurrency);
-    
+  
     return this.cardsService.exchangeCurrency(userId, req.cardId, {
       fromCurrency: req.fromCurrency,
       toCurrency: req.toCurrency,
       amount: req.amount,
-      rate: rate
+      rate,
     }).pipe(
       tap((result) => {
         if (result.success) {
           this.cacheWallet(req.cardId, result.newBalances);
         }
       }),
-      catchError(() => of(this.localExchange(req, _currentSgdBalance)))
+      catchError(() =>
+        of(this.localExchange(req, _currentSgdBalance))
+      )
     );
   }
 
   /** Deduct — HITS BACKEND */
-  deductFromCurrency(cardId: string, currency: string, amount: number, _currentSgdBalance: number): Observable<ExchangeResult> {
-    const userId = localStorage.getItem('nets_user_id') || 'user_1';
-    
+  deductFromCurrency(
+    cardId: string,
+    currency: string,
+    amount: number,
+    _currentSgdBalance: number
+  ): Observable<ExchangeResult> {
+    const userId = this.auth.userId;
+  
+    if (!userId) {
+      return of({
+        success: false,
+        message: 'Please log in before making a payment.',
+      });
+    }
+  
     return this.cardsService.deductCurrency(userId, cardId, {
       currency,
-      amount
+      amount,
     }).pipe(
       tap((result) => {
         if (result.success) {
           this.cacheWallet(cardId, result.newBalances);
         }
       }),
-      catchError(() => of(this.localDeduct(cardId, currency, amount, _currentSgdBalance)))
+      catchError(() =>
+        of(
+          this.localDeduct(
+            cardId,
+            currency,
+            amount,
+            _currentSgdBalance
+          )
+        )
+      )
     );
   }
 

@@ -11,8 +11,9 @@
         Full name
         <input
           type="text"
+          maxlength="40"
           [value]="name"
-          placeholder="e.g. Cheng Wen Mao"
+          placeholder="e.g. Adam Cheng"
           autocomplete="name"
           (input)="onNameInput($event)"
         />

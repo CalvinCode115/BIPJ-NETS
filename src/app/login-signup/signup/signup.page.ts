@@ -39,7 +39,7 @@ export class SignupPage {
   }
 
   onNameInput(event: Event): void {
-    this.name = sanitizeNameInput((event.target as HTMLInputElement).value);
+    this.name = sanitizeNameInput((event.target as HTMLInputElement).value).slice(0, 50);
     applySanitizedNativeInput(event, this.name);
   }
 
@@ -66,6 +66,10 @@ export class SignupPage {
   submitSignup(): void {
     this.errorMessage = '';
     const trimmedName = this.name.trim();
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      this.errorMessage = 'Name must be between 2 and 50 characters.';
+      return;
+    }
 
     if (!NAME_PATTERN.test(trimmedName)) {
       this.errorMessage = 'Name must contain letters only (e.g. Cheng Wen Mao).';

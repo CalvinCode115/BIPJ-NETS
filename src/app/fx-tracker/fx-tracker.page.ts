@@ -8,6 +8,8 @@ import { DestinationConfig } from '../services/destination.config';
 import { CardLinkedExchangeService, ExchangeRequest } from '../services/card-linked-exchange.service';
 import { CardsService, MultiCurrencyWallet, ExchangeCurrencyResponse } from '../services/cards.service';
 import { catchError, map, Observable, of } from 'rxjs';
+import {AuthService} from '../services/auth.service';
+import { currentSgdBalanceStorageKey, selectedCardStorageKey } from '../utils/card-storage';
 Chart.register(...registerables);
 
 @Component({
@@ -71,6 +73,7 @@ export class FxTrackerPage implements OnInit {
     private exchangeService: CardLinkedExchangeService,
     private location: Location,
     private cardsService: CardsService,
+    private auth: AuthService,
   ) { }
 
   ngOnInit() {
@@ -97,7 +100,17 @@ export class FxTrackerPage implements OnInit {
 
 
     // Get card ID from localStorage (set by home page when card is selected)
-    const savedCardId = localStorage.getItem('nets_selected_card_id');
+    const userId = this.auth.userId;
+
+    if (!userId) {
+      this.error = 'Please log in to use currency exchange.';
+      return;
+    }
+
+    const savedCardId = localStorage.getItem(
+      selectedCardStorageKey(userId)
+    );
+    
     if (savedCardId) {
       this.cardId = savedCardId;
     }
@@ -139,17 +152,43 @@ export class FxTrackerPage implements OnInit {
   }
 
   loadWallet() {
-    const userId = localStorage.getItem('nets_user_id') || 'user_1';
+    const userId = this.auth.userId;
+
+    if (!userId) {
+      this.wallet = null;
+      this.error = 'Please log in to view your wallet.';
+      return;
+    }
 
     // Get REAL data from Firestore
     this.cardsService.getWallet(userId).subscribe({
       next: (wallet) => {
         const allCards = [...wallet.prepaid, ...wallet.cashcard, ...wallet.others];
-        const card = allCards.find(c => c.id === this.cardId);
-        const realSgdBalance = card?.balance ?? 500;
+        const selectedCard = allCards.find((card) => card.id === this.cardId);
+        const exchangeCard = selectedCard ?? wallet.prepaid[0] ?? null;
+
+        if (!exchangeCard) {
+          this.isExchanging = false;
+          this.exchangeResult = {
+            success: false,
+            message: 'No valid prepaid card is available for exchange.',
+          };
+          return;
+        }
+
+        this.cardId = exchangeCard.id;
+        localStorage.setItem(
+          selectedCardStorageKey(userId),
+          exchangeCard.id
+        );
+        
+        const realSgdBalance = exchangeCard.balance;
 
         // Sync SGD to localStorage
-        localStorage.setItem('nets_current_sgd_balance', String(realSgdBalance));
+        localStorage.setItem(
+          currentSgdBalanceStorageKey(userId),
+          String(realSgdBalance)
+        );
 
         // ─── FIX: Read multi_currency from Firestore, not local service ───
         this.cardsService.getCardWallet(userId, this.cardId).subscribe({
@@ -171,7 +210,9 @@ export class FxTrackerPage implements OnInit {
         });
       },
       error: () => {
-        const savedSgd = localStorage.getItem('nets_current_sgd_balance');
+        const savedSgd = localStorage.getItem(
+          currentSgdBalanceStorageKey(userId)
+        );
         const sgdBalance = savedSgd ? parseFloat(savedSgd) : 500;
         this.wallet = {
           cardId: this.cardId,
@@ -216,7 +257,17 @@ export class FxTrackerPage implements OnInit {
     if (!this.canExchange()) return;
     this.isExchanging = true;
     this.exchangeResult = null;
-    const userId = localStorage.getItem('nets_user_id') || 'user_1';
+    
+    const userId = this.auth.userId;
+
+    if (!userId) {
+      this.isExchanging = false;
+      this.exchangeResult = {
+        success: false,
+        message: 'Please log in before exchanging currency.',
+      };
+      return;
+    }
 
     console.log('=== EXCHANGE DEBUG ===');
     console.log('cardId being used:', this.cardId);
@@ -526,17 +577,28 @@ export class FxTrackerPage implements OnInit {
     }
     return rate;  // SGD → MYR: 3.14
   }
+  
   private syncSgdFromFirestore(): void {
-    // The home page should have already synced this, but as a fallback:
-    // If no localStorage value exists, use default
-    const saved = localStorage.getItem('nets_current_sgd_balance');
+    const userId = this.auth.userId;
+  
+    if (!userId) {
+      return;
+    }
+  
+    const key = currentSgdBalanceStorageKey(userId);
+    const saved = localStorage.getItem(key);
+  
     if (!saved) {
-      localStorage.setItem('nets_current_sgd_balance', '500');
+      localStorage.setItem(key, '500');
     }
   }
 
   private getCurrentSgdBalance(): Observable<number> {
-    const userId = localStorage.getItem('nets_user_id') || 'user_1';
+    const userId = this.auth.userId;
+
+    if (!userId) {
+      return of(0);
+    }
     const cardId = this.cardId;
 
     return this.cardsService.getWallet(userId).pipe(

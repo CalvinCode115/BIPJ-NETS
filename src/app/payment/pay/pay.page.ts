@@ -18,14 +18,14 @@ import {
 } from '../../services/cards.service';
 import { SavedContact, SavedContactsService } from '../../services/saved-contacts.service';
 import { TransferRecipient, TransfersService } from '../../services/transfers.service';
-import { sanitizeDecimalAmountInput } from '../../utils/amount-input';
+import { sanitizeDecimalAmountInput, sanitizeIntegerAmountInput } from '../../utils/amount-input';
 import { applySanitizedIonInput, NAME_PATTERN, sanitizeNameInput, sanitizePhoneDigits } from '../../utils/input-validation';
 import {
   displayedCardBalance as formatDisplayedCardBalance,
   displayedCardFundsLabel as formatDisplayedCardFundsLabel,
   displayedCardNumber as formatDisplayedCardNumber,
 } from '../../utils/card-display';
-import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../../utils/wallet-topup';
+import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, MAX_TOP_UP_AMOUNT, MAX_WALLET_BALANCE, MIN_TOP_UP_AMOUNT, SOURCE_CARD_RESERVE, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../../utils/wallet-topup';
 import { shortReceiveLabel } from '../../utils/display-name';
 import { formatCounterpartyLine } from '../../utils/transfer-display';
 
@@ -310,7 +310,13 @@ export class PayPage {
   }
 
   onTopUpAmountInput(event: CustomEvent): void {
-    const { text, amount } = sanitizeDecimalAmountInput(String(event.detail.value ?? ''));
+    const raw = String(event.detail.value ?? '');
+    if (/[.,]/.test(raw)) {
+      applySanitizedIonInput(event, this.topUpAmountText);
+      this.topUpError = 'Enter a whole-dollar amount.';
+      return;
+    }
+    const { text, amount } = sanitizeIntegerAmountInput(raw);
     this.topUpAmountText = text;
     this.topUpAmount = amount;
     applySanitizedIonInput(event, text);
@@ -333,8 +339,23 @@ export class PayPage {
       return;
     }
 
-    if (this.topUpAmount < 0.01) {
-      this.topUpError = 'Enter an amount of at least $0.01.';
+    if (!Number.isInteger(this.topUpAmount)) {
+      this.topUpError = 'Enter a whole-dollar amount.';
+      return;
+    }
+
+    if (this.topUpAmount < MIN_TOP_UP_AMOUNT) {
+      this.topUpError = `Minimum top-up is $${MIN_TOP_UP_AMOUNT}.`;
+      return;
+    }
+
+    if (this.topUpAmount > MAX_TOP_UP_AMOUNT) {
+      this.topUpError = `Maximum top-up is $${MAX_TOP_UP_AMOUNT}.`;
+      return;
+    }
+
+    if (card.balance + this.topUpAmount > MAX_WALLET_BALANCE) {
+      this.topUpError = `This top-up would exceed the $${MAX_WALLET_BALANCE.toLocaleString('en-SG')} wallet limit.`;
       return;
     }
 
@@ -351,6 +372,14 @@ export class PayPage {
     if (!funding) {
       this.topUpError = 'Select a payment method.';
       return;
+    }
+
+    if (funding.sourceCardId) {
+      const sourceCard = this.cardsByType.others.find((item) => item.id === funding.sourceCardId);
+      if (!sourceCard || sourceCard.balance - this.topUpAmount < SOURCE_CARD_RESERVE) {
+        this.topUpError = `Keep at least $${SOURCE_CARD_RESERVE} available on the selected bank card.`;
+        return;
+      }
     }
 
     this.isToppingUp = true;

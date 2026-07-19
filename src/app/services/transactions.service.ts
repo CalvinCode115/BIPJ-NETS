@@ -21,12 +21,13 @@ export interface TransactionRecord {
   id: string;
   merchant: string;
   subtitle: string;
+  displayAmount?: string | null;
   amount: number;
   date: string;
   time: string;
   icon: string;
   iconColor: string;
-  type: 'debit' | 'credit';
+  type: 'debit' | 'credit' | 'exchange';
   category: string;
   cardId?: string;
   counterparty?: TransferCounterparty | null;

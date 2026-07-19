@@ -495,6 +495,8 @@ function formatTransaction(row) {
     id: row.id,
     merchant: row.merchant,
     subtitle: row.subtitle,
+    // use to show return amount
+    displayAmount: row.display_amount ?? null,
     amount: row.amount,
     date: date.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', timeZone: period.SINGAPORE_TZ }),
     time: date.toLocaleTimeString('en-SG', {

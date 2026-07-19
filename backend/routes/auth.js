@@ -31,8 +31,10 @@ router.post('/register', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: 'Name must contain letters only.' });
   }
 
-  if (name.length < 2) {
-    return res.status(400).json({ error: 'Enter your full name.' });
+  if (name.length < 2 || name.length > 50) {
+    return res.status(400).json({
+      error: 'Name must be between 2 and 50 characters.',
+    });
   }
 
   if (phoneDigits.length !== 8) {

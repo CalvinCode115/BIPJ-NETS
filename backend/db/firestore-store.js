@@ -102,6 +102,8 @@ function transactionToDoc(txn) {
     counterparty_phone: txn.counterparty_phone ?? null,
     counterparty_name: txn.counterparty_name ?? null,
     transfer_id: txn.transfer_id ?? null,
+    display_amount: txn.display_amount ?? null,
+    //other properties 
   };
 }
 
@@ -165,7 +167,26 @@ async function getCards(userId, cardType) {
   const rows = snap.docs.map(cardFromDoc);
   rows.sort((a, b) => {
     const typeCmp = String(a.card_type).localeCompare(String(b.card_type));
-    return typeCmp !== 0 ? typeCmp : String(a.label).localeCompare(String(b.label));
+    if (typeCmp !== 0) {
+      return typeCmp;
+    }
+  
+    if (a.card_type === 'others' && b.card_type === 'others') {
+      const accountOrder = {
+        debit: 0,
+        credit: 1,
+      };
+  
+      const accountCmp =
+        (accountOrder[a.account_kind] ?? 2) -
+        (accountOrder[b.account_kind] ?? 2);
+  
+      if (accountCmp !== 0) {
+        return accountCmp;
+      }
+    }
+  
+    return String(a.label).localeCompare(String(b.label));
   });
 
   const synced = [];
@@ -327,6 +348,65 @@ async function setCardBalance(cardId, balance) {
   await ref.update({ balance: nextBalance });
   const updated = await ref.get();
   return syncAutoTopUpPreference(cardFromDoc(updated));
+}
+
+async function applyWalletTopUp(userId, targetCardId, sourceCardId, amount, limits) {
+  const db = getFirestore();
+  const targetRef = userCardsRef(db, userId).doc(targetCardId);
+  const sourceRef = sourceCardId ? userCardsRef(db, userId).doc(sourceCardId) : null;
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const targetSnap = await transaction.get(targetRef);
+      if (!targetSnap.exists) {
+        throw new Error('Card not found.');
+      }
+
+      const target = targetSnap.data();
+      const targetBalance = Number(target.balance) || 0;
+      if (targetBalance + amount > limits.maxWalletBalance) {
+        throw new Error(
+          `This top-up would exceed the $${limits.maxWalletBalance.toLocaleString('en-SG')} wallet limit.`
+        );
+      }
+
+      let sourceSnap = null;
+      if (sourceRef) {
+        sourceSnap = await transaction.get(sourceRef);
+        if (!sourceSnap.exists) {
+          throw new Error('Select a valid linked bank card.');
+        }
+
+        const source = sourceSnap.data();
+        const sourceBalance = Number(source.balance) || 0;
+        if (
+          source.card_type !== 'others' ||
+          (source.account_kind !== 'debit' && source.account_kind !== 'credit')
+        ) {
+          throw new Error('Select a valid linked debit or credit card.');
+        }
+        if (sourceBalance - amount < limits.sourceCardReserve) {
+          throw new Error(
+            `Keep at least $${limits.sourceCardReserve} available on the selected bank card.`
+          );
+        }
+
+        transaction.update(sourceRef, { balance: sourceBalance - amount });
+      }
+
+      transaction.update(targetRef, { balance: targetBalance + amount });
+    });
+
+    const [targetSnap, sourceSnap] = await Promise.all([
+      targetRef.get(),
+      sourceRef ? sourceRef.get() : Promise.resolve(null),
+    ]);
+    const target = await syncAutoTopUpPreference(cardFromDoc(targetSnap));
+    const source = sourceSnap ? cardFromDoc(sourceSnap) : null;
+    return { ok: true, card: target, sourceCard: source };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Unable to update card balances.' };
+  }
 }
 
 async function clearDefaultReceive(userId) {
@@ -532,6 +612,7 @@ module.exports = {
   addTransaction,
   updateCardBalance,
   setCardBalance,
+  applyWalletTopUp,
   clearDefaultReceive,
   setDefaultReceiveCard,
   resolveCardForPayment,
@@ -550,7 +631,7 @@ module.exports = {
 };
 
 // ═════════════════════════════════════════════════════════════════
-// MULTI-CURRENCY WALLET HELPERS
+// MULTI-CURRENCY WALLET HELPERS-- By Eron
 // ═════════════════════════════════════════════════════════════════
 
 async function getMultiCurrencyWallet(cardId) {

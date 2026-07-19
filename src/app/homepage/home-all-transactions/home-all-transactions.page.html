@@ -117,7 +117,7 @@
               <p class="tx-meta">{{ item.metaLine }} · {{ item.time }}</p>
             </div>
             <span class="tx-amount" [class.income]="item.amount > 0" [class.expenditure]="item.amount < 0">
-              {{ formatAmount(item.amount) }}
+              {{ item.displayAmount || formatAmount(item.amount) }}
             </span>
           </div>
         }

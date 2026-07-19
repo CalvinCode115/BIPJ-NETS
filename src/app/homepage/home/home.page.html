@@ -155,6 +155,29 @@
         [attr.aria-label]="'Go to card ' + (slide + 1)"></button>
       }
     </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      @for (action of quickActions; track action.label) {
+      <button type="button" class="quick-action" [class.is-disabled]="isQuickActionDisabled(action)"
+        [attr.aria-disabled]="isQuickActionDisabled(action)" [title]="getQuickActionTitle(action)"
+        (click)="onQuickAction(action)">
+        <div class="quick-action-icon" [style.background]="action.color">
+          <ion-icon [name]="action.icon"></ion-icon>
+        </div>
+        <span>{{ action.label }}</span>
+      </button>
+      }
+    </div>
+
+    @if (topUpSuccess && !isTopUpModalOpen) {
+    <p class="top-up-notice success">{{ topUpSuccess }}</p>
+    }
+
+    @if (topUpError && !isTopUpModalOpen) {
+    <p class="top-up-notice">{{ topUpError }}</p>
+    }
+
     @if (currentCard && cardCurrencyBalances.length > 1) {
     <section class="multi-currency-wallet">
       <div class="wallet-header">
@@ -185,7 +208,7 @@
     <section class="fx-currency-panel" aria-label="Currency conversions">
       <div class="fx-currency-header">
         <div>
-          <p class="fx-currency-eyebrow">Also in other currencies</p>
+          <p class="fx-currency-eyebrow">Balance in other currencies</p>
           <p class="fx-currency-hint">Same SGD balance, shown in currencies you add</p>
         </div>
       </div>
@@ -226,27 +249,6 @@
     </section>
     }
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-      @for (action of quickActions; track action.label) {
-      <button type="button" class="quick-action" [class.is-disabled]="isQuickActionDisabled(action)"
-        [attr.aria-disabled]="isQuickActionDisabled(action)" [title]="getQuickActionTitle(action)"
-        (click)="onQuickAction(action)">
-        <div class="quick-action-icon" [style.background]="action.color">
-          <ion-icon [name]="action.icon"></ion-icon>
-        </div>
-        <span>{{ action.label }}</span>
-      </button>
-      }
-    </div>
-
-    @if (topUpSuccess && !isTopUpModalOpen) {
-    <p class="top-up-notice success">{{ topUpSuccess }}</p>
-    }
-
-    @if (topUpError && !isTopUpModalOpen) {
-    <p class="top-up-notice">{{ topUpError }}</p>
-    }
 
     <!-- User DNA Insight (all cards — stays the same when you swipe) -->
     <div class="insight-card">
@@ -332,19 +334,21 @@
         </div>
 
         @if (spendingCategories.length) {
-        <div class="bar-chart" [attr.data-count]="spendingCategories.length">
+        <div class="bar-chart" [class.weekly-chart]="spendingPeriod === 'Weekly'"
+          [attr.data-count]="spendingCategories.length">
           @for (category of spendingCategories; track category.label) {
           <div class="bar-column">
             <span class="bar-amount">${{ category.amount }}</span>
             <div class="bar-track">
-              <div class="bar-fill" [style.height.%]="getBarHeight(category.amount)"
-                [style.background]="category.color"></div>
+              <div class="bar-fill" [class.zero-value]="category.amount === 0"
+                [style.height.%]="getBarHeight(category.amount)" [style.background]="category.color"></div>
             </div>
             <span class="bar-label">{{ category.label }}</span>
           </div>
           }
         </div>
 
+        @if (spendingPeriod === 'Monthly') {
         <div class="chart-legend">
           @for (category of spendingCategories; track category.label) {
           <div class="legend-item">
@@ -353,6 +357,7 @@
           </div>
           }
         </div>
+        }
         } @else {
         <p class="card-activity-empty-copy">No spending on this card yet this {{ spendingPeriod === 'Weekly' ? 'week' :
           'month' }}.</p>
@@ -375,8 +380,8 @@
             <p class="tx-subtitle">{{ tx.subtitle }}</p>
           </div>
           <div class="tx-meta">
-            <span class="tx-amount" [class.credit]="tx.type === 'credit'" [class.debit]="tx.type === 'debit'">
-              {{ formatAmount(tx.amount) }}
+            <span class="tx-amount" [class.credit]="tx.type === 'credit'" [class.debit]="tx.type === 'debit'" [class.exchange]="tx.type === 'exchange'">
+              {{ tx.displayAmount || formatAmount(tx.amount) }}
             </span>
             <span class="tx-datetime">{{ tx.date }}, {{ tx.time }}</span>
           </div>
@@ -423,7 +428,7 @@
     <div class="add-card-panel">
       <div class="add-card-panel-header">
         <h2>{{ addCardModalTitle }}</h2>
-        <ion-button fill="clear" class="add-card-close" (click)="closeAddCardModal()">
+        <ion-button fill="clear" class="add-card-close"  [disabled]="isLinkingCard || isGeneratingCardNumber" (click)="closeAddCardModal()">
           <ion-icon slot="icon-only" name="close"></ion-icon>
         </ion-button>
       </div>
@@ -438,15 +443,27 @@
 
         <div class="form-group">
           <label for="cardNumber">Card Number</label>
-          <ion-input id="cardNumber" class="rounded-input" type="text" inputmode="numeric"
-            placeholder="1234 5678 9012 3456" maxlength="19" [value]="newCardForm.cardNumber"
-            (ionInput)="onCardNumberInput($event)"></ion-input>
+          <div class="card-number-entry-row">
+            <ion-input id="cardNumber" class="rounded-input" type="text" inputmode="numeric"
+              placeholder="1234 5678 9012 3456" maxlength="19" [value]="newCardForm.cardNumber"
+              (ionInput)="onCardNumberInput($event)"></ion-input>
+            @if (!showBankCardFields) {
+            <ion-button type="button" class="generate-card-number-btn" fill="outline"
+              [disabled]="isGeneratingCardNumber || isLinkingCard" (click)="generateCardNumber()">
+              @if (isGeneratingCardNumber) {
+              <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+              Generate
+              }
+            </ion-button>
+            }
+          </div>
         </div>
 
         @if (showBankCardFields) {
         <div class="form-group">
           <label>Bank</label>
-          <ion-select interface="popover" [value]="linkBankName" (ionChange)="linkBankName = $any($event.detail.value)">
+          <ion-select interface="alert" [value]="linkBankName" (ionChange)="linkBankName = $any($event.detail.value)">
             @for (bank of linkBankOptions; track bank) {
             <ion-select-option [value]="bank">{{ bank }}</ion-select-option>
             }
@@ -475,7 +492,7 @@
         @if (showCardholderField) {
         <div class="form-group">
           <label for="cardholderName">Cardholder Name</label>
-          <ion-input id="cardholderName" class="rounded-input" type="text" placeholder="ADAM LIM"
+          <ion-input id="cardholderName" class="rounded-input" type="text" maxlength="40" placeholder="ADAM LIM"
             [value]="newCardForm.cardholderName" (ionInput)="onCardholderNameInput($event)"></ion-input>
         </div>
         }
@@ -502,11 +519,17 @@
         <p class="form-error">{{ formError }}</p>
         }
 
-        <ion-button expand="block" class="add-card-btn" [disabled]="isLinkingCard" (click)="addCard()">
-          {{ isLinkingCard ? 'LINKING...' : 'ADD CARD' }}
+        <ion-button expand="block" class="add-card-btn" [disabled]="isLinkingCard || isGeneratingCardNumber"
+          (click)="addCard()">
+          @if (isLinkingCard) {
+          <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+          <span>{{ showBankCardFields ? 'LINKING...' : 'ADDING...' }}</span>
+          } @else {
+          <span>ADD CARD</span>
+          }
         </ion-button>
 
-        <ion-button expand="block" fill="clear" class="cancel-btn" (click)="closeAddCardModal()">
+        <ion-button expand="block" fill="clear" class="cancel-btn" [disabled]="isLinkingCard || isGeneratingCardNumber" (click)="closeAddCardModal()">
           Cancel
         </ion-button>
       </div>
@@ -536,7 +559,7 @@
         <p class="top-up-field-label">Enter Amount</p>
         <div class="top-up-amount-box">
           <span class="top-up-currency">$</span>
-          <ion-input class="top-up-amount-input" type="text" inputmode="decimal" [value]="topUpAmountText"
+          <ion-input class="top-up-amount-input" type="text" inputmode="numeric" maxlength="3" [value]="topUpAmountText"
             (ionInput)="onTopUpAmountInput($event)"></ion-input>
         </div>
 
@@ -611,8 +634,14 @@
           <div class="notification-item-icon">
             <ion-icon name="arrow-down-circle"></ion-icon>
           </div>
+
           <div class="notification-item-body">
-            <h3>{{ item.title }}</h3>
+            <div class="notification-item-header">
+              <h3>{{ item.title }}</h3>
+              <span class="notification-item-time">
+                {{ formatNotificationWhen(item.createdAt) }}
+              </span>
+            </div>
             @if (notificationAmount(item); as amount) {
             <p class="notification-item-amount">{{ amount }}</p>
             }

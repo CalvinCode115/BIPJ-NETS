@@ -6,14 +6,14 @@ import { CardContextService } from '../../services/card-context.service';
 import { AppNotification, NotificationsService } from '../../services/notifications.service';
 import { TransactionsService } from '../../services/transactions.service';
 import { formatTransactionMeta } from '../../utils/transfer-display';
-import { sanitizeDecimalAmountInput } from '../../utils/amount-input';
+import { sanitizeIntegerAmountInput } from '../../utils/amount-input';
 import { applySanitizedIonInput, sanitizeCvvInput, sanitizeExpiryInput } from '../../utils/input-validation';
 import {
   displayedCardBalance as formatDisplayedCardBalance,
   displayedCardExpiry as formatDisplayedCardExpiry,
   displayedCardNumber as formatDisplayedCardNumber,
 } from '../../utils/card-display';
-import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../../utils/wallet-topup';
+import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, MAX_TOP_UP_AMOUNT, MAX_WALLET_BALANCE, MIN_TOP_UP_AMOUNT, SOURCE_CARD_RESERVE, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../../utils/wallet-topup';
 import {
   clearLowBalanceDismiss,
   isLowBalanceAlertsEnabled,
@@ -22,6 +22,8 @@ import { FxTrackerService } from 'src/app/fx-tracker/fx-tracker.service';
 import { DESTINATIONS, DestinationConfig } from '../../services/destination.config';
 import { CardLinkedExchangeService, CardCurrencyBalance } from '../../services/card-linked-exchange.service';
 import { MultiCurrencyService } from 'src/app/services/multi-currency.service';
+import { selectedCardStorageKey, currentSgdBalanceStorageKey } from '../../utils/card-storage';
+
 interface AccountTab {
   id: CardType;
   label: string;
@@ -53,12 +55,13 @@ interface SpendingCategory {
 interface Transaction {
   merchant: string;
   subtitle: string;
+  displayAmount?: string | null;
   amount: number;
   date: string;
   time: string;
   icon: string;
   iconColor: string;
-  type: 'debit' | 'credit';
+  type: 'debit' | 'credit' | 'exchange';
 }
 
 interface SecondaryAction {
@@ -100,6 +103,7 @@ export class HomePage {
   topUpSuccess = '';
   walletLoadError = '';
   isLinkingCard = false;
+  isGeneratingCardNumber = false;
   isToppingUp = false;
   topUpAmount = 10;
   topUpAmountText = '10';
@@ -553,10 +557,10 @@ export class HomePage {
   }
 
   get balanceLookupNotice(): string {
-    if (this.activeAccountTab === 'others') {
+    if (this.showBankCardFields) {
       return 'Enter any 16-digit card not already linked. Debit and credit balances are simulated for this demo.';
     }
-    return 'Enter any unused 16-digit card number. NETS will verify it and show a simulated balance.';
+    return 'Enter an unused 16-digit card number, or use Generate to create a valid demo number.';
   }
 
   get activeRegistryCards(): RegistryCard[] {
@@ -774,7 +778,13 @@ export class HomePage {
   }
 
   onTopUpAmountInput(event: CustomEvent): void {
-    const { text, amount } = sanitizeDecimalAmountInput(String(event.detail.value ?? ''));
+    const raw = String(event.detail.value ?? '');
+    if (/[.,]/.test(raw)) {
+      applySanitizedIonInput(event, this.topUpAmountText);
+      this.topUpError = 'Enter a whole-dollar amount.';
+      return;
+    }
+    const { text, amount } = sanitizeIntegerAmountInput(raw);
     this.topUpAmountText = text;
     this.topUpAmount = amount;
     applySanitizedIonInput(event, text);
@@ -797,8 +807,23 @@ export class HomePage {
       return;
     }
 
-    if (this.topUpAmount < 0.01) {
-      this.topUpError = 'Enter an amount of at least $0.01.';
+    if (!Number.isInteger(this.topUpAmount)) {
+      this.topUpError = 'Enter a whole-dollar amount.';
+      return;
+    }
+
+    if (this.topUpAmount < MIN_TOP_UP_AMOUNT) {
+      this.topUpError = `Minimum top-up is $${MIN_TOP_UP_AMOUNT}.`;
+      return;
+    }
+
+    if (this.topUpAmount > MAX_TOP_UP_AMOUNT) {
+      this.topUpError = `Maximum top-up is $${MAX_TOP_UP_AMOUNT}.`;
+      return;
+    }
+
+    if (card.balance + this.topUpAmount > MAX_WALLET_BALANCE) {
+      this.topUpError = `This top-up would exceed the $${MAX_WALLET_BALANCE.toLocaleString('en-SG')} wallet limit.`;
       return;
     }
 
@@ -815,6 +840,14 @@ export class HomePage {
     if (!funding) {
       this.topUpError = 'Select a payment method.';
       return;
+    }
+
+    if (funding.sourceCardId) {
+      const sourceCard = this.cardsByType.others.find((item) => item.id === funding.sourceCardId);
+      if (!sourceCard || sourceCard.balance - this.topUpAmount < SOURCE_CARD_RESERVE) {
+        this.topUpError = `Keep at least $${SOURCE_CARD_RESERVE} available on the selected bank card.`;
+        return;
+      }
     }
 
     this.isToppingUp = true;
@@ -880,6 +913,7 @@ export class HomePage {
   closeAddCardModal(): void {
     this.isAddCardModalOpen = false;
     this.formError = '';
+    this.isGeneratingCardNumber = false;
     this.selectedLinkCardType = null;
     this.resetNewCardForm();
   }
@@ -911,6 +945,29 @@ export class HomePage {
     return this.auth.currentUser?.name.toUpperCase() ?? 'YOUR LOGIN NAME';
   }
 
+  generateCardNumber(): void {
+    const userId = this.auth.userId;
+    const cardType = this.activeAccountTab;
+    if (!userId || (cardType !== 'prepaid' && cardType !== 'cashcard')) {
+      this.formError = 'Please log in and select Prepaid or CashCard.';
+      return;
+    }
+
+    this.formError = '';
+    this.isGeneratingCardNumber = true;
+    this.cardsService.generateCardNumber(userId, cardType).subscribe({
+      next: (response) => {
+        this.newCardForm.cardNumber = response.cardNumber;
+        this.isGeneratingCardNumber = false;
+      },
+      error: (err) => {
+        this.isGeneratingCardNumber = false;
+        this.formError =
+          err.error?.error ?? 'Unable to generate a card number. Make sure the backend is running on port 3000.';
+      },
+    });
+  }
+
   addCard(): void {
     this.formError = '';
     const userId = this.auth.userId;
@@ -919,6 +976,7 @@ export class HomePage {
       return;
     }
 
+    const linkCardType = this.selectedLinkCardType ?? this.activeAccountTab;
     const digits = this.newCardForm.cardNumber.replace(/\s/g, '');
     const name = this.newCardForm.cardholderName.trim();
     const expiry = this.newCardForm.expiryDate.trim();
@@ -930,8 +988,10 @@ export class HomePage {
     }
 
     if (this.showCardholderField) {
-      if (name.length < 2 || !/^[A-Z\s]+$/.test(name)) {
-        this.formError = 'Enter a valid name using letters only.';
+      if (name.length < 2 || name.length > 26 || !/^[A-Z]+(?: [A-Z]+)*$/.test(name)
+      ) {
+        this.formError =
+          'Cardholder name must be between 2 and 26 characters using letters only.';
         return;
       }
     }
@@ -952,7 +1012,6 @@ export class HomePage {
     }
 
     this.isLinkingCard = true;
-    const linkCardType = this.selectedLinkCardType ?? this.activeAccountTab;
     this.cardsService
       .linkCard(userId, {
         cardType: linkCardType,
@@ -993,7 +1052,11 @@ export class HomePage {
 
   onCardholderNameInput(event: CustomEvent): void {
     const value = String(event.detail.value ?? '');
-    const cleaned = value.replace(/[^a-zA-Z\s]/g, '');
+    const cleaned = value
+    .replace(/[^a-zA-Z\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .slice(0, 26);
+    
     this.newCardForm.cardholderName = cleaned.toUpperCase();
     applySanitizedIonInput(event, this.newCardForm.cardholderName);
   }
@@ -1123,6 +1186,23 @@ export class HomePage {
     return match ? match[1].trim() : 'Someone';
   }
 
+  formatNotificationWhen(iso: string): string {
+    const timestampHasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(iso);
+    const date = new Date(timestampHasTimezone ? iso : `${iso}+08:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return date.toLocaleString('en-SG', {
+      timeZone: 'Asia/Singapore',
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
   dismissLowBalanceAlert(event?: Event): void {
     event?.stopPropagation();
     // Soft dismiss only — does not turn off the reminder permanently.
@@ -1202,10 +1282,15 @@ export class HomePage {
 
         // ─── FIX: Sync SGD balance to localStorage for FX tracker ───
         const allCards = [...wallet.prepaid, ...wallet.cashcard, ...wallet.others];
-        const selectedCardId = localStorage.getItem('nets_selected_card_id');
+        const selectedCardId = localStorage.getItem(
+          selectedCardStorageKey(userId)
+        );
         const selectedCard = allCards.find(c => c.id === selectedCardId) || allCards[0];
         if (selectedCard) {
-          localStorage.setItem('nets_current_sgd_balance', String(selectedCard.balance));
+          localStorage.setItem(
+            currentSgdBalanceStorageKey(userId),
+            String(selectedCard.balance)
+          );
         }
 
         if (this.activeCardSlide >= this.activeCards.length && this.activeCards.length > 0) {
@@ -1232,9 +1317,18 @@ export class HomePage {
       this.maybeClearLowBalanceDismiss(this.currentCard);
     }
 
-    if (this.currentCard) {
-      localStorage.setItem('nets_selected_card_id', this.currentCard.id || 'default');
-      localStorage.setItem('nets_current_sgd_balance', String(this.cardFundsAmount));
+    const userId = this.auth.userId;
+
+    if (this.currentCard && userId) {
+      localStorage.setItem(
+        selectedCardStorageKey(userId),
+        this.currentCard.id || 'default'
+      );
+
+      localStorage.setItem(
+        currentSgdBalanceStorageKey(userId),
+        String(this.cardFundsAmount)
+      );
     }
 
     this.loadMultiCurrencyBalances();
@@ -1328,6 +1422,7 @@ export class HomePage {
         this.recentTransactions = dashboard.recentTransactions.map((txn) => ({
           merchant: txn.merchant,
           subtitle: formatTransactionMeta(txn),
+          displayAmount: txn.displayAmount,
           amount: txn.amount,
           date: txn.date,
           time: txn.time,
@@ -1412,32 +1507,37 @@ export class HomePage {
     return `${clean.slice(0, 4)} ${clean.slice(4, 8)} ${clean.slice(8, 12)} ${clean.slice(12, 16)}`;
   }
 
-loadMultiCurrencyBalances(): void {
-  const card = this.currentCard;
-  if (!card?.id) { 
-    this.cardCurrencyBalances = []; 
-    return; 
-  }
-
-  // Sync SGD from Firestore to localStorage
-  const realSgdBalance = this.cardFundsAmount;
-  localStorage.setItem('nets_current_sgd_balance', String(realSgdBalance));
-
-  // ─── FIX: Read from Firestore instead of local cache ───
-  this.cardsService.getCardWallet(this.auth.userId ?? 'user_1', card.id).subscribe({
-    next: (wallet: MultiCurrencyWallet) => {
-      // Convert Record<string, number> to CardCurrencyBalance[]
-      this.cardCurrencyBalances = Object.entries(wallet.balances).map(([currency, amount]) => ({
-        currency,
-        amount,
-        flag: this.cardExchange.getCurrencyFlag(currency)
-      }));
-    },
-    error: () => {
+  loadMultiCurrencyBalances(): void {
+    const userId = this.auth.userId;
+    const card = this.currentCard;
+  
+    if (!userId || !card?.id) {
       this.cardCurrencyBalances = [];
+      return;
     }
-  });
-}
+  
+    const realSgdBalance = this.cardFundsAmount;
+  
+    localStorage.setItem(
+      currentSgdBalanceStorageKey(userId),
+      String(realSgdBalance)
+    );
+  
+    this.cardsService.getCardWallet(userId, card.id).subscribe({
+      next: (wallet: MultiCurrencyWallet) => {
+        this.cardCurrencyBalances = Object.entries(wallet.balances).map(
+          ([currency, amount]) => ({
+            currency,
+            amount,
+            flag: this.cardExchange.getCurrencyFlag(currency),
+          })
+        );
+      },
+      error: () => {
+        this.cardCurrencyBalances = [];
+      },
+    });
+  }
 
   formatMultiCurrencyAmount(curr: CardCurrencyBalance): string {
     return this.cardExchange.getCurrencySymbol(curr.currency) + this.cardExchange.formatAmount(curr.amount, curr.currency);

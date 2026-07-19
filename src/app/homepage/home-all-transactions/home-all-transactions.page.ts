@@ -14,6 +14,7 @@ interface TransactionItem {
   category: string;
   time: string;
   amount: number;
+  displayAmount?: string | null;
   icon: string;
   iconColor: string;
   metaLine: string;
@@ -51,7 +52,7 @@ export class AllTransactionsPage implements OnInit {
     { id: 'expenditure', label: 'Expenditure' },
   ];
 
-  categoryFilters = ['All', 'Coffee', 'Dining', 'Transport', 'Groceries', 'Retail'];
+  categoryFilters = ['All', 'Coffee', 'Dining', 'Transport', 'Groceries', 'Retail', 'Currency Exchange'];
 
   summary = {
     month: '',
@@ -200,6 +201,7 @@ export class AllTransactionsPage implements OnInit {
         category: txn.category,
         time: txn.time,
         amount: txn.amount,
+        displayAmount: txn.displayAmount,
         icon: txn.icon,
         iconColor: txn.iconColor,
         metaLine,

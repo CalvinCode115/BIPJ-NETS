@@ -195,7 +195,8 @@
             <ion-input
               class="top-up-amount-input"
               type="text"
-              inputmode="decimal"
+              inputmode="numeric"
+              maxlength="3"
               [value]="topUpAmountText"
               (ionInput)="onTopUpAmountInput($event)"
             ></ion-input>
