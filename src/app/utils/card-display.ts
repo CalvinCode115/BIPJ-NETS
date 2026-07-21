@@ -6,14 +6,25 @@ import {
 } from '../services/cards.service';
 import { maskCardNumber, maskCardPaymentLabel } from './display-name';
 
-export function displayedCardBalance(card: WalletCard | null, showSensitive: boolean): string {
+export function displayedCardBalance(
+  card: WalletCard | null, 
+  showSensitive: boolean,
+  currency: 'SGD'| 'MYR' = 'SGD',
+  fxRate: number = 1
+): string {
   if (!card) {
     return '';
   }
   if (!showSensitive) {
-    return '$**.**';
+    return currency === 'SGD' ? '$**.**' : '**.**';
   }
-  return `$${getCardFundsAmount(card).toFixed(2)}`;
+
+  const amount = getCardFundsAmount(card) * fxRate;
+    if (currency === 'MYR') {
+    return `RM ${amount.toFixed(2)}`;
+  }
+  // else default SGD
+  return `$${amount.toFixed(2)}`;
 }
 
 export function displayedCardNumber(card: WalletCard | null, showSensitive: boolean): string {

@@ -42,3 +42,14 @@ export function applySanitizedIonInput(event: CustomEvent, sanitized: string): v
     ionInput.value = sanitized;
   }
 }
+
+/** Same for native <input> — Angular won't re-render [value] if the model string is unchanged. */
+export function applySanitizedNativeInput(event: Event, sanitized: string): void {
+  const input = event.target as HTMLInputElement | null;
+  if (!input) {
+    return;
+  }
+  if (input.value !== sanitized) {
+    input.value = sanitized;
+  }
+}

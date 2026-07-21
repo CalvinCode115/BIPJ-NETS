@@ -102,6 +102,8 @@ function transactionToDoc(txn) {
     counterparty_phone: txn.counterparty_phone ?? null,
     counterparty_name: txn.counterparty_name ?? null,
     transfer_id: txn.transfer_id ?? null,
+    display_amount: txn.display_amount ?? null,
+    //other properties 
   };
 }
 
@@ -165,7 +167,26 @@ async function getCards(userId, cardType) {
   const rows = snap.docs.map(cardFromDoc);
   rows.sort((a, b) => {
     const typeCmp = String(a.card_type).localeCompare(String(b.card_type));
-    return typeCmp !== 0 ? typeCmp : String(a.label).localeCompare(String(b.label));
+    if (typeCmp !== 0) {
+      return typeCmp;
+    }
+  
+    if (a.card_type === 'others' && b.card_type === 'others') {
+      const accountOrder = {
+        debit: 0,
+        credit: 1,
+      };
+  
+      const accountCmp =
+        (accountOrder[a.account_kind] ?? 2) -
+        (accountOrder[b.account_kind] ?? 2);
+  
+      if (accountCmp !== 0) {
+        return accountCmp;
+      }
+    }
+  
+    return String(a.label).localeCompare(String(b.label));
   });
 
   const synced = [];
@@ -327,6 +348,65 @@ async function setCardBalance(cardId, balance) {
   await ref.update({ balance: nextBalance });
   const updated = await ref.get();
   return syncAutoTopUpPreference(cardFromDoc(updated));
+}
+
+async function applyWalletTopUp(userId, targetCardId, sourceCardId, amount, limits) {
+  const db = getFirestore();
+  const targetRef = userCardsRef(db, userId).doc(targetCardId);
+  const sourceRef = sourceCardId ? userCardsRef(db, userId).doc(sourceCardId) : null;
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const targetSnap = await transaction.get(targetRef);
+      if (!targetSnap.exists) {
+        throw new Error('Card not found.');
+      }
+
+      const target = targetSnap.data();
+      const targetBalance = Number(target.balance) || 0;
+      if (targetBalance + amount > limits.maxWalletBalance) {
+        throw new Error(
+          `This top-up would exceed the $${limits.maxWalletBalance.toLocaleString('en-SG')} wallet limit.`
+        );
+      }
+
+      let sourceSnap = null;
+      if (sourceRef) {
+        sourceSnap = await transaction.get(sourceRef);
+        if (!sourceSnap.exists) {
+          throw new Error('Select a valid linked bank card.');
+        }
+
+        const source = sourceSnap.data();
+        const sourceBalance = Number(source.balance) || 0;
+        if (
+          source.card_type !== 'others' ||
+          (source.account_kind !== 'debit' && source.account_kind !== 'credit')
+        ) {
+          throw new Error('Select a valid linked debit or credit card.');
+        }
+        if (sourceBalance - amount < limits.sourceCardReserve) {
+          throw new Error(
+            `Keep at least $${limits.sourceCardReserve} available on the selected bank card.`
+          );
+        }
+
+        transaction.update(sourceRef, { balance: sourceBalance - amount });
+      }
+
+      transaction.update(targetRef, { balance: targetBalance + amount });
+    });
+
+    const [targetSnap, sourceSnap] = await Promise.all([
+      targetRef.get(),
+      sourceRef ? sourceRef.get() : Promise.resolve(null),
+    ]);
+    const target = await syncAutoTopUpPreference(cardFromDoc(targetSnap));
+    const source = sourceSnap ? cardFromDoc(sourceSnap) : null;
+    return { ok: true, card: target, sourceCard: source };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Unable to update card balances.' };
+  }
 }
 
 async function clearDefaultReceive(userId) {
@@ -532,6 +612,7 @@ module.exports = {
   addTransaction,
   updateCardBalance,
   setCardBalance,
+  applyWalletTopUp,
   clearDefaultReceive,
   setDefaultReceiveCard,
   resolveCardForPayment,
@@ -543,4 +624,188 @@ module.exports = {
   markNotificationRead,
   markAllNotificationsRead,
   setCardTopUpEnabled,
+  getMultiCurrencyWallet,
+  updateMultiCurrencyBalance,
+  exchangeCurrency,
+  deductCurrency,
 };
+
+// ═════════════════════════════════════════════════════════════════
+// MULTI-CURRENCY WALLET HELPERS-- By Eron
+// ═════════════════════════════════════════════════════════════════
+
+async function getMultiCurrencyWallet(cardId) {
+  const cardDoc = await findCardDocById(cardId);
+  if (!cardDoc) {
+    return null;
+  }
+
+  const card = cardFromDoc(cardDoc);
+  // Migrate: if no multiCurrency, initialize from balance
+  const multiCurrency = card.multi_currency || { SGD: card.balance };
+
+  return {
+    cardId: card.id,
+    balances: multiCurrency,
+    currencies: Object.keys(multiCurrency),
+  };
+}
+
+async function updateMultiCurrencyBalance(cardId, currency, amount) {
+  const db = getFirestore();
+
+  const cardDoc = await findCardDocById(cardId);
+  if (!cardDoc) {
+    return null;
+  }
+
+  const card = cardFromDoc(cardDoc);
+  const ref = userCardsRef(db, card.user_id).doc(cardId);
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(ref);
+      const data = snap.data();
+      const currentMulti = data.multi_currency || { SGD: data.balance || 0 };
+      const nextMulti = { ...currentMulti };
+
+      if (currency === 'SGD') {
+        const nextBalance = Math.round(Math.max(0, amount) * 100) / 100;
+        nextMulti.SGD = nextBalance;
+        transaction.update(ref, {
+          balance: nextBalance,
+          multi_currency: nextMulti
+        });
+      } else {
+        nextMulti[currency] = Math.round(Math.max(0, amount) * 100) / 100;
+        if (nextMulti[currency] < 0.01) {
+          delete nextMulti[currency];
+        }
+        transaction.update(ref, { multi_currency: nextMulti });
+      }
+    });
+
+    const updated = await ref.get();
+    return syncAutoTopUpPreference(cardFromDoc(updated));
+  } catch (err) {
+    console.error('Update balance transaction failed:', err);
+    return null;
+  }
+}
+
+async function exchangeCurrency(cardId, fromCurrency, toCurrency, amount, rate) {
+  console.log('=== BACKEND RECEIVED ===');
+  console.log('cardId:', cardId);
+  console.log('fromCurrency:', fromCurrency);
+  console.log('toCurrency:', toCurrency);
+  console.log('amount:', amount, typeof amount);
+  console.log('rate:', rate, typeof rate);
+
+  const db = getFirestore();
+
+  // Find card to get user_id and ref
+  const cardDoc = await findCardDocById(cardId);
+  if (!cardDoc) {
+    return { ok: false, error: 'Card not found.' };
+  }
+
+  const card = cardFromDoc(cardDoc);
+  console.log('card.balance before:', card.balance);
+  console.log('card.multi_currency before:', card.multi_currency);
+
+  const ref = userCardsRef(db, card.user_id).doc(cardId);
+
+  // Use transaction for atomic read-write
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(ref);
+      if (!snap.exists) {
+        throw new Error('Card not found');
+      }
+
+      const data = snap.data();
+      const currentBalance = data.balance || 0;
+      const currentMulti = data.multi_currency || { SGD: currentBalance };
+
+      console.log('TX currentBalance:', currentBalance);
+      console.log('TX currentMulti:', currentMulti);
+      console.log('TX amount:', amount);
+      console.log('TX fromCurrency:', fromCurrency);
+
+      // Check sufficient balance
+      const fromBalance = currentMulti[fromCurrency] || 0;
+      if (fromBalance < amount) {
+        return {
+          ok: false,
+          error: `Insufficient ${fromCurrency} balance. Available: ${fromBalance.toFixed(2)}, Need: ${amount.toFixed(2)}`
+        };
+      }
+
+      // Calculate
+      const fee = amount * 0.005;
+      const amountAfterFee = amount - fee;
+      const received = amountAfterFee * rate;
+
+      console.log('TX fee:', fee);
+      console.log('TX received:', received);
+
+      // Update balances
+      const nextMulti = { ...currentMulti };
+      nextMulti[fromCurrency] = Math.round(Math.max(0, (nextMulti[fromCurrency] || 0) - amount) * 100) / 100;
+      nextMulti[toCurrency] = Math.round(((nextMulti[toCurrency] || 0) + received) * 100) / 100;
+
+      console.log('TX nextMulti[fromCurrency]:', nextMulti[fromCurrency]);
+      console.log('TX nextMulti[toCurrency]:', nextMulti[toCurrency]);
+
+      // Remove depleted currencies (except SGD)
+      if (fromCurrency !== 'SGD' && nextMulti[fromCurrency] < 0.01) {
+        delete nextMulti[fromCurrency];
+      }
+
+      // Update Firestore atomically
+      const updateData = { multi_currency: nextMulti };
+      if (fromCurrency === 'SGD' || toCurrency === 'SGD') {
+        updateData.balance = nextMulti.SGD;
+      }
+
+      console.log('TX updateData:', updateData);
+
+      transaction.update(ref, updateData);
+
+      return {
+        ok: true,
+        newBalances: nextMulti,
+        fee: fee,
+        received: received,
+      };
+    });
+
+    if (!result.ok) {
+      return result; // Insufficient balance
+    }
+
+    // Get updated card for response
+    const updated = await ref.get();
+    const refreshedCard = syncAutoTopUpPreference(cardFromDoc(updated));
+
+    console.log('=== BACKEND RESULT ===');
+    console.log('newBalances:', result.newBalances);
+    console.log('refreshedCard.balance:', refreshedCard.balance);
+
+    return {
+      ok: true,
+      card: refreshedCard,
+      newBalances: result.newBalances,
+      fee: result.fee,
+      received: result.received,
+    };
+
+  } catch (err) {
+    console.error('Exchange transaction failed:', err);
+    return { ok: false, error: 'Exchange failed. Please try again.' };
+  }
+}
+
+async function deductCurrency(cardId, currency, amount) {
+  return exchangeCurrency(cardId, currency, currency, amount, 1);
+}

@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { TravelPage } from './travel.page';
 import { TravelPageRoutingModule } from './travel-routing.module';
 import { SharedModule } from '../shared/shared.module';
+import { CountryGlobeComponent } from '../components/country-globe/country-globe.component';
 
 @NgModule({
   imports: [
@@ -14,6 +15,6 @@ import { SharedModule } from '../shared/shared.module';
     TravelPageRoutingModule,
     SharedModule,
   ],
-  declarations: [TravelPage]
+  declarations: [TravelPage, CountryGlobeComponent],
 })
 export class TravelPageModule {}

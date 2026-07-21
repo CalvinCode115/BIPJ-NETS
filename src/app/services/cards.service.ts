@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
 
 export type CardType = 'prepaid' | 'cashcard' | 'others';
@@ -142,6 +142,31 @@ export interface TopUpResponse {
   sourceCard?: WalletCard;
 }
 
+export interface MultiCurrencyWallet {
+  cardId: string;
+  balances: Record<string, number>;
+  currencies: string[];
+}
+
+export interface ExchangeCurrencyRequest {
+  fromCurrency: string;
+  toCurrency: string;
+  amount: number;
+  rate: number;
+}
+
+export interface DeductCurrencyRequest {
+  currency: string;
+  amount: number;
+}
+
+export interface ExchangeCurrencyResponse {
+  success: boolean;
+  message: string;
+  newBalances: Record<string, number>;
+  card: WalletCard;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -156,6 +181,16 @@ export class CardsService {
 
   linkCard(userId: string, payload: LinkCardRequest): Observable<LinkCardResponse> {
     return this.http.post<LinkCardResponse>(`${API_BASE_URL}/users/${userId}/cards/link`, payload);
+  }
+
+  generateCardNumber(
+    userId: string,
+    cardType: 'prepaid' | 'cashcard'
+  ): Observable<{ success: boolean; cardNumber: string }> {
+    return this.http.post<{ success: boolean; cardNumber: string }>(
+      `${API_BASE_URL}/users/${userId}/cards/generate-number`,
+      { cardType }
+    );
   }
 
   getPayableCards(userId: string): Observable<WalletCard[]> {
@@ -213,6 +248,61 @@ export class CardsService {
   getReceiveSettings(userId: string): Observable<ReceiveSettings> {
     return this.http.get<ReceiveSettings>(`${API_BASE_URL}/users/${userId}/receive-settings`);
   }
+  // For Multi-currency
+  getCardWallet(userId: string, cardId: string): Observable<MultiCurrencyWallet> {
+  return this.http.get<MultiCurrencyWallet>(
+    `${API_BASE_URL}/users/${userId}/cards/${cardId}/wallet`
+  ).pipe(
+    catchError(err => {
+      console.error('Wallet load failed:', err);
+      return of({ cardId, balances: { SGD: 500 }, currencies: ['SGD'] });
+    })
+  );
+}
+ // For Multi-currency
+exchangeCurrency(
+  userId: string,
+  cardId: string,
+  payload: ExchangeCurrencyRequest
+): Observable<ExchangeCurrencyResponse> {
+  const url = `${API_BASE_URL}/users/${userId}/cards/${cardId}/exchange`;
+  console.log('POST URL:', url);
+  console.log('POST payload:', payload);
+  
+  return this.http.post<ExchangeCurrencyResponse>(url, payload).pipe(
+    tap(response => console.log('POST response:', response)),
+    catchError(err => {
+      console.error('POST error:', err.status, err.statusText, err.error);
+      return of({
+        success: false,
+        message: err.error?.error || 'Exchange failed. Please try again.',
+        newBalances: {},
+        card: {} as WalletCard
+      });
+    })
+  );
+}
+
+deductCurrency(
+  userId: string,
+  cardId: string,
+  payload: DeductCurrencyRequest
+): Observable<ExchangeCurrencyResponse> {
+  return this.http.post<ExchangeCurrencyResponse>(
+    `${API_BASE_URL}/users/${userId}/cards/${cardId}/deduct`,
+    payload
+  ).pipe(
+    catchError(err => {
+      console.error('Deduct failed:', err);
+      return of({
+        success: false,
+        message: err.error?.error || 'Payment failed. Please try again.',
+        newBalances: {},
+        card: {} as WalletCard
+      });
+    })
+  );
+}
 }
 
 export interface ReceiveSettings {
@@ -297,6 +387,40 @@ export function getCardFundsSubtext(card: WalletCard | null | undefined): string
   return `$${limit.toFixed(2)} credit limit`;
 }
 
+/** Prepaid + linked bank cards can pay/QR; CashCard is transit-only. */
+export function isPayableCard(card: WalletCard | null | undefined): boolean {
+  return Boolean(card && card.cardType !== 'cashcard');
+}
+
+/** Prefer Prepaid, then linked cards — never auto-pick CashCard for Pay/QR. */
+export function firstPayableCard(wallet: CardsByType): WalletCard | null {
+  return wallet.prepaid[0] ?? wallet.others[0] ?? null;
+}
+
+/**
+ * Resolve which card Pay/QR should use:
+ * 1. Keep Home selection if it is payable
+ * 2. Otherwise first payable card in wallet
+ * 3. Only then CashCard (so Pay can still show the transit notice)
+ */
+export function resolveActivePayCard(
+  selected: WalletCard | null,
+  wallet: CardsByType,
+  findInWallet: (card: WalletCard | null, wallet: CardsByType) => WalletCard | null
+): WalletCard | null {
+  const refreshed = findInWallet(selected, wallet);
+  if (isPayableCard(refreshed)) {
+    return refreshed;
+  }
+
+  const payable = firstPayableCard(wallet);
+  if (payable) {
+    return payable;
+  }
+
+  return refreshed ?? wallet.cashcard[0] ?? null;
+}
+
 export const FALLBACK_REGISTRY: RegistryCard[] = [
   buildRegistryCard('prepaid', 'NETS Prepaid', '5990 8990 6778 6689', 125.5),
   buildRegistryCard('cashcard', 'NETS CashCard (Transit)', '6250 1234 5678 9012', 28.9),
@@ -325,3 +449,5 @@ function normalizeRegistryCard(card: Partial<RegistryCard>): RegistryCard {
     creditLimit: card.creditLimit ?? fallback?.creditLimit,
   };
 }
+
+

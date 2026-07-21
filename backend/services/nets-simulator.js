@@ -5,6 +5,7 @@
 
 const cardUtils = require('./card-utils');
 const { clampCreditLimit } = require('./credit-config');
+const { randomInt } = require('node:crypto');
 
 /** Optional demo numbers for presentations — not required for linking. */
 const REGISTRY = [
@@ -96,6 +97,39 @@ function maskCardNumber(digits) {
   return `${clean.slice(0, 4)} **** **** ${clean.slice(-4)}`;
 }
 
+function appendLuhnCheckDigit(first15Digits) {
+  const digits = normalizeDigits(first15Digits).slice(0, 15);
+  if (digits.length !== 15) {
+    throw new Error('A 15-digit card prefix is required.');
+  }
+
+  let sum = 0;
+  for (let index = 0; index < digits.length; index += 1) {
+    let value = Number(digits[index]);
+    if (index % 2 === 0) {
+      value *= 2;
+      if (value > 9) {
+        value -= 9;
+      }
+    }
+    sum += value;
+  }
+  return `${digits}${(10 - (sum % 10)) % 10}`;
+}
+
+function generateCardNumber(cardType) {
+  if (cardType !== 'prepaid' && cardType !== 'cashcard') {
+    throw new Error('Only prepaid and CashCard numbers can be generated.');
+  }
+
+  const prefix = cardType === 'prepaid' ? '5990' : '6250';
+  let body = '';
+  while (body.length < 11) {
+    body += String(randomInt(0, 10));
+  }
+  return appendLuhnCheckDigit(`${prefix}${body}`);
+}
+
 function round2(value) {
   return Math.round(value * 100) / 100;
 }
@@ -146,8 +180,15 @@ function validateLinkRequest(payload) {
   }
 
   if (cardType === 'others') {
-    if (cardholderName.length < 2 || !/^[A-Z\s]+$/.test(cardholderName)) {
-      return { ok: false, error: 'Enter a valid name using letters only.' };
+    if (
+      cardholderName.length < 2 ||
+      cardholderName.length > 26 ||
+      !/^[A-Z]+(?: [A-Z]+)*$/.test(cardholderName)
+    ) {
+      return {
+        ok: false,
+        error: 'Cardholder name must be between 2 and 26 characters using letters only.',
+      };
     }
   }
 
@@ -290,6 +331,7 @@ module.exports = {
   validateLinkRequest,
   resolveBalance,
   buildLinkResult,
+  generateCardNumber,
   formatCardNumber,
   formatRegistryEntry,
   maskCardNumber,

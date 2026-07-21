@@ -8,6 +8,10 @@ import {
 
 /** Match backend `wallet-config.js`. */
 export const LOW_BALANCE_THRESHOLD = 50;
+export const MIN_TOP_UP_AMOUNT = 1;
+export const MAX_TOP_UP_AMOUNT = 500;
+export const MAX_WALLET_BALANCE = 5000;
+export const SOURCE_CARD_RESERVE = 50;
 
 export interface TopUpFundingOption {
   id: string;

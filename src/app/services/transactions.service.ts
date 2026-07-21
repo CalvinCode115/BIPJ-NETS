@@ -21,12 +21,13 @@ export interface TransactionRecord {
   id: string;
   merchant: string;
   subtitle: string;
+  displayAmount?: string | null;
   amount: number;
   date: string;
   time: string;
   icon: string;
   iconColor: string;
-  type: 'debit' | 'credit';
+  type: 'debit' | 'credit' | 'exchange';
   category: string;
   cardId?: string;
   counterparty?: TransferCounterparty | null;
@@ -100,8 +101,8 @@ export interface InsightsResponse {
   providedIn: 'root',
 })
 export class TransactionsService {
-  readonly currentMonth = 6;
-  readonly currentYear = 2026;
+  readonly currentMonth = new Date().getMonth() + 1;
+  readonly currentYear = new Date().getFullYear();
 
   constructor(private http: HttpClient) {}
 

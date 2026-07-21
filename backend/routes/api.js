@@ -20,7 +20,13 @@ const spendingRules = require('../services/spending-rules');
 const p2pTransfer = require('../services/p2p-transfer');
 const nameMask = require('../services/name-mask');
 const notificationService = require('../services/notifications');
-const { LOW_BALANCE_THRESHOLD } = require('../services/wallet-config');
+const {
+  LOW_BALANCE_THRESHOLD,
+  MIN_TOP_UP_AMOUNT,
+  MAX_TOP_UP_AMOUNT,
+  MAX_WALLET_BALANCE,
+  SOURCE_CARD_RESERVE,
+} = require('../services/wallet-config');
 const { clampCreditLimit } = require('../services/credit-config');
 const { formatBalanceLeft } = require('../services/balance-message');
 
@@ -393,6 +399,35 @@ router.get('/users/:userId/cards/wallet', asyncHandler(async (req, res) => {
   res.json({ cardsByType: groupCardsByType(cards) });
 }));
 
+router.post('/users/:userId/cards/generate-number', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const cardType = String(req.body?.cardType || '');
+  if (cardType !== 'prepaid' && cardType !== 'cashcard') {
+    return res.status(400).json({ error: 'Only prepaid and CashCard can be issued.' });
+  }
+
+  let digits = '';
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const candidate = netsSimulator.generateCardNumber(cardType);
+    if (!(await db.findAnyLinkedCardByNumber(candidate))) {
+      digits = candidate;
+      break;
+    }
+  }
+  if (!digits) {
+    return res.status(503).json({ error: 'Unable to generate a unique card number. Try again.' });
+  }
+
+  res.json({
+    success: true,
+    cardNumber: netsSimulator.formatCardNumber(digits),
+  });
+}));
+
 router.post('/users/:userId/cards/link', asyncHandler(async (req, res) => {
   const user = await db.getUser(req.params.userId);
   if (!user) {
@@ -483,7 +518,9 @@ router.patch('/users/:userId/cards/:cardId/default-receive', asyncHandler(async 
 
   const card = await db.getCardById(req.params.userId, req.params.cardId);
   if (!card) {
-    return res.status(404).json({ error: 'Card not found.' });
+    return res.status(404).json({
+      error: 'The selected card does not belong to this user.',
+    });
   }
 
   const normalized = cardUtils.normalizeCardRow(card);
@@ -606,8 +643,22 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
   const sourceCardId = req.body.sourceCardId ? String(req.body.sourceCardId) : null;
   const allowedMethods = ['bank', 'card', 'paynow', 'linked'];
 
-  if (!Number.isFinite(amount) || amount < 0.01) {
-    return res.status(400).json({ error: 'Enter an amount of at least $0.01.' });
+  if (!Number.isFinite(amount) || !Number.isInteger(amount)) {
+    return res.status(400).json({ error: 'Enter a whole-dollar amount.' });
+  }
+
+  if (amount < MIN_TOP_UP_AMOUNT) {
+    return res.status(400).json({ error: `Minimum top-up is $${MIN_TOP_UP_AMOUNT}.` });
+  }
+
+  if (amount > MAX_TOP_UP_AMOUNT) {
+    return res.status(400).json({ error: `Maximum top-up is $${MAX_TOP_UP_AMOUNT}.` });
+  }
+
+  if ((Number(card.balance) || 0) + amount > MAX_WALLET_BALANCE) {
+    return res.status(400).json({
+      error: `This top-up would exceed the $${MAX_WALLET_BALANCE.toLocaleString('en-SG')} wallet limit.`,
+    });
   }
 
   if (!allowedMethods.includes(method)) {
@@ -632,12 +683,13 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
       return res.status(400).json({ error: 'Select a valid linked debit or credit card.' });
     }
 
-    if (!cardUtils.hasSufficientFunds(sourceCard, amount)) {
-      return res.status(400).json({ error: 'Insufficient balance on the selected bank card.' });
+    if ((Number(sourceCard.balance) || 0) - amount < SOURCE_CARD_RESERVE) {
+      return res.status(400).json({
+        error: `Keep at least $${SOURCE_CARD_RESERVE} available on the selected bank card.`,
+      });
     }
 
     methodLabel = cardUtils.formatPayFromLabel(sourceCard);
-    await db.setCardBalance(sourceCard.id, cardUtils.applyDebit(sourceCard, amount));
   } else {
     const methodLabels = {
       bank: 'DBS Bank ****1234',
@@ -647,24 +699,57 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
     methodLabel = methodLabels[method] || 'PayNow';
   }
 
-  const updated = await db.updateCardBalance(card.id, amount);
-  if (!updated) {
-    return res.status(500).json({ error: 'Unable to update card balance.' });
+  const balanceResult = await db.applyWalletTopUp(
+    req.params.userId,
+    card.id,
+    sourceCard?.id ?? null,
+    amount,
+    {
+      maxWalletBalance: MAX_WALLET_BALANCE,
+      sourceCardReserve: SOURCE_CARD_RESERVE,
+    }
+  );
+  if (!balanceResult.ok) {
+    return res.status(400).json({ error: balanceResult.error });
   }
+  const updated = balanceResult.card;
+  sourceCard = balanceResult.sourceCard;
+
+  const now = period.nowSingaporeIso();
+  const roundedAmount = Math.round(amount * 100) / 100;
+  const txnBaseId = `txn_${Date.now()}`;
 
   const saved = await db.addTransaction({
-    id: `txn_${Date.now()}`,
+    id: `${txnBaseId}_in`,
     user_id: req.params.userId,
     card_id: card.id,
     merchant: 'NETS Top Up',
     category: 'Transfer',
     subtitle: methodLabel,
-    amount: Math.round(amount * 100) / 100,
+    amount: roundedAmount,
     txn_type: 'credit',
     icon: 'arrow-down-circle',
     icon_color: '#27ae60',
-    occurred_at: period.nowSingaporeIso(),
+    occurred_at: now,
   });
+
+  let sourceTransaction = null;
+  if (sourceCard) {
+    const walletLabel = cardUtils.formatPayFromLabel(card);
+    sourceTransaction = await db.addTransaction({
+      id: `${txnBaseId}_out`,
+      user_id: req.params.userId,
+      card_id: sourceCard.id,
+      merchant: 'Wallet Top Up',
+      category: 'Transfer',
+      subtitle: `To ${walletLabel}`,
+      amount: -roundedAmount,
+      txn_type: 'debit',
+      icon: 'arrow-up-circle',
+      icon_color: '#eb5757',
+      occurred_at: now,
+    });
+  }
 
   const responsePayload = {
     success: true,
@@ -674,10 +759,10 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
   };
 
   if (sourceCard) {
-    responsePayload.sourceCard = mapCard(
-      await db.getCardById(req.params.userId, sourceCard.id),
-      'wallet'
-    );
+    responsePayload.sourceCard = mapCard(sourceCard, 'wallet');
+    if (sourceTransaction) {
+      responsePayload.sourceTransaction = formatTransaction(sourceTransaction);
+    }
   }
 
   res.json(responsePayload);
@@ -859,5 +944,114 @@ function mapCard(row, view = 'summary') {
     expiryDate: row.expiry_date || '',
   };
 }
+// ═════════════════════════════════════════════════════════════════
+// MULTI-CURRENCY WALLET ENDPOINTS
+// ═════════════════════════════════════════════════════════════════
+
+/** Get multi-currency wallet for a card */
+router.get('/users/:userId/cards/:cardId/wallet', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const wallet = await db.getMultiCurrencyWallet(req.params.cardId);
+  if (!wallet) {
+    return res.status(404).json({ error: 'Card not found' });
+  }
+
+  res.json(wallet);
+}));
+
+/** Exchange currency */
+router.post('/users/:userId/cards/:cardId/exchange', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+   // Confirm this card belongs to this user before changing balances
+   const card = await db.getCardById(req.params.userId, req.params.cardId);
+   if (!card) {
+     return res.status(404).json({
+       error: 'The selected card does not belong to this user.',
+     });
+   }
+
+  const { fromCurrency, toCurrency, amount, rate } = req.body;
+  if (!fromCurrency || !toCurrency || !amount || !rate) {
+    return res.status(400).json({ error: 'fromCurrency, toCurrency, amount, and rate are required.' });
+  }
+
+  const result = await db.exchangeCurrency(
+    req.params.cardId,
+    fromCurrency,
+    toCurrency,
+    Number(amount),
+    Number(rate)
+  );
+
+  if (!result.ok) {
+    return res.status(400).json({ error: result.error });
+  }
+
+
+  // This is added to see the transactions in homepage -- junjie
+  const exchangeTransaction = await db.addTransaction({
+    id: `txn_exchange_${Date.now()}`,
+    user_id: req.params.userId,
+    card_id: req.params.cardId,
+    merchant: 'Currency Exchange',
+    category: 'Currency Exchange',
+    subtitle: `Rate: 1 ${fromCurrency} = ${Number(rate).toFixed(4)} ${toCurrency}`,
+    display_amount: `${Number(amount).toFixed(2)} ${fromCurrency} → ${result.received.toFixed(2)} ${toCurrency}`,
+    amount: 0,
+    txn_type: 'exchange',
+    icon: 'swap-horizontal',
+    icon_color: '#9b51e0',
+    occurred_at: period.nowSingaporeIso(),
+  });
+
+  res.json({
+    success: true,
+    message: `Exchanged ${amount} ${fromCurrency} → ${result.received.toFixed(2)} ${toCurrency}`,
+    newBalances: result.newBalances,
+    card: mapCard(result.card, 'wallet'),
+    // The below is added to see the transactions in homepage -- junjie
+    transaction: formatTransaction(exchangeTransaction),
+  });
+}));
+
+/** Deduct currency for payment */
+router.post('/users/:userId/cards/:cardId/deduct', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const { currency, amount } = req.body;
+  if (!currency || !amount) {
+    return res.status(400).json({ error: 'currency and amount are required.' });
+  }
+
+  const result = await db.exchangeCurrency(
+    req.params.cardId,
+    currency,
+    currency, // same currency, just deduct
+    Number(amount),
+    1
+  );
+
+  if (!result.ok) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  res.json({
+    success: true,
+    message: `Paid ${amount} ${currency}`,
+    newBalances: result.newBalances,
+    card: mapCard(result.card, 'wallet'),
+  });
+}));
 
 module.exports = router;

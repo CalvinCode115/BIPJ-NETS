@@ -110,9 +110,26 @@ export class AuthService {
   }
 
   logout(): void {
+    const userId = this.user?.id;
+  
+    if (userId) {
+      localStorage.removeItem(
+        `nets_selected_card_id_${userId}`
+      );
+  
+      localStorage.removeItem(
+        `nets_current_sgd_balance_${userId}`
+      );
+    }
+  
+    // Remove obsolete shared values from older versions
+    localStorage.removeItem('nets_selected_card_id');
+    localStorage.removeItem('nets_current_sgd_balance');
+  
     this.token = null;
     this.user = null;
     this.lastLoginUsedMock = false;
+  
     sessionStorage.removeItem(AUTH_STORAGE.token);
     sessionStorage.removeItem(AUTH_STORAGE.user);
   }
