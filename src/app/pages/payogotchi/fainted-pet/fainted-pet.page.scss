@@ -1,39 +1,282 @@
-.screen-content {
-  --background: var(--payogotchi-cream);
+.fainted-content {
+  /* Lavender → misty-pink gradient from the Figma screen. */
+  --background: linear-gradient(180deg, var(--payogotchi-lavender) 0%, #ffe4e1 60%);
 }
 
-.screen-placeholder {
+/* ---- Top bar ---- */
+.fainted-topbar {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 100%;
-  padding: 24px;
-  text-align: center;
+  height: 60px;
+  padding: 0 20px;
 }
 
-.screen-number {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--text-light);
+.fainted-back {
+  position: absolute;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 18px;
+  background: #ffffff;
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
-.screen-title {
+.fainted-title {
   margin: 0;
   font-family: 'Fredoka', 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 26px;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.fainted-screen {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+
+/* ---- Pet card ---- */
+.fainted-pet-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.08);
+}
+
+.fainted-pet-emblem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 240px;
+  border-radius: 120px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--payogotchi-lavender) 30%, #ffffff) 0%,
+    color-mix(in srgb, var(--payogotchi-lavender) 18%, #ffffff) 100%
+  );
+}
+
+/* Tilted, drooping fainted pose. */
+.fainted-pet-pose {
+  display: flex;
+  transform: rotate(-15deg);
+}
+
+.fainted-zzz {
+  position: absolute;
+  top: 46px;
+  line-height: 1;
+  animation: fainted-float 3s ease-in-out infinite;
+}
+
+.fainted-zzz--1 {
+  left: calc(50% + 44px);
+  font-size: 20px;
+}
+
+.fainted-zzz--2 {
+  left: calc(50% + 66px);
+  top: 40px;
+  font-size: 16px;
+  opacity: 0.7;
+  animation-delay: 0.4s;
+}
+
+.fainted-zzz--3 {
+  left: calc(50% + 84px);
+  top: 34px;
+  font-size: 12px;
+  opacity: 0.4;
+  animation-delay: 0.8s;
+}
+
+@keyframes fainted-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.fainted-pet-status {
+  margin: 16px 0 0;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.fainted-pet-sub {
+  margin: 4px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* ---- Meters ---- */
+.fainted-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.fainted-meter {
+  padding: 12px 14px;
+  border-radius: var(--radius-medium);
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.06);
+}
+
+.fainted-meter--xp {
+  background: linear-gradient(168deg, #fffbf0 0%, #fff8e0 100%);
+}
+
+.fainted-meter--happy {
+  background: linear-gradient(168deg, #fff0f5 0%, #ffeaf2 100%);
+}
+
+.fainted-meter--hunger {
+  border: 2px solid #ffe4e4;
+  background: linear-gradient(168deg, #fff5f0 0%, #fff0e8 100%);
+}
+
+.fainted-meter-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fainted-meter-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--text-light) 18%, #ffffff);
+  font-size: 16px;
+}
+
+.fainted-meter--xp .fainted-meter-badge {
+  background: color-mix(in srgb, var(--xp-color-light) 20%, #ffffff);
+}
+.fainted-meter--happy .fainted-meter-badge {
+  background: color-mix(in srgb, var(--happiness-color-light) 20%, #ffffff);
+}
+.fainted-meter--hunger .fainted-meter-badge {
+  background: color-mix(in srgb, var(--hunger-color-light) 20%, #ffffff);
+}
+
+.fainted-meter-label {
+  flex: 1;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.fainted-meter-value {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.fainted-meter-value--xp {
+  color: var(--xp-color);
+}
+.fainted-meter-value--happy {
+  color: var(--happiness-color);
+}
+.fainted-meter-value--hunger {
   color: var(--text-accent);
 }
 
-.screen-note {
-  margin: 0;
+.fainted-track {
+  margin-top: 8px;
+  height: 10px;
+  border-radius: 5px;
+  background: #f0f0f0;
+  overflow: hidden;
+}
+
+.fainted-fill {
+  height: 10px;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.fainted-fill--xp {
+  background: linear-gradient(90deg, var(--xp-color-light) 0%, var(--xp-color) 100%);
+}
+.fainted-fill--happy {
+  background: linear-gradient(90deg, var(--happiness-color-light) 0%, var(--happiness-color) 100%);
+}
+.fainted-fill--hunger {
+  background: linear-gradient(90deg, var(--hunger-color-light) 0%, var(--hunger-color) 100%);
+}
+
+/* ---- Actions ---- */
+.fainted-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.fainted-btn-primary {
+  height: 56px;
+  border: none;
+  border-radius: 28px;
+  color: #ffffff;
   font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  background: linear-gradient(
+    170deg,
+    var(--ion-color-primary) 0%,
+    color-mix(in srgb, var(--ion-color-primary) 86%, #000000) 100%
+  );
+  box-shadow: 0px 4px 8px rgba(227, 6, 19, 0.3);
+  cursor: pointer;
+}
+
+.fainted-btn-secondary {
+  height: 48px;
+  border: 2px solid var(--ion-color-primary);
+  border-radius: 24px;
+  background: #ffffff;
+  color: var(--ion-color-primary);
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.fainted-hint {
+  margin: 12px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
   font-size: 13px;
+  text-align: center;
   color: var(--text-secondary);
 }

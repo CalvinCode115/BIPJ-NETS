@@ -1,7 +1,67 @@
-<ion-content [fullscreen]="true" class="screen-content">
-  <div class="screen-placeholder">
-    <p class="screen-number">Screen 20</p>
-    <h1 class="screen-title">Rename Pet</h1>
-    <p class="screen-note">Scaffold — design coming soon.</p>
+<ion-content [fullscreen]="true" class="rename-content">
+  <!-- Top bar -->
+  <header class="rename-topbar">
+    <button type="button" class="rename-back" (click)="cancel()" aria-label="Back">←</button>
+    <h1 class="rename-title">Rename Your Tapatchi</h1>
+  </header>
+
+  <div class="rename-screen">
+    <!-- Pet card -->
+    <section class="rename-pet-card">
+      <div class="rename-pet-emblem">
+        <app-tapatchi [mood]="'happy'" [size]="140"></app-tapatchi>
+      </div>
+      <p class="rename-pet-current">Currently: {{ currentName }}</p>
+      <p class="rename-pet-meta">Level {{ level }} • {{ stage }} Tapatchi</p>
+    </section>
+
+    <!-- Speech bubble -->
+    <div class="rename-bubble">
+      <p class="rename-bubble-text">Pick a new name for me! 💕</p>
+    </div>
+
+    <!-- Input card -->
+    <section class="rename-input-card">
+      <label class="rename-label" for="rename-input">New Name</label>
+      <div class="rename-input-wrap">
+        <input
+          id="rename-input"
+          class="rename-input"
+          type="text"
+          [(ngModel)]="newName"
+          [maxlength]="maxLength"
+          autocomplete="off"
+          placeholder="Enter a name"
+        />
+        <button
+          type="button"
+          class="rename-clear"
+          *ngIf="newName"
+          (click)="clearName()"
+          aria-label="Clear name"
+        >
+          ✕
+        </button>
+      </div>
+      <p class="rename-counter">{{ charCount }}/{{ maxLength }} characters</p>
+    </section>
+
+    <!-- Reminder card -->
+    <section class="rename-reminder">
+      <p class="rename-reminder-title">📝 Quick Reminder</p>
+      <ul class="rename-reminder-list">
+        <li>Renames are free and unlimited</li>
+        <li>Your pet's progress is kept</li>
+        <li>Friends will see the new name</li>
+      </ul>
+    </section>
+
+    <!-- Actions -->
+    <div class="rename-actions">
+      <button type="button" class="rename-save" [disabled]="!canSave" (click)="save()">
+        Save New Name 💾
+      </button>
+      <button type="button" class="rename-cancel" (click)="cancel()">Cancel</button>
+    </div>
   </div>
 </ion-content>

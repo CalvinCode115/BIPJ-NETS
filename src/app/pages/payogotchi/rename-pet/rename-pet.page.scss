@@ -1,39 +1,258 @@
-.screen-content {
-  --background: var(--payogotchi-cream);
+.rename-content {
+  /* Mint → cream vertical gradient from the Figma screen. */
+  --background: linear-gradient(180deg, var(--payogotchi-mint) 0%, var(--payogotchi-cream) 45%);
 }
 
-.screen-placeholder {
+/* ---- Top bar ---- */
+.rename-topbar {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 100%;
-  padding: 24px;
-  text-align: center;
+  height: 60px;
+  padding: 0 20px;
 }
 
-.screen-number {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: var(--text-light);
+.rename-back {
+  position: absolute;
+  left: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
 }
 
-.screen-title {
+.rename-title {
   margin: 0;
   font-family: 'Fredoka', 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 26px;
-  color: var(--text-accent);
+  font-size: 22px;
+  color: var(--text-primary);
 }
 
-.screen-note {
-  margin: 0;
+.rename-screen {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+
+/* ---- Pet card ---- */
+.rename-pet-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  border-radius: var(--radius-xl);
+  background: #ffffff;
+  box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.08);
+}
+
+.rename-pet-emblem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 140px;
+  border-radius: 70px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--payogotchi-mint) 35%, #ffffff) 0%,
+    var(--payogotchi-mint) 100%
+  );
+}
+
+.rename-pet-current {
+  margin: 12px 0 0;
   font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.rename-pet-meta {
+  margin: 4px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--text-light);
+}
+
+/* ---- Speech bubble ---- */
+.rename-bubble {
+  position: relative;
+  align-self: center;
+  margin-top: 16px;
+  padding: 14px 22px;
+  border: 2px solid #e8e8e8;
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.rename-bubble::before,
+.rename-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-style: solid;
+}
+
+/* Border triangle */
+.rename-bubble::before {
+  border-width: 0 11px 11px 11px;
+  border-color: transparent transparent #e8e8e8 transparent;
+}
+
+/* Fill triangle (sits 2px lower to cover the border seam) */
+.rename-bubble::after {
+  margin-bottom: -2px;
+  border-width: 0 9px 9px 9px;
+  border-color: transparent transparent #ffffff transparent;
+}
+
+.rename-bubble-text {
+  margin: 0;
+  max-width: 176px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+/* ---- Input card ---- */
+.rename-input-card {
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: var(--radius-large);
+  background: #ffffff;
+  box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.08);
+}
+
+.rename-label {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+.rename-input-wrap {
+  position: relative;
+  margin-top: 8px;
+}
+
+.rename-input {
+  width: 100%;
+  height: 56px;
+  padding: 2px 50px 2px 18px;
+  border: 2px solid var(--payogotchi-soft-pink);
+  border-radius: var(--radius-medium);
+  background: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.rename-input:focus {
+  outline: none;
+  border-color: var(--text-accent);
+}
+
+.rename-clear {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-small);
+  background: #e8e8e8;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.rename-counter {
+  margin: 8px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+/* ---- Reminder card ---- */
+.rename-reminder {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-medium);
+  background: #fffbf0;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.06);
+}
+
+.rename-reminder-title {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.rename-reminder-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.rename-reminder-list li {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-primary);
+}
+
+/* ---- Actions ---- */
+.rename-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.rename-save {
+  height: 52px;
+  border: none;
+  border-radius: 26px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  background: linear-gradient(171deg, var(--text-accent) 0%, var(--happiness-color) 100%);
+  box-shadow: 0px 6px 10px rgba(227, 6, 19, 0.35);
+  cursor: pointer;
+}
+
+.rename-save:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: default;
+}
+
+.rename-cancel {
+  height: 44px;
+  border: 2px solid #e8e8e8;
+  border-radius: 22px;
+  background: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }

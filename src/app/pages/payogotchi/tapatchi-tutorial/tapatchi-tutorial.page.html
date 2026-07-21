@@ -1,7 +1,52 @@
-<ion-content [fullscreen]="true" class="screen-content">
-  <div class="screen-placeholder">
-    <p class="screen-number">Screen 15</p>
-    <h1 class="screen-title">Tapatchi Tutorial</h1>
-    <p class="screen-note">Scaffold — design coming soon.</p>
+<ion-content [fullscreen]="true" class="tutorial-content">
+  <div class="tutorial-screen">
+    <!-- Skip -->
+    <div class="tutorial-skip-row">
+      <button type="button" class="tutorial-skip" (click)="skip()">Skip</button>
+    </div>
+
+    <!-- Progress dots -->
+    <div class="tutorial-dots">
+      <span
+        class="tutorial-dot"
+        *ngFor="let s of slides; let i = index"
+        [class.tutorial-dot--active]="i === index"
+      ></span>
+    </div>
+
+    <!-- Slide card -->
+    <div class="tutorial-card">
+      <div class="tutorial-emblem">
+        <app-tapatchi
+          *ngIf="slide.pet; else emojiEmblem"
+          [mood]="'happy'"
+          [size]="140"
+        ></app-tapatchi>
+        <ng-template #emojiEmblem>
+          <span class="tutorial-emblem-emoji">{{ slide.emoji }}</span>
+        </ng-template>
+      </div>
+
+      <h2 class="tutorial-heading">{{ slide.heading }}</h2>
+      <p class="tutorial-body">{{ slide.body }}</p>
+    </div>
+
+    <!-- Footer controls -->
+    <div class="tutorial-controls">
+      <button
+        type="button"
+        class="tutorial-btn tutorial-btn--prev"
+        [disabled]="isFirst"
+        (click)="previous()"
+      >
+        Previous
+      </button>
+
+      <span class="tutorial-counter">{{ index + 1 }} of {{ slides.length }}</span>
+
+      <button type="button" class="tutorial-btn tutorial-btn--next" (click)="next()">
+        {{ isLast ? 'Get Started' : 'Next →' }}
+      </button>
+    </div>
   </div>
 </ion-content>

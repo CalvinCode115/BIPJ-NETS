@@ -1,7 +1,76 @@
-<ion-content [fullscreen]="true" class="screen-content">
-  <div class="screen-placeholder">
-    <p class="screen-number">Screen 13</p>
-    <h1 class="screen-title">Fainted Pet</h1>
-    <p class="screen-note">Scaffold — design coming soon.</p>
+<ion-content [fullscreen]="true" class="fainted-content">
+  <!-- Top bar -->
+  <header class="fainted-topbar">
+    <button type="button" class="fainted-back" (click)="back()" aria-label="Back">‹</button>
+    <h1 class="fainted-title">{{ name }} Needs You</h1>
+  </header>
+
+  <div class="fainted-screen">
+    <!-- Pet card -->
+    <section class="fainted-pet-card">
+      <div class="fainted-pet-emblem">
+        <div class="fainted-pet-pose">
+          <app-tapatchi [mood]="'sleeping'" [size]="140"></app-tapatchi>
+        </div>
+        <span class="fainted-zzz fainted-zzz--1">💤</span>
+        <span class="fainted-zzz fainted-zzz--2">💤</span>
+        <span class="fainted-zzz fainted-zzz--3">💤</span>
+      </div>
+      <p class="fainted-pet-status">{{ name }} fainted 2 days ago</p>
+      <p class="fainted-pet-sub">Hasn't eaten in 5 days 😢</p>
+    </section>
+
+    <!-- Meters -->
+    <section class="fainted-meters">
+      <!-- XP -->
+      <div class="fainted-meter fainted-meter--xp">
+        <div class="fainted-meter-head">
+          <span class="fainted-meter-badge">📊</span>
+          <span class="fainted-meter-label">Experience</span>
+          <span class="fainted-meter-value fainted-meter-value--xp">{{ xp }} / {{ xpMax }}</span>
+        </div>
+        <div class="fainted-track">
+          <div class="fainted-fill fainted-fill--xp" [style.width.%]="xpPercent"></div>
+        </div>
+      </div>
+
+      <!-- Happiness -->
+      <div class="fainted-meter fainted-meter--happy">
+        <div class="fainted-meter-head">
+          <span class="fainted-meter-badge">😢</span>
+          <span class="fainted-meter-label">Happiness</span>
+          <span class="fainted-meter-value fainted-meter-value--happy">{{ happiness }} / 100</span>
+        </div>
+        <div class="fainted-track">
+          <div class="fainted-fill fainted-fill--happy" [style.width.%]="happiness"></div>
+        </div>
+      </div>
+
+      <!-- Hunger -->
+      <div class="fainted-meter fainted-meter--hunger">
+        <div class="fainted-meter-head">
+          <span class="fainted-meter-badge">🍔</span>
+          <span class="fainted-meter-label">Hunger</span>
+          <span class="fainted-meter-value fainted-meter-value--hunger">
+            {{ hunger }} / 100<span *ngIf="isStarving"> STARVING</span>
+          </span>
+        </div>
+        <div class="fainted-track">
+          <div class="fainted-fill fainted-fill--hunger" [style.width.%]="hunger"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <div class="fainted-actions">
+      <button type="button" class="fainted-btn-primary" (click)="reviveWithFood()">
+        🍔 Find Food Near Me
+      </button>
+      <button type="button" class="fainted-btn-secondary" (click)="reviveWithFood()">
+        💳 Quick Pay
+      </button>
+    </div>
+
+    <p class="fainted-hint">Make any food transaction to revive {{ name }}! 💕</p>
   </div>
 </ion-content>
