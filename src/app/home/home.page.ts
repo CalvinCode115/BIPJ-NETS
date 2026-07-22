@@ -20,6 +20,7 @@ import {
   isLowBalanceAlertsEnabled,
   isLowBalanceDismissed,
 } from '../utils/notification-preferences';
+import { PointsService } from 'shared/points.service';
 
 interface AccountTab {
   id: CardType;
@@ -133,7 +134,8 @@ export class HomePage {
     private cardsService: CardsService,
     private cardContext: CardContextService,
     private transactionsService: TransactionsService,
-    private notificationsService: NotificationsService
+    private notificationsService: NotificationsService,
+    private pointsService: PointsService   // ← add
   ) {}
 
   quickActions: QuickAction[] = [
@@ -200,10 +202,18 @@ export class HomePage {
     const user = this.auth.currentUser;
     this.userName = user?.name.split(' ')[0] ?? 'Guest';
     this.rewards.currentPoints = user?.points ?? 0;
+    this.refreshPointsBalance(user?.id ?? 'user_1');   // ← add this line
     const showLoginAlerts = this.auth.consumeFreshLogin();
     this.loadCardsForUser(user?.id ?? 'user_1');
     this.loadNotifications(user?.id ?? 'user_1', showLoginAlerts);
   }
+
+  private refreshPointsBalance(userId: string): void {
+  this.pointsService.getBalance(userId).subscribe({
+    next: (res) => (this.rewards.currentPoints = res.totalPoints),
+    error: (err) => console.error('Failed to refresh points balance', err),
+  });
+}
 
   ionViewWillLeave(): void {
     this.clearLoginAlertTimer();

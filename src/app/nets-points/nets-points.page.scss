@@ -1,10 +1,8 @@
-// ---- Header ----
 .nets-page-toolbar {
   --background: #ffffff;
   --border-color: transparent;
 }
 
-// ---- Content wrapper (soft gradient background like the mockup) ----
 .nets-points-content {
   --background: linear-gradient(180deg, #fdeef1 0%, #fdf3e4 100%);
   --padding-start: 20px;
@@ -62,11 +60,100 @@
   }
 }
 
+// ---- Daily Check-In ----
+.checkin-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+
+  .checkin-header {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+
+    .checkin-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .checkin-subtitle {
+      font-size: 12px;
+      color: #8a8a8e;
+      margin-top: 2px;
+    }
+  }
+
+  .checkin-day-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .checkin-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+
+    .checkin-day-label {
+      font-size: 9px;
+      font-weight: 600;
+      color: #9a9a9e;
+    }
+
+    .checkin-day-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: #f0f0f2;
+      color: #9a9a9e;
+
+      ion-icon {
+        font-size: 16px;
+      }
+    }
+
+    &--completed .checkin-day-circle {
+      background: #d9f2e3;
+      color: #1fa564;
+    }
+
+    &--today .checkin-day-circle {
+      background: #7b2fd6;
+      color: #ffffff;
+      box-shadow: 0 0 0 3px #f3e9fc;
+    }
+
+    &--today .checkin-day-label {
+      color: #7b2fd6;
+      font-weight: 700;
+    }
+  }
+
+  .checkin-btn {
+    --background: #7b2fd6;
+    --border-radius: 22px;
+    font-weight: 700;
+    text-transform: none;
+    margin: 0;
+  }
+}
+
 // ---- Earned / Spent this week ----
 .week-stats-row {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 
   .week-stat-card {
     flex: 1;
@@ -99,6 +186,39 @@
       &--positive { color: #1fa564; }
       &--negative { color: #e0303d; }
     }
+  }
+}
+
+// ---- Quick-nav grid (moved here from the old /rewards hub page) ----
+.quick-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.quick-nav-item {
+  background: #ffffff;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  ion-icon {
+    font-size: 24px;
+    color: #7b2fd6;
+  }
+
+  span {
+    font-size: 11px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: center;
+    line-height: 1.2;
   }
 }
 
@@ -145,8 +265,7 @@
     }
 
     &--redemption,
-    &--cosmetic,
-    &--redeem {
+    &--cosmetic {
       background: #fbe4e6;
       color: #e0303d;
     }

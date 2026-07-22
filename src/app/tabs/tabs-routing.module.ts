@@ -25,7 +25,7 @@ const routes: Routes = [
       },
       {
         path: 'rewards',
-        loadChildren: () => import('../rewards/rewards.module').then(m => m.RewardsPageModule)
+        loadChildren: () => import('../nets-points/nets-points.module').then(m => m.NetsPointsPageModule)
       },
       {
         path: 'payogotchi',

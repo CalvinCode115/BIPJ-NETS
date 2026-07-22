@@ -26,6 +26,12 @@ function isEventLive(voucher) {
  * Vouchers for the Marketplace page, with remaining-quantity info computed
  * for daily/weekly/total-limited vouchers so the UI can show "62 left
  * today" etc.
+ *
+ * Sort order: all currently-redeemable vouchers first (cheapest points
+ * cost to most expensive), then anything not currently redeemable —
+ * mainly event vouchers outside their date window, or sold-out limited
+ * ones — pushed to the bottom, also cheapest-to-most-expensive within
+ * that group.
  */
 async function getMarketplaceVouchers() {
   const db = getFirestore();
@@ -60,6 +66,13 @@ async function getMarketplaceVouchers() {
       };
     })
   );
+
+  vouchers.sort((a, b) => {
+    if (a.redeemable !== b.redeemable) {
+      return a.redeemable ? -1 : 1; // redeemable ones first
+    }
+    return a.pointsCost - b.pointsCost; // then cheapest to most expensive
+  });
 
   return { vouchers };
 }
@@ -139,8 +152,6 @@ async function redeemVoucher(userId, voucherId) {
       usedAt: null,
       usedMerchant: null,
       usedLocation: null,
-      // Snapshotted so later catalog edits don't retroactively change a
-      // voucher the user already redeemed.
       termsAndConditions: voucher.termsAndConditions ?? [],
       usageSteps: voucher.usageSteps ?? [],
     });

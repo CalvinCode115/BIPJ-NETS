@@ -1,12 +1,15 @@
 export type VoucherType = 'permanent' | 'limited' | 'event';
 export type VoucherDifficulty = 'easy' | 'moderate' | 'challenging' | 'premium';
 export type QuantityLimitType = 'none' | 'daily' | 'weekly' | 'total';
+export type VoucherCategory = 'Retail' | 'Dining' | 'Transport' | 'Groceries' | 'Travel';
 
 export interface MarketplaceVoucher {
   id: string;
   merchantName: string;
   description: string;
   icon: string;
+  logoUrl: string | null;
+  category: VoucherCategory;
   pointsCost: number;
   type: VoucherType;
   difficulty: VoucherDifficulty;

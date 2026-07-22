@@ -8,28 +8,39 @@
  *   'weekly' — resets every Monday 00:00 SGT
  *   'total'  — a single fixed pool that never resets (typical for a one-off event item)
  *
+ * category: one of 'Retail' | 'Dining' | 'Transport' | 'Groceries' | 'Travel'
+ *   — used ONLY for the Marketplace page's category filter. Coffee/Drinks
+ *   merchants are tagged 'Dining' here, matching how Diverse Spender
+ *   collapses those categories too.
+ *
+ * discountType / discountValue / discountCap: how much this voucher
+ * actually discounts a payment by (separate from pointsCost, which is what
+ * it costs to redeem).
+ *
  * validityDays: how many days after REDEMPTION the voucher stays usable
  * before moving from Available -> Expired in My Vouchers.
  */
 
 const voucherCatalog = {
-  'liho-topping-upgrade': {
+  'liho-1-dollar-voucher': {
     merchantName: 'LiHO Tea',
-    description: 'Free Topping Upgrade',
+    description: '$1 Voucher',
     icon: 'cup-outline',
-    pointsCost: 600,
-    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'none', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 0, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
+    logoUrl: 'assets/merchant-logos/liho.jpg', // put your actual logo file at src/assets/merchant-logos/liho.png
+    category: 'Dining',
+    pointsCost: 200,
     type: 'permanent',
     difficulty: 'easy',
     merchantIds: ['liho tea'],
     quantityLimitType: 'none',
     quantityLimitAmount: null,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 1,
+    discountCap: null,
+    minSpend: null,
     termsAndConditions: [
-      'Valid for one free topping upgrade on any LiHO Tea drink.',
+      '$1 off any LiHO Tea purchase.',
       'One redemption per transaction.',
       'Cannot be combined with other LiHO Tea promotions.',
     ],
@@ -43,17 +54,19 @@ const voucherCatalog = {
     merchantName: 'Grab',
     description: '$3 Ride Voucher',
     icon: 'car-outline',
+    logoUrl: 'assets/merchant-logos/grab.png', // put your actual logo file at src/assets/merchant-logos/grab.png
+    category: 'Transport',
     pointsCost: 900,
-    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 3, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'easy',
     merchantIds: ['grab'],
     quantityLimitType: 'none',
     quantityLimitAmount: null,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 3,
+    discountCap: null,
+    minSpend: null,
     termsAndConditions: [
       '$3 off one Grab ride paid via NETS.',
       'Valid for GrabCar and GrabFood; not valid for GrabPay top-ups.',
@@ -69,17 +82,19 @@ const voucherCatalog = {
     merchantName: 'Starbucks',
     description: '$5 Beverage Voucher',
     icon: 'cafe-outline',
+    logoUrl: 'assets/merchant-logos/starbucks.png', // put your actual logo file at src/assets/merchant-logos/starbucks.png
+    category: 'Dining',
     pointsCost: 1200,
-    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 5, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'easy',
     merchantIds: ['starbucks raffles place', 'starbucks one raffles'],
     quantityLimitType: 'none',
     quantityLimitAmount: null,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 5,
+    discountCap: null,
+    minSpend: null,
     termsAndConditions: [
       '$5 off any beverage at participating Starbucks outlets.',
       'Valid for one transaction only.',
@@ -95,17 +110,19 @@ const voucherCatalog = {
     merchantName: 'Boost Juice',
     description: '$5 Voucher',
     icon: 'nutrition-outline',
+    logoUrl: 'assets/merchant-logos/boost-juice.png', // put your actual logo file at src/assets/merchant-logos/boost-juice.png
+    category: 'Dining',
     pointsCost: 1800,
-    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 5, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'limited',
     difficulty: 'moderate',
     merchantIds: ['boost juice'],
     quantityLimitType: 'daily',
     quantityLimitAmount: 100,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 5,
+    discountCap: null,
+    minSpend: null,
     termsAndConditions: [
       '$5 off any Boost Juice drink.',
       'Limited to 100 redemptions per day, first come first served.',
@@ -121,17 +138,19 @@ const voucherCatalog = {
     merchantName: 'Watsons',
     description: '$10 Off Voucher',
     icon: 'medkit-outline',
+    logoUrl: 'assets/merchant-logos/watsons.png', // put your actual logo file at src/assets/merchant-logos/watsons.png
+    category: 'Retail',
     pointsCost: 2600,
-    minSpend: 30, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 10, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'moderate',
     merchantIds: ['watsons'],
     quantityLimitType: 'none',
     quantityLimitAmount: null,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 10,
+    discountCap: null,
+    minSpend: 30,
     termsAndConditions: [
       '$10 off min. spend $30 at Watsons.',
       'Valid on regular-priced items only.',
@@ -147,17 +166,19 @@ const voucherCatalog = {
     merchantName: 'Starbucks',
     description: '$10 Beverage Voucher',
     icon: 'cafe-outline',
+    logoUrl: 'assets/merchant-logos/starbucks.png', // put your actual logo file at src/assets/merchant-logos/starbucks.png
+    category: 'Dining',
     pointsCost: 2800,
-    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 10, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'permanent',
     difficulty: 'moderate',
     merchantIds: ['starbucks raffles place', 'starbucks one raffles'],
     quantityLimitType: 'none',
     quantityLimitAmount: null,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 10,
+    discountCap: null,
+    minSpend: null,
     termsAndConditions: [
       '$10 off any purchase at participating Starbucks outlets.',
       'Valid for one transaction only.',
@@ -173,17 +194,19 @@ const voucherCatalog = {
     merchantName: 'Decathlon',
     description: '$10 Off Voucher',
     icon: 'basketball-outline',
+    logoUrl: 'assets/merchant-logos/decathlon.png', // put your actual logo file at src/assets/merchant-logos/decathlon.png
+    category: 'Retail',
     pointsCost: 6000,
-    minSpend: 40, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 10, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'limited',
     difficulty: 'challenging',
     merchantIds: ['decathlon singapore'],
     quantityLimitType: 'weekly',
     quantityLimitAmount: 30,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 10,
+    discountCap: null,
+    minSpend: 40,
     termsAndConditions: [
       '$10 off min. spend $40 at Decathlon Singapore.',
       'Limited to 30 redemptions per week, first come first served.',
@@ -199,11 +222,9 @@ const voucherCatalog = {
     merchantName: 'National Day 50% F&B Discount',
     description: '50% off, up to $5 off',
     icon: 'flag-outline',
+    logoUrl: 'assets/merchant-logos/national-day.jpg', // put your actual logo file at src/assets/merchant-logos/national-day.png
+    category: 'Dining',
     pointsCost: 6500,
-    minSpend: null, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'percentage', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 50, // dollars for 'flat', percent for 'percentage'
-    discountCap: 5, // only used for 'percentage' — max $ off
     type: 'event',
     difficulty: 'challenging',
     // Category-based rather than merchant-based — matches any Dining,
@@ -215,6 +236,10 @@ const voucherCatalog = {
     quantityLimitType: 'daily',
     quantityLimitAmount: 100,
     validityDays: 14,
+    discountType: 'percentage',
+    discountValue: 50,
+    discountCap: 5,
+    minSpend: null,
     termsAndConditions: [
       '50% off one F&B transaction, capped at $5 off.',
       'Valid 1–9 August 2026 only, at any Dining, Coffee, or Drinks merchant.',
@@ -230,17 +255,19 @@ const voucherCatalog = {
     merchantName: 'Cotton On',
     description: '$15 Fashion Voucher',
     icon: 'shirt-outline',
+    logoUrl: 'assets/merchant-logos/cotton-on.png', // put your actual logo file at src/assets/merchant-logos/cotton-on.png
+    category: 'Retail',
     pointsCost: 7000,
-    minSpend: 50, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 15, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'limited',
     difficulty: 'challenging',
     merchantIds: ['cotton on'],
     quantityLimitType: 'weekly',
     quantityLimitAmount: 50,
     validityDays: 90,
+    discountType: 'flat',
+    discountValue: 15,
+    discountCap: null,
+    minSpend: 50,
     termsAndConditions: [
       '$15 off min. spend $50 at Cotton On.',
       'Limited to 50 redemptions per week, first come first served.',
@@ -256,11 +283,9 @@ const voucherCatalog = {
     merchantName: 'Klook',
     description: '$20 Year-End Travel Deal',
     icon: 'airplane-outline',
+    logoUrl: 'assets/merchant-logos/klook.png', // put your actual logo file at src/assets/merchant-logos/klook.png
+    category: 'Travel',
     pointsCost: 12500,
-    minSpend: 80, // structured, for programmatic eligibility checks (vs the free-text T&Cs)
-    discountType: 'flat', // 'flat' ($ off) | 'percentage' (% off) | 'none' (non-cash perk)
-    discountValue: 20, // dollars for 'flat', percent for 'percentage'
-    discountCap: null, // only used for 'percentage' — max $ off
     type: 'event',
     difficulty: 'premium',
     merchantIds: ['klook'],
@@ -270,6 +295,10 @@ const voucherCatalog = {
     quantityLimitAmount: 200,
     redeemedCount: 0, // tracks the fixed pool directly (never resets), unlike daily/weekly counters
     validityDays: 30,
+    discountType: 'flat',
+    discountValue: 20,
+    discountCap: null,
+    minSpend: 80,
     termsAndConditions: [
       '$20 off min. spend $80 on Klook, valid 1 Nov – 20 Dec 2026.',
       'Limited to 200 redemptions for the entire event — while stocks last.',

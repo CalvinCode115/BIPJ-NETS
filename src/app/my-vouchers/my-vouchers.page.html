@@ -189,22 +189,6 @@
             <li *ngFor="let step of voucher.usageSteps">{{ step }}</li>
           </ol>
         </div>
-
-        <!-- ⚠️ TEST/DEV ONLY: remove once the real Pay/QR auto-apply hook exists -->
-        <div class="dev-test-box">
-          <span class="dev-test-label">⚠️ Test only — simulate using this voucher</span>
-          <ion-input class="dev-test-input" placeholder="Merchant" [(ngModel)]="testMerchant"></ion-input>
-          <ion-input class="dev-test-input" placeholder="Location (optional)" [(ngModel)]="testLocation"></ion-input>
-          <ion-button
-            expand="block"
-            fill="outline"
-            shape="round"
-            class="dev-test-btn"
-            [disabled]="markingUsed"
-            (click)="markAsUsed(voucher)">
-            {{ markingUsed ? 'Marking...' : 'Simulate Use (Test Only)' }}
-          </ion-button>
-        </div>
       </div>
     </ng-template>
   </ion-modal>

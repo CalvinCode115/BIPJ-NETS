@@ -30,7 +30,10 @@ const transactionRewards = require('../services/transaction-rewards');
 const marketplaceRouter = require('./marketplace');
 const myVouchersRouter = require('./my-vouchers');
 const myVouchers = require('../services/my-vouchers');
-const pointsTransferRouter = require('./points-transfer');
+const pointsTransferRouter = require('./points-transfer')
+const dailyCheckinRouter = require('./daily-checkin');
+
+
 
 const router = express.Router();
 
@@ -40,6 +43,7 @@ router.use('/', pointsRouter);
 router.use('/', marketplaceRouter);
 router.use('/', myVouchersRouter);
 router.use('/', pointsTransferRouter);
+router.use('/', dailyCheckinRouter);
 
 router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'nets-backend', mode: 'firestore' });

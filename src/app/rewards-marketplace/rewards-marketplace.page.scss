@@ -1,6 +1,19 @@
 .nets-page-toolbar {
   --background: #f5f5f7;
   --border-color: transparent;
+  position: relative;
+}
+
+.filter-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  --background: #e0303d;
+  --color: #ffffff;
+  font-size: 9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0;
 }
 
 .marketplace-content {
@@ -32,7 +45,7 @@
   }
 }
 
-// ---- Loading / error states ----
+// ---- Loading / error / empty states ----
 .state-message {
   text-align: center;
   padding: 40px 20px;
@@ -66,17 +79,23 @@
   }
 
   .marketplace-image {
-    background: #f2e9fb;
     border-radius: 16px;
     aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 10px;
+    padding: 10px;
 
     ion-icon {
       font-size: 34px;
-      color: #7b2fd6;
+      color: #ffffff;
+    }
+
+    .marketplace-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
   }
 
@@ -150,6 +169,116 @@
   &--difficulty-premium { background: linear-gradient(90deg, #7b2fd6, #e0307a); color: #ffffff; }
 }
 
+// ---- Filter modal ----
+.filter-modal {
+  --border-radius: 20px 20px 0 0;
+  --height: auto;
+  align-items: flex-end;
+}
+
+.filter-sheet {
+  padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+
+  .filter-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+
+    .filter-sheet-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .filter-sheet-close {
+      --color: #8a8a8e;
+      margin: -8px -8px 0 0;
+    }
+  }
+
+  .filter-section {
+    margin-bottom: 20px;
+
+    .filter-section-title {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 10px;
+    }
+  }
+
+  .filter-range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #8a8a8e;
+    margin-top: -4px;
+  }
+
+  .filter-segment {
+    --background: #ececee;
+    border-radius: 20px;
+    padding: 4px;
+
+    ion-segment-button {
+      --border-radius: 16px;
+      --indicator-color: #ffffff;
+      --color: #8a8a8e;
+      --color-checked: #1a1a1a;
+      min-height: 34px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: none;
+    }
+  }
+
+  .filter-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .filter-chip {
+    border: 1px solid #e2e2e5;
+    background: #ffffff;
+    color: #4a4a4e;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 16px;
+
+    &--selected {
+      background: #7b2fd6;
+      border-color: #7b2fd6;
+      color: #ffffff;
+    }
+  }
+
+  .filter-sheet-footer {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+
+    .filter-reset-btn {
+      flex: 1;
+      --border-color: #d8d8db;
+      --color: #4a4a4e;
+      font-weight: 600;
+      text-transform: none;
+    }
+
+    .filter-apply-btn {
+      flex: 2;
+      --background: #7b2fd6;
+      font-weight: 700;
+      text-transform: none;
+    }
+  }
+}
+
 // ---- Voucher details modal ----
 .voucher-details-modal {
   --border-radius: 20px 20px 0 0;
@@ -172,14 +301,20 @@
       height: 48px;
       min-width: 48px;
       border-radius: 14px;
-      background: #f2e9fb;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 6px;
 
       ion-icon {
         font-size: 24px;
-        color: #7b2fd6;
+        color: #ffffff;
+      }
+
+      .voucher-details-logo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
       }
     }
 

@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { ToastController } from '@ionic/angular';
 import { UserVoucher } from 'shared/my-vouchers.models';
 import { SessionService } from 'shared/session.service';
 import { MyVouchersService } from 'shared/my-vouchers.service';
@@ -14,7 +13,7 @@ type VoucherTab = 'available' | 'used' | 'expired';
   styleUrls: ['./my-vouchers.page.scss'],
   standalone: false,
 })
-export class MyVouchersPage implements OnInit {
+export class MyVouchersPage {
 
   loading = true;
   error: string | null = null;
@@ -28,21 +27,14 @@ export class MyVouchersPage implements OnInit {
   selectedVoucher: UserVoucher | null = null;
   showDetailsModal = false;
 
-  // ⚠️ TEST/DEV ONLY — lets you simulate the future Pay/QR auto-apply hook
-  // so you can see the Used tab work before that integration exists.
-  testMerchant = '';
-  testLocation = '';
-  markingUsed = false;
-
   constructor(
     private myVouchersService: MyVouchersService,
     private session: SessionService,
     private router: Router,
-    private location: Location,
-    private toastController: ToastController
+    private location: Location
   ) {}
 
-  ngOnInit(): void {
+  ionViewWillEnter(): void {
     this.load();
   }
 
@@ -82,8 +74,6 @@ export class MyVouchersPage implements OnInit {
 
   openDetails(voucher: UserVoucher): void {
     this.selectedVoucher = voucher;
-    this.testMerchant = voucher.merchantName;
-    this.testLocation = '';
     this.showDetailsModal = true;
   }
 
@@ -96,39 +86,6 @@ export class MyVouchersPage implements OnInit {
   daysUntilExpiry(voucher: UserVoucher): number {
     const ms = new Date(voucher.expiresAt).getTime() - Date.now();
     return Math.ceil(ms / (24 * 60 * 60 * 1000));
-  }
-
-  markAsUsed(voucher: UserVoucher): void {
-    if (this.markingUsed) return;
-    this.markingUsed = true;
-
-    this.myVouchersService.markUsed(this.session.userId, voucher.id, this.testMerchant, this.testLocation).subscribe({
-      next: async () => {
-        this.markingUsed = false;
-        this.closeDetails();
-        this.load();
-
-        const toast = await this.toastController.create({
-          message: 'Voucher marked as used (test only).',
-          duration: 2000,
-          position: 'top',
-          color: 'success',
-        });
-        await toast.present();
-      },
-      error: async (err) => {
-        this.markingUsed = false;
-        console.error('Failed to mark voucher as used', err);
-
-        const toast = await this.toastController.create({
-          message: err?.error?.error || 'Could not mark this voucher as used.',
-          duration: 2000,
-          position: 'top',
-          color: 'danger',
-        });
-        await toast.present();
-      },
-    });
   }
 
   goBack(): void {

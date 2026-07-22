@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { ToastController } from '@ionic/angular';
@@ -6,14 +6,13 @@ import { PointsTransferService } from 'shared/points-transfer.service';
 import { PointsService } from 'shared/points.service';
 import { SessionService } from 'shared/session.service';
 
-
 @Component({
   selector: 'app-send-points',
   templateUrl: './send-points.page.html',
   styleUrls: ['./send-points.page.scss'],
   standalone: false,
 })
-export class SendPointsPage implements OnInit {
+export class SendPointsPage {
 
   balance = 0;
   contactNumber = '';
@@ -25,6 +24,7 @@ export class SendPointsPage implements OnInit {
   // Payee lookup state
   payeeName: string | null = null;
   payeeNotFound = false;
+  isOwnNumber = false; // true when the entered number is the sender's own
   lookupInProgress = false;
   private lookupDebounceHandle: ReturnType<typeof setTimeout> | null = null;
 
@@ -39,7 +39,7 @@ export class SendPointsPage implements OnInit {
     private toastController: ToastController
   ) {}
 
-  ngOnInit(): void {
+  ionViewWillEnter(): void {
     this.pointsService.getBalance(this.session.userId).subscribe({
       next: (res) => (this.balance = res.totalPoints),
       error: (err) => console.error('Failed to load points balance', err),
@@ -50,10 +50,19 @@ export class SendPointsPage implements OnInit {
     return (
       this.contactNumber.length === 8 &&
       !!this.payeeName &&
+      !this.isOwnNumber &&
       !!this.amount &&
       this.amount > 0 &&
       this.amount <= this.balance
     );
+  }
+
+  goBack(): void {
+    if (window.history.length > 1) {
+      this.location.back();
+    } else {
+      this.router.navigate(['/rewards']);
+    }
   }
 
   /** Debounced so we don't look up the phone number on every keystroke. */
@@ -61,6 +70,7 @@ export class SendPointsPage implements OnInit {
     this.contactNumber = value;
     this.payeeName = null;
     this.payeeNotFound = false;
+    this.isOwnNumber = false;
 
     if (this.lookupDebounceHandle) {
       clearTimeout(this.lookupDebounceHandle);
@@ -78,18 +88,32 @@ export class SendPointsPage implements OnInit {
     this.pointsTransferService.lookupByPhone(phone).subscribe({
       next: (res) => {
         this.lookupInProgress = false;
-        if (res.found) {
-          this.payeeName = res.name ?? null;
-          this.payeeNotFound = false;
-        } else {
+
+        if (!res.found) {
           this.payeeName = null;
           this.payeeNotFound = true;
+          this.isOwnNumber = false;
+          return;
         }
+
+        if (res.userId === this.session.userId) {
+          // Caught here, client-side, so the user never even sees their
+          // own name before finding out they can't send to themselves.
+          this.payeeName = null;
+          this.payeeNotFound = false;
+          this.isOwnNumber = true;
+          return;
+        }
+
+        this.payeeName = res.name ?? null;
+        this.payeeNotFound = false;
+        this.isOwnNumber = false;
       },
       error: (err) => {
         this.lookupInProgress = false;
         this.payeeName = null;
         this.payeeNotFound = true;
+        this.isOwnNumber = false;
         console.error('Failed to look up payee', err);
       },
     });

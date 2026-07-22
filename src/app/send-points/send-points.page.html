@@ -1,7 +1,7 @@
 <ion-header class="nets-page-header">
   <ion-toolbar class="nets-page-toolbar">
     <ion-buttons slot="start">
-      <ion-button fill="clear" (click)="goBackToBalance()">
+      <ion-button fill="clear" (click)="goBack()">
         <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -54,11 +54,14 @@
         <ion-icon name="close-circle"></ion-icon>
         <span>Payee not found</span>
       </div>
+      <div class="payee-feedback payee-feedback--not-found" *ngIf="!lookupInProgress && isOwnNumber">
+        <ion-icon name="close-circle"></ion-icon>
+        <span>Cannot send points to yourself, please enter another contact number</span>
+      </div>
     </div>
 
     <div class="form-field">
       <label class="form-label">
-        <ion-icon name="logo-bitcoin"></ion-icon>
         Amount to Send
       </label>
       <div class="amount-input-wrapper">
