@@ -16,40 +16,11 @@ const routes: Routes = [
     canActivate: [authGuard],
     loadChildren: () => import('./tabs/tabs.module').then((m) => m.TabsPageModule),
   },
-  {
-    path: 'nets-points',
-    loadChildren: () => import('./nets-points/nets-points.module').then( m => m.NetsPointsPageModule)
-  },
-  {
-    path: 'send-points',
-    loadChildren: () => import('./send-points/send-points.module').then( m => m.SendPointsPageModule)
-  },
-  {
-    path: 'point-history',
-    loadChildren: () => import('./point-history/point-history.module').then( m => m.PointHistoryPageModule)
-  },
-  {
-    path: 'partner-challenges',
-    loadChildren: () => import('./partner-challenges/partner-challenges.module').then( m => m.PartnerChallengesPageModule)
-  },
-  {
-    path: 'daily-quests',
-    loadChildren: () => import('./daily-quests/daily-quests.module').then( m => m.DailyQuestsPageModule)
-  },
-  {
-    path: 'weekly-quests',
-    loadChildren: () => import('./weekly-quests/weekly-quests.module').then( m => m.WeeklyQuestsPageModule)
-  },
-  {
-    path: 'my-vouchers',
-    loadChildren: () => import('./my-vouchers/my-vouchers.module').then( m => m.MyVouchersPageModule)
-  },
-  {
-    path: 'rewards-marketplace',
-    loadChildren: () => import('./rewards-marketplace/rewards-marketplace.module').then( m => m.RewardsMarketplacePageModule)
-  },
-
-
+  // All 8 rewards-system routes (nets-points, send-points, point-history,
+  // partner-challenges, daily-quests, weekly-quests, my-vouchers,
+  // rewards-marketplace) moved into tabs-routing.module.ts, nested under
+  // the 'rewards' tab, so they keep the tab bar instead of replacing the
+  // whole tabs shell. Removed from here on purpose — don't re-add them.
 ];
 @NgModule({
   imports: [

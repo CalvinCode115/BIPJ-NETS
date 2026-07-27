@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { PointsHistoryEntry } from 'shared/points.models';
@@ -14,7 +14,7 @@ type FilterType = 'all' | 'earned' | 'spent';
   styleUrls: ['./point-history.page.scss'],
   standalone: false,
 })
-export class PointHistoryPage implements OnInit {
+export class PointHistoryPage {
 
   loading = true;
   error: string | null = null;
@@ -39,7 +39,7 @@ export class PointHistoryPage implements OnInit {
     private location: Location
   ) {}
 
-  ngOnInit(): void {
+  ionViewWillEnter(): void {
     this.load();
   }
 
@@ -137,7 +137,7 @@ export class PointHistoryPage implements OnInit {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/nets-points']);
+      this.router.navigate(['/tabs/rewards']);
     }
   }
 }

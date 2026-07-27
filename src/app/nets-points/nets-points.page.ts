@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { ToastController } from '@ionic/angular';
@@ -16,7 +16,7 @@ const PREVIEW_LIMIT = 8;
   styleUrls: ['./nets-points.page.scss'],
   standalone: false,
 })
-export class NetsPointsPage implements OnInit {
+export class NetsPointsPage {
 
   loading = true;
   error: string | null = null;
@@ -37,11 +37,6 @@ export class NetsPointsPage implements OnInit {
     private location: Location,
     private toastController: ToastController
   ) {}
-
-  ngOnInit(): void {
-    this.load();
-    this.loadCheckinStatus();
-  }
 
   ionViewWillEnter(): void {
     this.load();
@@ -131,41 +126,33 @@ export class NetsPointsPage implements OnInit {
     });
   }
 
-  goBack(): void {
-    if (window.history.length > 1) {
-      this.location.back();
-    } else {
-      this.router.navigate(['/tabs/home']);
-    }
-  }
-
   sendPointsToFriends(): void {
-    this.router.navigate(['/send-points']);
+    this.router.navigate(['/tabs/rewards/send-points']);
   }
 
   goToPointHistory(): void {
-    this.router.navigate(['/point-history']);
+    this.router.navigate(['/tabs/rewards/point-history']);
   }
 
   // ---- The 5 quick-nav buttons, now living here instead of the old /rewards hub page ----
 
   goToDailyQuests(): void {
-    this.router.navigate(['/daily-quests']);
+    this.router.navigate(['/tabs/rewards/daily-quests']);
   }
 
   goToWeeklyQuests(): void {
-    this.router.navigate(['/weekly-quests']);
+    this.router.navigate(['/tabs/rewards/weekly-quests']);
   }
 
   goToPartnerChallenges(): void {
-    this.router.navigate(['/partner-challenges']);
+    this.router.navigate(['/tabs/rewards/partner-challenges']);
   }
 
   goToMarketplace(): void {
-    this.router.navigate(['/rewards-marketplace']);
+    this.router.navigate(['/tabs/rewards/rewards-marketplace']);
   }
 
   goToMyVouchers(): void {
-    this.router.navigate(['/my-vouchers']);
+    this.router.navigate(['/tabs/rewards/my-vouchers']);
   }
 }

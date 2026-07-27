@@ -92,7 +92,7 @@ export class MyVouchersPage {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/rewards']);
+      this.router.navigate(['/tabs/rewards']);
     }
   }
 }

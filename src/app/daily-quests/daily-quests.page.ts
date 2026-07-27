@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { QuestWithProgress } from 'shared/quest.models';
@@ -11,7 +11,7 @@ import { SessionService } from 'shared/session.service';
   styleUrls: ['./daily-quests.page.scss'],
   standalone: false,
 })
-export class DailyQuestsPage implements OnInit {
+export class DailyQuestsPage {
 
   loading = true;
   error: string | null = null;
@@ -31,7 +31,7 @@ export class DailyQuestsPage implements OnInit {
     private location: Location
   ) {}
 
-  ngOnInit(): void {
+  ionViewWillEnter(): void {
     this.load();
   }
 
@@ -94,7 +94,7 @@ export class DailyQuestsPage implements OnInit {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/rewards']);
+      this.router.navigate(['/tabs/rewards']);
     }
   }
 }

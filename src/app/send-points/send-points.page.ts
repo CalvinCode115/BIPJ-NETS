@@ -61,7 +61,7 @@ export class SendPointsPage {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/rewards']);
+      this.router.navigate(['/tabs/rewards']);
     }
   }
 
@@ -146,7 +146,7 @@ export class SendPointsPage {
             color: 'success',
           });
           await toast.present();
-          this.router.navigate(['/nets-points']);
+          this.router.navigate(['/tabs/rewards']);
         },
         error: async (err) => {
           this.sending = false;
@@ -166,7 +166,7 @@ export class SendPointsPage {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/nets-points']);
+      this.router.navigate(['/tabs/rewards']);
     }
   }
 }

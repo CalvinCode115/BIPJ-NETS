@@ -199,7 +199,7 @@ export class RewardsMarketplacePage {
           buttons: [
             {
               text: 'View',
-              handler: () => this.router.navigate(['/my-vouchers']),
+              handler: () => this.router.navigate(['/tabs/rewards/my-vouchers']),
             },
           ],
         });
@@ -224,7 +224,7 @@ export class RewardsMarketplacePage {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/nets-points']);
+      this.router.navigate(['/tabs/rewards']);
     }
   }
 }

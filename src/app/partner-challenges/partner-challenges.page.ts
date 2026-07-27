@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { ToastController } from '@ionic/angular';
@@ -13,7 +13,7 @@ import { SessionService } from 'shared/session.service';
   styleUrls: ['./partner-challenges.page.scss'],
   standalone: false,
 })
-export class PartnerChallengesPage implements OnInit {
+export class PartnerChallengesPage {
 
   loading = true;
   error: string | null = null;
@@ -33,7 +33,7 @@ export class PartnerChallengesPage implements OnInit {
     private toastController: ToastController
   ) {}
 
-  ngOnInit(): void {
+  ionViewWillEnter(): void {
     this.load();
   }
 
@@ -132,7 +132,7 @@ export class PartnerChallengesPage implements OnInit {
     if (window.history.length > 1) {
       this.location.back();
     } else {
-      this.router.navigate(['/rewards']);
+      this.router.navigate(['/tabs/rewards']);
     }
   }
 }

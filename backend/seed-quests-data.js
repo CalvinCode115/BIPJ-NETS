@@ -18,7 +18,7 @@ const dailyQuestTemplates = {
     rewards: [{ label: '[Buff] Energized', style: 'buff' }],
     requirementType: 'transaction_count',
     requirementTarget: 1,
-    requirementMeta: { category: ['Coffee', 'Drinks', 'Dining'] },
+    requirementMeta: { category: 'Coffee' },
     active: true,
   },
   'daily-big-spender': {
