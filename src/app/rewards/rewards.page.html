@@ -11,5 +11,37 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content class="nets-rewards-content">
+
+  <!-- NETS Points Balance -->
+  <div class="points-balance-card" (click)="goToPointsBalance()">
+    <span class="points-balance-icon">💰</span>
+    <span class="points-balance-label">NETS Points Balance</span>
+  </div>
+
+  <!-- Quest / Challenge row -->
+  <div class="quest-row">
+    <div class="quest-card quest-card--daily" (click)="goToDailyQuests()">
+      <span>Daily Quest</span>
+    </div>
+    <div class="quest-card quest-card--weekly" (click)="goToWeeklyQuests()">
+      <span>Weekly Quest</span>
+    </div>
+    <div class="quest-card quest-card--challenges" (click)="goToPartnerChallenges()">
+      <span>Challenges</span>
+    </div>
+  </div>
+
+  <!-- Rewards Marketplace -->
+  <div class="rewards-tile rewards-tile--marketplace" (click)="goToMarketplace()">
+    <span class="rewards-tile-icon">🎁</span>
+    <span class="rewards-tile-label">Rewards Marketplace</span>
+  </div>
+
+  <!-- My Vouchers -->
+  <div class="rewards-tile rewards-tile--vouchers" (click)="goToVouchers()">
+    <span class="rewards-tile-icon">💸</span>
+    <span class="rewards-tile-label">My Vouchers</span>
+  </div>
+
 </ion-content>

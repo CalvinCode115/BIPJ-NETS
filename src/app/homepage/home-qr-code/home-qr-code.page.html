@@ -137,12 +137,47 @@
             </div>
             <div class="result-row">
               <span>Amount</span>
-              <strong>${{ pendingPayment.amount | number: '1.2-2' }}</strong>
+              <strong>
+                @if (selectedVoucherInstanceId) {
+                  <span class="original-amount">${{ pendingPayment.amount | number: '1.2-2' }}</span>
+                }
+                ${{ displayedPaymentAmount | number: '1.2-2' }}
+              </strong>
             </div>
             <div class="result-row">
               <span>Category</span>
               <strong>{{ pendingPayment.category }}</strong>
             </div>
+            @if (eligibleVouchers.length > 0) {
+              <p class="field-label">My Vouchers</p>
+              <div class="voucher-select-list">
+                @for (voucher of eligibleVouchers; track voucher.voucherInstanceId) {
+                  <button
+                    type="button"
+                    class="voucher-select-item"
+                    [class.selected]="selectedVoucherInstanceId === voucher.voucherInstanceId"
+                    [class.disabled]="!voucher.meetsConditions"
+                    [disabled]="!voucher.meetsConditions"
+                    (click)="selectVoucher(voucher)"
+                  >
+                    <ion-icon [name]="voucher.icon"></ion-icon>
+                    <span class="voucher-select-info">
+                      <strong>{{ voucher.merchantName }}</strong>
+                      <span>{{ voucher.description }}</span>
+                      @if (!voucher.meetsConditions) {
+                        <span class="voucher-select-note">{{ voucher.message }}</span>
+                      }
+                    </span>
+                    @if (voucher.meetsConditions) {
+                      <span class="voucher-select-discount">-${{ voucher.discountAmount | number: '1.2-2' }}</span>
+                    }
+                    @if (selectedVoucherInstanceId === voucher.voucherInstanceId) {
+                      <ion-icon name="checkmark-circle" class="voucher-select-check"></ion-icon>
+                    }
+                  </button>
+                }
+              </div>
+            }
             <p class="field-label">Pay from</p>
             @if (activeCard) {
               <div class="pay-from-readonly">

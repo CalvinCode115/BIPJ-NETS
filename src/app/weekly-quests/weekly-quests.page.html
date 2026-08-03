@@ -1,0 +1,131 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Weekly Quests</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="weekly-quests-content">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div *ngIf="loading" class="state-message">Loading your quests...</div>
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+    <!-- Time remaining -->
+    <div class="time-remaining-card">
+      <ion-icon name="calendar-outline"></ion-icon>
+      <div class="time-remaining-text">
+        <span class="time-remaining-label">Time Remaining</span>
+        <span class="time-remaining-value">{{ resetsIn }}</span>
+      </div>
+    </div>
+
+    <!-- In Progress -->
+    <div class="section-heading">
+      <ion-icon name="ribbon-outline" class="section-heading-icon"></ion-icon>
+      <span>In Progress</span>
+    </div>
+
+    <div class="quest-card" *ngFor="let quest of inProgressQuests">
+      <div class="quest-card-header">
+        <div class="quest-icon">
+          <ion-icon [name]="quest.icon"></ion-icon>
+        </div>
+        <div class="quest-info">
+          <span class="quest-title">{{ quest.title }}</span>
+          <span class="quest-description">{{ quest.description }}</span>
+        </div>
+      </div>
+
+      <!-- Category chips (merchant_category_count quests, e.g. Diverse Spender) -->
+      <ng-container *ngIf="quest.requirementType === 'merchant_category_count'">
+        <div class="chip-row">
+          <span class="chip chip--filled" *ngFor="let category of quest.progress.meta?.visitedCategories ?? []">
+            {{ category }}
+          </span>
+          <span
+            class="chip"
+            *ngFor="let placeholder of [].constructor(quest.progress.target - (quest.progress.meta?.visitedCategories?.length ?? 0))">
+            ?
+          </span>
+        </div>
+        <span class="quest-progress-caption">{{ quest.progress.current }}/{{ quest.progress.target }} categories</span>
+      </ng-container>
+
+      <!-- Day streak circles (streak_day quests, e.g. Streak Keeper) -->
+      <ng-container *ngIf="quest.requirementType === 'streak_day'">
+        <div class="chip-row">
+          <span
+            class="day-circle"
+            *ngFor="let day of [].constructor(quest.progress.target); let i = index"
+            [class.day-circle--filled]="i < quest.progress.current">
+            {{ i + 1 }}
+          </span>
+        </div>
+        <span class="quest-progress-caption">{{ quest.progress.current }}/{{ quest.progress.target }} days streak</span>
+      </ng-container>
+
+      <!-- Linear progress (everything else) -->
+      <div
+        class="quest-progress-row"
+        *ngIf="quest.requirementType !== 'merchant_category_count' && quest.requirementType !== 'streak_day'">
+        <span class="quest-progress-value">{{ quest.progress.current }} completed</span>
+        <div class="quest-progress-bar">
+          <div class="quest-progress-fill" [style.width.%]="(quest.progress.current / quest.progress.target) * 100"></div>
+        </div>
+        <span class="quest-progress-value">{{ quest.progress.target }} total</span>
+      </div>
+
+      <div class="quest-pills">
+        <span class="pill pill--points">+{{ quest.points }} Pts</span>
+        <span class="pill" [ngClass]="'pill--' + reward.style" *ngFor="let reward of quest.rewards">{{ reward.label }}</span>
+      </div>
+
+      <ion-button
+        *ngIf="quest.progress.completed"
+        expand="block"
+        shape="round"
+        class="claim-btn"
+        [disabled]="claimingId === quest.id"
+        (click)="claim(quest.id)">
+        {{ claimingId === quest.id ? 'Claiming...' : 'Claim Reward' }}
+      </ion-button>
+    </div>
+
+    <!-- Claimed -->
+    <ng-container *ngIf="claimedQuests.length > 0">
+      <div class="section-heading">
+        <ion-icon name="checkmark-circle-outline" class="section-heading-icon section-heading-icon--claimed"></ion-icon>
+        <span>Claimed</span>
+      </div>
+
+      <div class="quest-card quest-card--claimed" *ngFor="let quest of claimedQuests">
+        <div class="quest-card-header">
+          <div class="quest-icon quest-icon--claimed">
+            <ion-icon name="checkmark-outline"></ion-icon>
+          </div>
+          <div class="quest-info">
+            <span class="quest-title">
+              {{ quest.title }}
+              <span class="claimed-tag">Claimed</span>
+            </span>
+            <span class="quest-description">{{ quest.description }}</span>
+          </div>
+        </div>
+
+        <div class="quest-pills">
+          <span class="pill pill--points">+{{ quest.points }} Pts</span>
+          <span class="pill" [ngClass]="'pill--' + reward.style" *ngFor="let reward of quest.rewards">{{ reward.label }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+
+</ion-content>

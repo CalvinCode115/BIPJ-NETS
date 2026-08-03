@@ -1,0 +1,122 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-title>NETS Points</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="nets-points-content">
+
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
+  <!-- Total balance card -->
+  <div class="balance-card">
+    <span class="balance-label">Total NETS Points</span>
+    <div class="balance-row">
+      <span class="balance-coin-icon">🪙</span>
+      <span class="balance-amount">{{ totalPoints | number }}</span>
+    </div>
+    <ion-button expand="block" shape="round" class="send-points-btn" (click)="sendPointsToFriends()">
+      <ion-icon name="paper-plane-outline" slot="start"></ion-icon>
+      Send Points to Friends
+    </ion-button>
+  </div>
+
+  <!-- Daily Check-In -->
+  <div class="checkin-card" *ngIf="checkinStatus">
+    <div class="checkin-header">
+      <span class="checkin-title">Daily Check-In</span>
+      <span class="checkin-subtitle">
+        {{ checkinStatus.canCheckInToday ? 'Check in today for +' + checkinStatus.nextReward + ' points' : 'See you tomorrow!' }}
+      </span>
+    </div>
+
+    <div class="checkin-day-row">
+      <div class="checkin-day" *ngFor="let reward of checkinStatus.schedule; let i = index" [ngClass]="'checkin-day--' + dayStatus(i + 1)">
+        <span class="checkin-day-label">Day {{ i + 1 }}</span>
+        <div class="checkin-day-circle">
+          <ion-icon name="checkmark" *ngIf="dayStatus(i + 1) === 'completed'"></ion-icon>
+          <span *ngIf="dayStatus(i + 1) !== 'completed'">{{ reward }}</span>
+        </div>
+      </div>
+    </div>
+
+    <ion-button
+      expand="block"
+      shape="round"
+      class="checkin-btn"
+      [disabled]="!checkinStatus.canCheckInToday || checkingIn"
+      (click)="checkIn()">
+      {{ checkingIn ? 'Checking in...' : (checkinStatus.canCheckInToday ? 'Check In (+' + checkinStatus.nextReward + ')' : 'Checked In Today') }}
+    </ion-button>
+  </div>
+
+  <!-- Earned / Spent this week -->
+  <div class="week-stats-row">
+    <div class="week-stat-card">
+      <span class="week-stat-label">
+        <ion-icon name="trending-up-outline" class="week-stat-icon week-stat-icon--up"></ion-icon>
+        Earned This Week
+      </span>
+      <span class="week-stat-value week-stat-value--positive">{{ earnedThisWeek > 0 ? '+' : '' }}{{ earnedThisWeek }}</span>
+    </div>
+    <div class="week-stat-card">
+      <span class="week-stat-label">
+        <ion-icon name="trending-down-outline" class="week-stat-icon week-stat-icon--down"></ion-icon>
+        Spent This Week
+      </span>
+      <span class="week-stat-value week-stat-value--negative">{{ spentThisWeek > 0 ? '-' : '' }}{{ spentThisWeek }}</span>
+    </div>
+  </div>
+
+  <!-- Quick-nav to the rest of the rewards system (moved here from the old /rewards hub page) -->
+  <div class="quick-nav-grid">
+    <button type="button" class="quick-nav-item" (click)="goToDailyQuests()">
+      <ion-icon name="today-outline"></ion-icon>
+      <span>Daily Quests</span>
+    </button>
+    <button type="button" class="quick-nav-item" (click)="goToWeeklyQuests()">
+      <ion-icon name="calendar-outline"></ion-icon>
+      <span>Weekly Quests</span>
+    </button>
+    <button type="button" class="quick-nav-item" (click)="goToPartnerChallenges()">
+      <ion-icon name="trophy-outline"></ion-icon>
+      <span>Challenges</span>
+    </button>
+    <button type="button" class="quick-nav-item" (click)="goToMarketplace()">
+      <ion-icon name="gift-outline"></ion-icon>
+      <span>Rewards Marketplace</span>
+    </button>
+    <button type="button" class="quick-nav-item" (click)="goToMyVouchers()">
+      <ion-icon name="ticket-outline"></ion-icon>
+      <span>My Vouchers</span>
+    </button>
+  </div>
+
+  <!-- Points History -->
+  <h2 class="points-history-heading">Points History</h2>
+
+  <div *ngIf="loading" class="state-message">Loading...</div>
+
+  <div class="history-list" *ngIf="!loading">
+    <div class="history-item" *ngFor="let item of pointsHistory">
+      <div class="history-icon" [ngClass]="'history-icon--' + item.type">
+        <ion-icon [name]="item.icon"></ion-icon>
+      </div>
+      <div class="history-details">
+        <span class="history-title">{{ item.title }}</span>
+        <span class="history-timestamp">{{ item.timestamp | date:'MMM d, y, h:mm a' }}</span>
+      </div>
+      <div class="history-amount" [ngClass]="item.amount > 0 ? 'history-amount--positive' : 'history-amount--negative'">
+        <span class="history-amount-value">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</span>
+        <span class="history-amount-unit">Pts</span>
+      </div>
+    </div>
+
+    <div *ngIf="pointsHistory.length === 0" class="state-message">No points activity yet.</div>
+  </div>
+
+  <ion-button expand="block" fill="outline" shape="round" class="load-more-btn" (click)="goToPointHistory()">
+    View Full History
+  </ion-button>
+
+</ion-content>

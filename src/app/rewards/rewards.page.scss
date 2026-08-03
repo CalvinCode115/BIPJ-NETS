@@ -1,0 +1,96 @@
+// ---- Header ----
+.nets-page-toolbar {
+  --background: #ffffff;
+  --border-color: transparent;
+}
+
+// ---- Content wrapper ----
+.nets-rewards-content {
+  --background: #ffffff;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 12px;
+}
+
+// ---- Shared tile look ----
+%rewards-tile-base {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+// ---- NETS Points Balance (red banner) ----
+.points-balance-card {
+  @extend %rewards-tile-base;
+  background: #ff1e2d;
+  height: 190px;
+  margin-bottom: 24px;
+
+  .points-balance-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .points-balance-label {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+  }
+}
+
+// ---- Quest / Challenge row ----
+.quest-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+
+  .quest-card {
+    @extend %rewards-tile-base;
+    flex: 1;
+    height: 100px;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+
+    &--daily {
+      background: #fceef2;
+    }
+    &--weekly {
+      background: #eaf1fd;
+    }
+    &--challenges {
+      background: #fdf6e3;
+    }
+  }
+}
+
+// ---- Rewards Marketplace / My Vouchers tiles ----
+.rewards-tile {
+  @extend %rewards-tile-base;
+  height: 190px;
+  margin-bottom: 24px;
+
+  .rewards-tile-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .rewards-tile-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  &--marketplace {
+    background: #1361d8;
+  }
+
+  &--vouchers {
+    background: #f6c463;
+  }
+}

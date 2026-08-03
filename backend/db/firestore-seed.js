@@ -5,6 +5,10 @@ const {
   userCardsRef,
   userTransactionsRef,
   appMetaRef,
+  dailyQuestTemplatesRef,
+  weeklyQuestTemplatesRef,
+  partnerChallengesRef,
+  voucherCatalogRef,
 } = require('./firestore-paths');
 
 const BATCH_LIMIT = 400;
@@ -125,6 +129,33 @@ async function seedFirestore(data, { reset = false } = {}) {
     });
   }
 
+  // ---- Quest & Partner Challenge templates (global, admin-authored content) ----
+  // These are config/reference data, not user data, so `reset` doesn't touch
+  // them — they're always just upserted with the latest definitions from
+  // seed-quests-data.js. Deleting one from that file won't remove it here;
+  // do that manually in Firestore if a template is retired.
+  for (const [id, template] of Object.entries(data.dailyQuestTemplates ?? {})) {
+    writes.push({ ref: dailyQuestTemplatesRef(db).doc(id), data: template });
+  }
+
+  for (const [id, template] of Object.entries(data.weeklyQuestTemplates ?? {})) {
+    writes.push({ ref: weeklyQuestTemplatesRef(db).doc(id), data: template });
+  }
+
+  for (const [id, challenge] of Object.entries(data.partnerChallenges ?? {})) {
+    writes.push({ ref: partnerChallengesRef(db).doc(id), data: challenge });
+  }
+
+  // ---- Marketplace vouchers (global, admin-authored content) ----
+  // Same idempotent-upsert behavior as quest templates above — `reset`
+  // doesn't touch these; they're always just refreshed to the latest
+  // definitions from seed-marketplace-data.js. NOTE: this will also reset
+  // `redeemedCount` on any 'total'-limit voucher back to the seed default,
+  // same caveat as partnerChallenges' participantCount/completedCount.
+  for (const [id, voucher] of Object.entries(data.voucherCatalog ?? {})) {
+    writes.push({ ref: voucherCatalogRef(db).doc(id), data: voucher });
+  }
+
   await writeBatch(db, writes);
   await appMetaRef(db).set(
     {
@@ -138,6 +169,10 @@ async function seedFirestore(data, { reset = false } = {}) {
     users: data.users.length,
     cards: data.cards.length,
     transactions: data.transactions.length,
+    dailyQuestTemplates: Object.keys(data.dailyQuestTemplates ?? {}).length,
+    weeklyQuestTemplates: Object.keys(data.weeklyQuestTemplates ?? {}).length,
+    partnerChallenges: Object.keys(data.partnerChallenges ?? {}).length,
+    voucherCatalog: Object.keys(data.voucherCatalog ?? {}).length,
     seedVersion: data.seedVersion ?? 0,
   };
 }

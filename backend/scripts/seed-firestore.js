@@ -2,6 +2,8 @@
 const path = require('path');
 const { resolveServiceAccountPath } = require('../firebase/admin');
 const seedData = require('../seed-data');
+const questsSeedData = require('../seed-quests-data');
+const { voucherCatalog } = require('../seed-marketplace-data');
 const { seedFirestore } = require('../db/firestore-seed');
 
 const reset = process.argv.includes('--reset');
@@ -27,16 +29,31 @@ async function main() {
     console.log('Using GOOGLE_APPLICATION_CREDENTIALS');
   }
 
-  const result = await seedFirestore(seedData, { reset });
+  const result = await seedFirestore(
+    {
+      ...seedData,
+      dailyQuestTemplates: questsSeedData.dailyQuestTemplates,
+      weeklyQuestTemplates: questsSeedData.weeklyQuestTemplates,
+      partnerChallenges: questsSeedData.partnerChallenges,
+      voucherCatalog,
+    },
+    { reset }
+  );
   const mode = reset ? 'reset' : 'merge';
 
   console.log(`Firestore seed (${mode}) complete.`);
   console.log(`  users: ${result.users}`);
   console.log(`  cards: ${result.cards}`);
   console.log(`  transactions: ${result.transactions}`);
+  console.log(`  daily quest templates: ${result.dailyQuestTemplates}`);
+  console.log(`  weekly quest templates: ${result.weeklyQuestTemplates}`);
+  console.log(`  partner challenges: ${result.partnerChallenges}`);
+  console.log(`  marketplace vouchers: ${result.voucherCatalog}`);
   console.log(`  seed_version: ${result.seedVersion}`);
   console.log('');
-  console.log('Collections: users/{userId}/cards|transactions|notifications|rewards|payogotchi|travel');
+  console.log(
+    'Collections: users/{userId}/cards|transactions|notifications|rewards|payogotchi|travel|dailyQuestProgress|weeklyQuestProgress|challengeProgress|vouchers'
+  );
 }
 
 main().catch((err) => {

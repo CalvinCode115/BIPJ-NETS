@@ -1,0 +1,326 @@
+.nets-page-toolbar {
+  --background: #ffffff;
+  --border-color: transparent;
+}
+
+.my-vouchers-content {
+  --background: #ffffff;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 12px;
+}
+
+// ---- Segment (Available / Used / Expired) ----
+.vouchers-segment {
+  --background: #ececee;
+  border-radius: 24px;
+  padding: 4px;
+  margin-bottom: 20px;
+
+  ion-segment-button {
+    --border-radius: 20px;
+    --indicator-color: #ffffff;
+    --color: #8a8a8e;
+    --color-checked: #1a1a1a;
+    min-height: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+
+    ion-icon {
+      margin-right: 3px;
+    }
+  }
+}
+
+// ---- Loading / error / empty states ----
+.state-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8a8a8e;
+  font-size: 14px;
+
+  &--error {
+    color: #e0303d;
+  }
+}
+
+// ---- Voucher list ----
+.voucher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 20px;
+}
+
+.voucher-card {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid #ececee;
+
+  &--available {
+    border-color: #b9e8c4;
+    cursor: pointer;
+  }
+
+  &--used {
+    background: #fafafa;
+  }
+
+  &--expired {
+    background: #fafafa;
+    opacity: 0.6;
+  }
+
+  .voucher-top {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .voucher-icon {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 16px;
+    background: #f2e9fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 26px;
+      color: #7b2fd6;
+    }
+  }
+
+  .voucher-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    .voucher-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .voucher-description {
+      font-size: 13px;
+      color: #6b6b6f;
+    }
+
+    .voucher-points {
+      align-self: flex-start;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      margin-top: 2px;
+
+      &--available {
+        background: #d9f2e3;
+        color: #1fa564;
+      }
+
+      &--used,
+      &--expired {
+        background: #ececee;
+        color: #6b6b6f;
+      }
+    }
+  }
+
+  .voucher-dates {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 16px 16px;
+    border-top: 1px solid #f0f0f2;
+    padding-top: 12px;
+
+    .voucher-date {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      ion-icon {
+        font-size: 16px;
+        color: #8a8a8e;
+      }
+
+      .voucher-date-text {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .voucher-date-label {
+        font-size: 11px;
+        color: #8a8a8e;
+      }
+
+      .voucher-date-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1a1a1a;
+
+        &--expires {
+          color: #ff7a1a;
+        }
+      }
+    }
+  }
+
+  .voucher-used-info {
+    background: #e9f1fd;
+    margin: 0 16px 16px;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .voucher-used-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+
+      ion-icon {
+        font-size: 16px;
+        color: #3d6fe0;
+        margin-top: 2px;
+      }
+
+      .voucher-used-text {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .voucher-used-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #2451c4;
+      }
+
+      .voucher-used-value {
+        font-size: 13px;
+        color: #2451c4;
+      }
+    }
+  }
+}
+
+// ---- Voucher details modal (Available tab) ----
+.voucher-details-modal {
+  --border-radius: 20px 20px 0 0;
+  --height: auto;
+  align-items: flex-end;
+}
+
+.voucher-details {
+  padding: 20px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+
+  .voucher-details-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    .voucher-details-icon {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+      border-radius: 14px;
+      background: #f2e9fb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      ion-icon {
+        font-size: 24px;
+        color: #7b2fd6;
+      }
+    }
+
+    .voucher-details-title {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .voucher-details-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .voucher-details-desc {
+      font-size: 13px;
+      color: #6b6b6f;
+    }
+
+    .voucher-details-close {
+      margin: -8px -8px 0 0;
+      --color: #8a8a8e;
+    }
+  }
+
+  .voucher-details-section {
+    margin-bottom: 16px;
+
+    .voucher-details-section-title {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 6px;
+    }
+
+    ul,
+    ol {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 13px;
+      color: #4a4a4e;
+      line-height: 1.5;
+    }
+  }
+
+  // ---- ⚠️ Dev/test-only box — remove once the real Pay/QR auto-apply hook exists ----
+  .dev-test-box {
+    border: 1px dashed #d99a2b;
+    background: #fffaf2;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .dev-test-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #b5860f;
+    }
+
+    .dev-test-input {
+      --background: #ffffff;
+      --border-radius: 10px;
+      --padding-start: 10px;
+      --padding-end: 10px;
+      border: 1px solid #e2e2e5;
+      border-radius: 10px;
+      font-size: 13px;
+      min-height: 38px;
+    }
+
+    .dev-test-btn {
+      --border-color: #d99a2b;
+      --color: #b5860f;
+      font-weight: 700;
+      text-transform: none;
+      margin-top: 4px;
+    }
+  }
+}

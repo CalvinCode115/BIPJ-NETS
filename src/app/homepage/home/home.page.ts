@@ -17,12 +17,14 @@ import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled,
 import {
   clearLowBalanceDismiss,
   isLowBalanceAlertsEnabled,
+  isLowBalanceDismissed,
 } from '../../utils/notification-preferences';
 import { FxTrackerService } from 'src/app/fx-tracker/fx-tracker.service';
 import { DESTINATIONS, DestinationConfig } from '../../services/destination.config';
 import { CardLinkedExchangeService, CardCurrencyBalance } from '../../services/card-linked-exchange.service';
 import { MultiCurrencyService } from 'src/app/services/multi-currency.service';
 import { selectedCardStorageKey, currentSgdBalanceStorageKey } from '../../utils/card-storage';
+import { PointsService } from 'shared/points.service';
 
 interface AccountTab {
   id: CardType;
@@ -147,6 +149,7 @@ export class HomePage {
     private notificationsService: NotificationsService,
     private fxTrackerService: FxTrackerService,
     private cardExchange: CardLinkedExchangeService,
+    private pointsService: PointsService,
   ) { }
 
   quickActions: QuickAction[] = [
@@ -228,6 +231,7 @@ export class HomePage {
     const user = this.auth.currentUser;
     this.userName = user?.name.split(' ')[0] ?? 'Guest';
     this.rewards.currentPoints = user?.points ?? 0;
+    this.refreshPointsBalance(user?.id ?? 'user_1');   // ← add this line
     const showLoginAlerts = this.auth.consumeFreshLogin();
     this.lowBalanceSoftHidden = false;
     if (this.currentCard) {
@@ -253,6 +257,13 @@ export class HomePage {
     this.loadMultiCurrencyBalances();
     this.setupExchangeListener();
   }
+
+  private refreshPointsBalance(userId: string): void {
+  this.pointsService.getBalance(userId).subscribe({
+    next: (res) => (this.rewards.currentPoints = res.totalPoints),
+    error: (err) => console.error('Failed to refresh points balance', err),
+  });
+}
 
   ionViewWillLeave(): void {
     this.clearLoginAlertTimer();

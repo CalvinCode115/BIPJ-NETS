@@ -2,6 +2,9 @@ const express = require('express');
 const db = require('../db');
 const asyncHandler = require('../utils/async-handler');
 const authRouter = require('./auth');
+const questsRouter = require('./quests'); 
+const pointsRouter = require('./points');
+
 const {
   buildDnaProfile,
   buildDashboard,
@@ -29,10 +32,24 @@ const {
 } = require('../services/wallet-config');
 const { clampCreditLimit } = require('../services/credit-config');
 const { formatBalanceLeft } = require('../services/balance-message');
+const transactionRewards = require('../services/transaction-rewards');
+const marketplaceRouter = require('./marketplace');
+const myVouchersRouter = require('./my-vouchers');
+const myVouchers = require('../services/my-vouchers');
+const pointsTransferRouter = require('./points-transfer')
+const dailyCheckinRouter = require('./daily-checkin');
+
+
 
 const router = express.Router();
 
 router.use('/auth', authRouter);
+router.use('/', questsRouter);
+router.use('/', pointsRouter);
+router.use('/', marketplaceRouter);
+router.use('/', myVouchersRouter);
+router.use('/', pointsTransferRouter);
+router.use('/', dailyCheckinRouter);
 
 router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'nets-backend', mode: 'firestore' });
@@ -116,6 +133,7 @@ router.post('/users/:userId/transactions/receipt', asyncHandler(async (req, res)
   }
 
   const saved = await db.addTransaction(createTransactionFromReceipt(req.params.userId, receipt, card));
+  await transactionRewards.awardTransactionRewards(req.params.userId, saved);
 
   const refreshedCard = await db.setCardBalance(
     card.id,
@@ -257,25 +275,61 @@ router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: spendingRules.spendBlockMessage(card, spendContext) });
   }
 
-  if (!cardUtils.hasSufficientFunds(card, parsed.payment.amount)) {
+  // ---- ← NEW: optionally apply a voucher discount before charging ----
+  let paymentToCharge = parsed.payment;
+  let voucherApplied = false;
+  let voucherDiscount = 0;
+  let voucherError = null;
+
+  if (req.body.voucherInstanceId) {
+    const voucherResult = await myVouchers.applyVoucherToPayment(
+      req.params.userId,
+      req.body.voucherInstanceId,
+      {
+        merchant: parsed.payment.merchant,
+        category: parsed.payment.category,
+        amount: parsed.payment.amount,
+      }
+    );
+
+    if (voucherResult.ok) {
+      voucherApplied = true;
+      voucherDiscount = voucherResult.discountAmount;
+      paymentToCharge = { ...parsed.payment, amount: voucherResult.finalAmount };
+    } else {
+      // Don't fail the whole payment over a voucher issue — charge full
+      // price and let the client know why the voucher didn't apply.
+      voucherError = voucherResult.error;
+    }
+  }
+  // ---- end new block ----
+
+  if (!cardUtils.hasSufficientFunds(card, paymentToCharge.amount)) {
     return res.status(400).json({ error: 'Insufficient balance on the selected card.' });
   }
 
   const saved = await db.addTransaction(
-    qrPayment.createTransactionFromQr(req.params.userId, parsed.payment, card)
+    qrPayment.createTransactionFromQr(req.params.userId, paymentToCharge, card)
   );
 
-  const refreshedCard = await db.setCardBalance(card.id, cardUtils.applyDebit(card, parsed.payment.amount));
+  await transactionRewards.awardTransactionRewards(req.params.userId, saved);
+
+  const refreshedCard = await db.setCardBalance(card.id, cardUtils.applyDebit(card, paymentToCharge.amount));
+
+  const voucherNote = voucherApplied ? ` Voucher applied — you saved $${voucherDiscount.toFixed(2)}.` : '';
 
   res.status(201).json({
     success: true,
-    message: `Paid $${parsed.payment.amount.toFixed(2)} to ${parsed.payment.merchant}. ${formatBalanceLeft(refreshedCard)}`,
-    payment: parsed.payment,
+    message: `Paid $${paymentToCharge.amount.toFixed(2)} to ${paymentToCharge.merchant}.${voucherNote} ${formatBalanceLeft(refreshedCard)}`,
+    payment: paymentToCharge,
     transaction: formatTransaction(saved),
     card: {
       id: refreshedCard.id,
       balance: refreshedCard.balance,
     },
+    voucherApplied,
+    voucherDiscount,
+    voucherError,
   });
 }));
 
