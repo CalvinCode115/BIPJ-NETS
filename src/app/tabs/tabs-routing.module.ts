@@ -9,19 +9,19 @@ const routes: Routes = [
     children: [
       {
         path: 'home',
-        loadChildren: () => import('../homepage/home/home.module').then(m => m.HomePageModule)
+        loadChildren: () => import('../pages/home/home/home.module').then(m => m.HomePageModule)
       },
       {
         path: 'pay',
-        loadChildren: () => import('../payment/pay/pay.module').then(m => m.PayPageModule)
+        loadChildren: () => import('../pages/pay/pay/pay.module').then(m => m.PayPageModule)
       },
       {
         path: 'travel',
-        loadChildren: () => import('../travel/travel.module').then(m => m.TravelPageModule)
+        loadChildren: () => import('../pages/travel/travel.module').then(m => m.TravelPageModule)
       },
       {
         path: 'fx-tracker',
-        loadChildren: () => import('../fx-tracker/fx-tracker.module').then(m => m.FxTrackerPageModule)
+        loadChildren: () => import('../pages/travel/fx-tracker/fx-tracker.module').then(m => m.FxTrackerPageModule)
       },
       {
         // The Rewards tab root (NETS Points) PLUS every other rewards page,
@@ -32,41 +32,41 @@ const routes: Routes = [
         children: [
           {
             path: '',
-            loadChildren: () => import('../nets-points/nets-points.module').then(m => m.NetsPointsPageModule)
+            loadChildren: () => import('../pages/rewards/nets-points/nets-points.module').then(m => m.NetsPointsPageModule)
           },
           {
             path: 'send-points',
-            loadChildren: () => import('../send-points/send-points.module').then(m => m.SendPointsPageModule)
+            loadChildren: () => import('../pages/rewards/send-points/send-points.module').then(m => m.SendPointsPageModule)
           },
           {
             path: 'point-history',
-            loadChildren: () => import('../point-history/point-history.module').then(m => m.PointHistoryPageModule)
+            loadChildren: () => import('../pages/rewards/point-history/point-history.module').then(m => m.PointHistoryPageModule)
           },
           {
             path: 'partner-challenges',
-            loadChildren: () => import('../partner-challenges/partner-challenges.module').then(m => m.PartnerChallengesPageModule)
+            loadChildren: () => import('../pages/rewards/partner-challenges/partner-challenges.module').then(m => m.PartnerChallengesPageModule)
           },
           {
             path: 'daily-quests',
-            loadChildren: () => import('../daily-quests/daily-quests.module').then(m => m.DailyQuestsPageModule)
+            loadChildren: () => import('../pages/rewards/daily-quests/daily-quests.module').then(m => m.DailyQuestsPageModule)
           },
           {
             path: 'weekly-quests',
-            loadChildren: () => import('../weekly-quests/weekly-quests.module').then(m => m.WeeklyQuestsPageModule)
+            loadChildren: () => import('../pages/rewards/weekly-quests/weekly-quests.module').then(m => m.WeeklyQuestsPageModule)
           },
           {
             path: 'my-vouchers',
-            loadChildren: () => import('../my-vouchers/my-vouchers.module').then(m => m.MyVouchersPageModule)
+            loadChildren: () => import('../pages/rewards/my-vouchers/my-vouchers.module').then(m => m.MyVouchersPageModule)
           },
           {
             path: 'rewards-marketplace',
-            loadChildren: () => import('../rewards-marketplace/rewards-marketplace.module').then(m => m.RewardsMarketplacePageModule)
+            loadChildren: () => import('../pages/rewards/rewards-marketplace/rewards-marketplace.module').then(m => m.RewardsMarketplacePageModule)
           },
         ]
       },
       {
         path: 'payogotchi',
-        loadChildren: () => import('../payogotchi/payogotchi.module').then(m => m.PayogotchiPageModule)
+        loadChildren: () => import('../pages/payogotchi/payogotchi.module').then(m => m.PayogotchiPageModule)
       },
       {
         path: '',
