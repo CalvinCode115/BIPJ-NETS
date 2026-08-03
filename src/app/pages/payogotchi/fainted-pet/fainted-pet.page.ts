@@ -3,7 +3,7 @@ import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { PetService } from '../../../services/pet.service';
 
-/** Hunger restored when the user makes a reviving food transaction. */
+// how much hunger the reviving food transaction gives back
 const REVIVE_HUNGER = 60;
 
 @Component({
@@ -23,7 +23,7 @@ export class FaintedPetPage {
     return this.pet.state.name;
   }
 
-  // ---- Meter values (bound live to the shared pet state) ----
+  // ---- Meter values (read straight from the shared pet state) ----
   get xp(): number {
     return this.pet.state.xp;
   }
@@ -46,7 +46,7 @@ export class FaintedPetPage {
     return this.pet.state.hunger <= 15;
   }
 
-  /** Simulate a food transaction that revives the pet, then celebrate. */
+  // pretend a food transaction happened - revive the pet and celebrate
   reviveWithFood(): void {
     this.pet.feed(REVIVE_HUNGER);
     this.router.navigate(['/tabs/payogotchi/welcome-back']);

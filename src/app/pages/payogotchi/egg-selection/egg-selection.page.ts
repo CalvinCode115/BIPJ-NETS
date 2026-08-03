@@ -1,16 +1,17 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { PetService } from '../../../services/pet.service';
 
 export interface EggOption {
   id: number;
   label: string;
-  /** CSS gradient for the egg body */
+  // CSS gradient for the egg colour
   gradient: string;
-  /** Visual treatment applied on top of the egg body */
+  // the design drawn on top of the egg
   pattern: 'dots' | 'stripes' | 'spots' | 'emoji';
-  /** Emoji shown when pattern === 'emoji' */
+  // emoji to show if pattern is 'emoji'
   emoji?: string;
-  /** Marks the special dark "RARE" egg */
+  // the special dark RARE egg
   rare?: boolean;
 }
 
@@ -21,7 +22,7 @@ export interface EggOption {
   standalone: false,
 })
 export class EggSelectionPage {
-  /** The eight mystery eggs, matching the Figma "Egg Selection" frame (4781:429). */
+  // the 8 mystery eggs from the Figma design
   eggs: EggOption[] = [
     { id: 1, label: 'Mystery #1', gradient: 'linear-gradient(160deg, #ffd1dc, #ff9eb5)', pattern: 'dots' },
     { id: 2, label: 'Mystery #2', gradient: 'linear-gradient(160deg, #bfe3ff, #7fc4ff)', pattern: 'stripes' },
@@ -34,32 +35,32 @@ export class EggSelectionPage {
   ];
 
   selectedEggId: number | null = null;
-  /** The egg whose confirmation popup is currently open (null = closed). */
+  // the egg with its confirm popup open right now (null = no popup)
   selectedEgg: EggOption | null = null;
 
-  // Screen 02 in the onboarding flow. The route/module doesn't exist yet —
-  // wire it up when Hatching Progress is built.
   private readonly nextRoute = '/tabs/payogotchi/hatching-progress';
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private petService: PetService) {}
 
-  /** Tapping an egg opens the confirmation popup for that egg. */
+  // tapping an egg opens its confirm popup
   selectEgg(egg: EggOption): void {
     this.selectedEgg = egg;
     this.selectedEggId = egg.id;
   }
 
-  /** "Choose Different" — dismiss the popup and clear the selection. */
+  // "Choose Different" button - close the popup and unselect
   chooseDifferent(): void {
     this.selectedEgg = null;
     this.selectedEggId = null;
   }
 
-  /** "Confirm Choice" — proceed to the hatching flow with the chosen egg. */
+  // "Confirm Choice" button - move on to hatching with this egg
   confirmChoice(): void {
     if (!this.selectedEgg) {
       return;
     }
+    // save the choice so other screens know which egg was picked
+    this.petService.setSelectedEgg(this.selectedEgg.label);
     this.router.navigate([this.nextRoute], { state: { egg: this.selectedEgg } });
   }
 

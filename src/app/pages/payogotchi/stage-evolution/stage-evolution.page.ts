@@ -25,7 +25,7 @@ export class StageEvolutionPage {
   readonly particles: Particle[] = this.buildParticles();
 
   constructor(private router: Router, private petService: PetService) {
-    // Illustrative transition based on the pet's current stage.
+    // show the evolution from the pet's current stage to the next one
     const current = this.petService.state.stage;
     this.fromStage = current === 'Adult' ? 'Teen' : current;
     this.toStage = this.nextStage(this.fromStage);
@@ -36,7 +36,7 @@ export class StageEvolutionPage {
     return this.petService.state.name;
   }
 
-  /** "Meet New Angel!" — celebrate then return to Home. */
+  // "Meet New Angel!" button - back to Home
   meetNewPet(): void {
     this.router.navigate(['/tabs/payogotchi/payogotchi-home']);
   }

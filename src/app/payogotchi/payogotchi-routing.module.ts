@@ -1,11 +1,23 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { PayogotchiPage } from './payogotchi.page';
+import { payogotchiEntryGuard } from './payogotchi-entry.guard';
 
 const routes: Routes = [
-  // Tab landing (currently the Tapatchi test page). Promote Payogotchi Home
-  // (screen 05) to '' once that screen is built.
-  { path: '', component: PayogotchiPage },
+  // Tab landing: the guard redirects to Home (returning user) or Intro (new
+  // user) based on pet state — it never actually renders PayogotchiPage.
+  { path: '', canActivate: [payogotchiEntryGuard], component: PayogotchiPage },
+
+  // Tapatchi component test page (kept for development).
+  { path: 'dev', component: PayogotchiPage },
+
+  {
+    path: 'intro', // 00 — new-user "NETS new feature" introduction
+    loadChildren: () =>
+      import('../pages/payogotchi/payogotchi-intro/payogotchi-intro.module').then(
+        (m) => m.PayogotchiIntroPageModule
+      ),
+  },
 
   // ---- Payogotchi onboarding + game screens (see overview.md) ----
   {

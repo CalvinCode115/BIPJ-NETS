@@ -109,6 +109,17 @@
           <span class="state-label">Return</span>
         </button>
       </div>
+
+      <div class="home-demo-row states">
+        <button type="button" class="home-demo-state theme-evolve" (click)="resetXpCap()">
+          <span class="state-emoji">♻️</span>
+          <span class="state-label">Reset XP Cap</span>
+        </button>
+        <button type="button" class="home-demo-state theme-return" (click)="restartOnboarding()">
+          <span class="state-emoji">🥚</span>
+          <span class="state-label">New User</span>
+        </button>
+      </div>
     </section>
 
     <!-- Today's quests -->
@@ -128,3 +139,141 @@
     </section>
   </div>
 </ion-content>
+
+<!-- ============ Phase 2: celebration chain ============ -->
+
+<!-- 06 Transaction Feedback -->
+<ion-modal
+  [isOpen]="showFeedback"
+  (didDismiss)="onFeedbackDismiss()"
+  class="payo-celebrate-modal payo-feedback-modal"
+>
+  <ng-template>
+    <div class="payo-modal-body fb-body" *ngIf="result">
+      <span class="fb-burst">✨</span>
+      <app-tapatchi [mood]="mood" [size]="150"></app-tapatchi>
+      <h2 class="fb-title">Nice one! 🎉</h2>
+      <p class="fb-merchant">You paid <strong>{{ feedbackMerchant }}</strong></p>
+
+      <div class="fb-rewards">
+        <div class="fb-reward">
+          <span class="fb-reward-icon">⭐</span>
+          <span class="fb-reward-value">+{{ result.xpGained }} XP</span>
+        </div>
+        <div class="fb-reward" *ngIf="result.hungerRestored > 0">
+          <span class="fb-reward-icon">🍔</span>
+          <span class="fb-reward-value">+{{ result.hungerRestored }} Hunger</span>
+        </div>
+        <div class="fb-reward" *ngIf="result.happinessGained > 0">
+          <span class="fb-reward-icon">😊</span>
+          <span class="fb-reward-value">+{{ result.happinessGained }} Happiness</span>
+        </div>
+        <div class="fb-reward" *ngIf="result.pointsEarned > 0">
+          <span class="fb-reward-icon">🎁</span>
+          <span class="fb-reward-value">+{{ result.pointsEarned }} NETS Points</span>
+        </div>
+      </div>
+
+      <p class="fb-note fb-revived" *ngIf="result.revived">
+        {{ pet.name }} is back on its feet! 💖
+      </p>
+
+      <button type="button" class="payo-modal-btn" (click)="showFeedback = false">Continue →</button>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- 07 Level Up -->
+<ion-modal
+  [isOpen]="showLevelUp"
+  (didDismiss)="onLevelUpDismiss()"
+  class="payo-celebrate-modal payo-levelup-modal"
+>
+  <ng-template>
+    <div class="payo-modal-body lvl-body">
+      <div class="lvl-rays"></div>
+
+      <header class="lvl-header">
+        <h1 class="lvl-title">LEVEL UP!</h1>
+        <p class="lvl-subtitle">{{ pet.name }} is growing stronger!</p>
+      </header>
+
+      <div class="lvl-hero">
+        <span class="lvl-ring ring-1"></span>
+        <span class="lvl-ring ring-2"></span>
+        <span class="lvl-ring ring-3"></span>
+        <div class="lvl-hero-glow"></div>
+        <app-tapatchi mood="excited" [size]="180"></app-tapatchi>
+      </div>
+
+      <div class="lvl-levels">
+        <div class="lvl-level is-before">
+          <span class="lvl-level-num">{{ levelFrom }}</span>
+          <span class="lvl-level-label">Before</span>
+        </div>
+        <span class="lvl-level-arrow">→</span>
+        <div class="lvl-level is-now">
+          <span class="lvl-level-num">{{ levelTo }}</span>
+          <span class="lvl-level-label">Now</span>
+        </div>
+      </div>
+
+      <div class="lvl-reward" *ngIf="levelReward > 0">
+        <span class="lvl-reward-icon">🎁</span>
+        <div class="lvl-reward-body">
+          <p class="lvl-reward-title">+{{ levelReward }} NETS Points!</p>
+          <p class="lvl-reward-sub">Credited to your account</p>
+        </div>
+      </div>
+
+      <button type="button" class="payo-modal-btn" (click)="showLevelUp = false">Continue 🚀</button>
+    </div>
+  </ng-template>
+</ion-modal>
+
+<!-- 08 Stage Evolution -->
+<ion-modal
+  [isOpen]="showEvolution"
+  (didDismiss)="onEvolutionDismiss()"
+  class="payo-celebrate-modal payo-evo-modal"
+>
+  <ng-template>
+    <div class="payo-modal-body evo-body">
+      <header class="evo-header">
+        <h1 class="evo-title">EVOLUTION!</h1>
+        <p class="evo-subtitle">{{ evoFrom }} → {{ evoTo }} Tapatchi</p>
+      </header>
+
+      <div class="evo-hero">
+        <div class="evo-hero-glow"></div>
+        <span class="evo-crown">👑</span>
+        <app-tapatchi mood="happy" [size]="190"></app-tapatchi>
+      </div>
+
+      <div class="evo-compare">
+        <div class="evo-compare-item is-before">
+          <app-tapatchi mood="normal" [size]="60" [animated]="false"></app-tapatchi>
+          <span class="evo-compare-label">{{ evoFrom }}</span>
+        </div>
+        <span class="evo-compare-arrow">→</span>
+        <div class="evo-compare-item is-after">
+          <span class="evo-compare-crown">👑</span>
+          <app-tapatchi mood="happy" [size]="68" [animated]="false"></app-tapatchi>
+          <span class="evo-compare-label is-active">{{ evoTo }}</span>
+        </div>
+      </div>
+
+      <div class="evo-unlocks">
+        <p class="evo-unlocks-title">🎁 New unlocks:</p>
+        <div class="evo-unlock" *ngFor="let unlock of evoUnlocks">
+          <span class="evo-unlock-dot">•</span>
+          <span class="evo-unlock-text">{{ unlock }}</span>
+        </div>
+      </div>
+
+      <button type="button" class="payo-modal-btn" (click)="showEvolution = false">
+        Meet New {{ pet.name }}! 🎉
+      </button>
+    </div>
+  </ng-template>
+</ion-modal>

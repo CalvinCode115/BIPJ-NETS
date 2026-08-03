@@ -10,16 +10,16 @@ import { PetService } from '../../../services/pet.service';
   standalone: false,
 })
 export class NamingScreenPage {
-  /** The name the user is typing for their new Tapatchi. */
+  // the name being typed for the new pet
   petName = '';
 
-  /** Max length shown in the counter and enforced on the input. */
+  // max name length (shown in the counter too)
   readonly maxLength = 12;
 
-  /** Quick-pick names from the Figma design. */
+  // quick pick name suggestions from the design
   readonly suggestions = ['Boba', 'Mochi', 'Bubbles', 'Sparky'];
 
-  /** Egg visuals carried forward from the hatch flow (passed on to Home). */
+  // egg look passed along from the hatching screens
   private egg = { gradient: 'linear-gradient(160deg, #4a4a4a, #1a1a1a)', emoji: '💎', rare: true };
 
   private readonly nextRoute = '/tabs/payogotchi/payogotchi-home';
@@ -39,14 +39,14 @@ export class NamingScreenPage {
     return this.trimmedName.length > 0;
   }
 
-  /** Speech-bubble copy reacts to what the user has typed. */
+  // speech bubble text changes based on what's typed
   get bubbleText(): string {
     return this.hasName
       ? `"${this.trimmedName}" sounds perfect! 💕`
       : 'What should we call your new friend? 🥰';
   }
 
-  /** Tap a suggestion pill to fill the name field. */
+  // tap a suggestion pill to fill in the name
   pickSuggestion(name: string): void {
     this.petName = name.slice(0, this.maxLength);
   }
@@ -55,13 +55,15 @@ export class NamingScreenPage {
     this.location.back();
   }
 
-  /** "Confirm Name" — save the name and head to Payogotchi Home. */
+  // "Confirm Name" button - save the name and go to Home
   confirmName(): void {
     if (!this.hasName) {
       return;
     }
-    // Persist the name so Home and every other screen can read it.
+    // save the name and mark onboarding done, so next time the
+    // payogotchi tab goes straight to Home
     this.petService.setName(this.trimmedName);
+    this.petService.completeOnboarding();
     this.router.navigate([this.nextRoute], {
       state: { petName: this.trimmedName, egg: this.egg },
     });

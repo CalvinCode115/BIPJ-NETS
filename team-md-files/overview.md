@@ -423,3 +423,64 @@ For the module grade, the Payogotchi feature should demonstrate:
 - ✅ Visual polish matches Figma design
 - ✅ Character animations feel alive
 - ✅ Code is clean and organized
+
+
+What Phase 2 is
+
+The celebration chain — the demo's money-shot. A transaction now drives UI off the TransactionResult from Phase 1, instead of silently mutating state.
+
+What I implemented (all in payogotchi-home, house-convention inline ion-modal)
+
+Orchestration (.page.ts)
+- runTransaction() calls applyTransaction(), stores the result, and opens the
+- (didDismiss) handlers chain it: Feedback (always) → Level Up (if result.leveledUp) → Evolution (if result.evolved). Each modal opens only after the previous one finishes dismissing, so they never fight.
+
+Three inline modals (.page.html) — reusing the existing Level-Up / Evolution visuals (rings, sunburst, app-tapatchi, before→after), all bound to real data:
+- 06 Feedback: merchant, +XP, +Hunger/+Happiness (only when non-zero), +NETS Pnote if xpCapped, and a revive line if revived.
+- 07 Level Up: level before → now + points.
+- 08 Evolution: from → to stage + stage unlocks.
+
+Manual demo control kept: the Home "Level Up" / "Evolve" buttons now open thosdata) instead of routing away — so you can force-show either on stage.
+
+Styling (.page.scss) — self-contained celebration styles, theme variables only (no hardcoded palette except two pre-existing-style gradient stops matching the existing pages).
+
+How it plays in your demo
+
+Returning user (720/800 XP, happiness 90) taps 🍜 Lunch $12 → 144 XP → Feedback modal pops (+144 XP, +24 Hunger, +3 Happiness, +12 NETS Points) → tap Continue → Level Up modal chains automatically (8 → 9). That's the core loop, live.                                                                                                                                    
+Notes                                                                                                                                                                                 
+- The old level-up / stage-evolution / transaction-feedback route-pages still exist as a fallback; per spec their routes can be dropped later — I left them to avoid churn before the demo.
+- merchant now flows through applyTransaction() into the feedback text (it was the unused param from Phase 1).
+
+Want me to launch the app and screenshot the Lunch → Feedback → Level-Up chain before moving to Phase 3 (the OnboardingGuard is partly done already via theentry guard, plus the fainted-state render and the "simulate a day" decay button)?
+
+
+
+
+
+
+
+
+All three are done and the build is green. Here's what changed.
+
+1. Reset XP cap + reach Level 10
+
+- New PetService.resetDailyXpCap() — clears today's dailyXpEarned (simulates a fresh day).
+- New Home demo button ♻️ Reset XP Cap (shows a "cap reset" toast).
+- Reshaped the returning-user seed so the story lands crisply: Lv 9, 780/900 XP, already at today's cap (200/200).
+
+The demo now plays in 2 taps:
+1. Tap 🍜 Lunch → XP is blocked by the cap → top toast "Daily XP cap reached" (no celebration modal, since 0 XP earned).
+2. Tap ♻️ Reset XP Cap → tap 🍜 Lunch again → +144 XP → 924/900 → Feedback modal → Level Up modal (9 → 10) chains automatically.
+
+2. Cap message is now a top toast
+
+
+3. Egg-selection reachability — you weren't doing it wrong
+
+It's the guard working as designed: once onboarded is true (which "Returning user" sets), the Payogotchi tab always routes to Home, so the intro→egg flow is intentionally hidden. To replay it without typing URLs:
+- New Home demo button 🥚 New User → resets to a fresh new user and jumps to /tabs/payogotchi → guard → intro → "Start your journey" → egg-selection.
+- (The /tabs/payogotchi/dev page's "New user" button does the same.)
+
+So egg-selection is reached through the intro, not directly — tap 🥚 New User on Home and you're in that flow.
+
+One note: the returning-user demo now shows 9 → 10 instead of the old 8 → 9. If you'd rather demo an uncapped first level-up too, I can seed dailyXpEarned: 0 so the first tap levels up immediately and the cap/reset comes after — just say the word. Want me to launch the app and screenshot the cap-toast → reset → Level 10 sequence?

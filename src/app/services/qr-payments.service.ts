@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, of } from 'rxjs';
+import { Observable, catchError, of, tap } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
 import { TransactionRecord } from './transactions.service';
+import { PetBridgeService } from './pet-bridge.service';
 
 export interface QrPaymentDetails {
   id: string;
@@ -54,7 +55,7 @@ export interface QrParseResponse {
   providedIn: 'root',
 })
 export class QrPaymentsService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private petBridge: PetBridgeService) {}
 
   getDemoMerchants(): Observable<{ merchants: DemoMerchantQr[] }> {
     return this.http.get<{ merchants: DemoMerchantQr[] }>(`${API_BASE_URL}/pay/qr-merchants/summary`).pipe(
@@ -104,10 +105,19 @@ export class QrPaymentsService {
     payload: string,
     options: { cardId?: string; cardNumber?: string } = {}
   ): Observable<QrPayResponse> {
-    return this.http.post<QrPayResponse>(`${API_BASE_URL}/users/${userId}/payments/qr`, {
-      payload,
-      ...options,
-    });
+    return this.http
+      .post<QrPayResponse>(`${API_BASE_URL}/users/${userId}/payments/qr`, {
+        payload,
+        ...options,
+      })
+      .pipe(
+        // Payogotchi integration: a successful merchant payment feeds the pet.
+        tap((res) => {
+          if (res?.success && res.payment) {
+            this.petBridge.record(res.payment.amount, res.payment.category, res.payment.merchant);
+          }
+        })
+      );
   }
 }
 

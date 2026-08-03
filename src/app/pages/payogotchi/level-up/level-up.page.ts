@@ -11,11 +11,11 @@ import { PetService } from '../../../services/pet.service';
 export class LevelUpPage {
   readonly beforeLevel: number;
   readonly nowLevel: number;
-  /** NETS Points awarded for the level-up (Figma shows a flat +50). */
+  // NETS points given for levelling up (design shows a flat +50)
   readonly reward = 50;
 
   constructor(private router: Router, private petService: PetService) {
-    // Illustrative: celebrate reaching the next level (kept replayable).
+    // celebrate going from the current level to the next one
     this.beforeLevel = this.petService.state.level;
     this.nowLevel = this.beforeLevel + 1;
   }
@@ -24,7 +24,7 @@ export class LevelUpPage {
     return this.petService.state.name;
   }
 
-  /** "Continue" — return to Home. */
+  // "Continue" button - back to Home
   continue(): void {
     this.router.navigate(['/tabs/payogotchi/payogotchi-home']);
   }

@@ -16,11 +16,12 @@ interface Shape {
   popped: boolean;
 }
 
-/** Tappable shapes: emoji, themed circle colour, and point value. */
+// the shapes you can tap: emoji, circle colour theme, and points given.
+// points are kept small (1-3) since happiness only goes up to 100
 const SHAPE_TYPES: { emoji: string; theme: ShapeTheme; points: number }[] = [
-  { emoji: '💕', theme: 'heart', points: 5 },
-  { emoji: '⭐', theme: 'star', points: 10 },
-  { emoji: '🫧', theme: 'bubble', points: 3 },
+  { emoji: '💕', theme: 'heart', points: 2 },
+  { emoji: '⭐', theme: 'star', points: 3 },
+  { emoji: '🫧', theme: 'bubble', points: 1 },
 ];
 
 @Component({
@@ -38,6 +39,9 @@ export class MiniGamePage implements OnDestroy {
   timeLeft = this.gameLength;
   playsToday = 1;
   shapes: Shape[] = [];
+  // how much happiness the pet actually got (can be less than the
+  // score if the meter was already close to 100)
+  happinessGained = 0;
 
   private nextId = 0;
   private countdownId?: ReturnType<typeof setInterval>;
@@ -54,7 +58,7 @@ export class MiniGamePage implements OnDestroy {
     return this.petService.state.name;
   }
 
-  /** mm:ss countdown for the timer chip. */
+  // countdown formatted as mm:ss for the timer chip
   get timerDisplay(): string {
     const m = Math.floor(this.timeLeft / 60);
     const s = this.timeLeft % 60;
@@ -64,6 +68,7 @@ export class MiniGamePage implements OnDestroy {
   // ---- Game control ----
   startGame(): void {
     this.score = 0;
+    this.happinessGained = 0;
     this.timeLeft = this.gameLength;
     this.shapes = [];
     this.phase = 'playing';
@@ -77,9 +82,13 @@ export class MiniGamePage implements OnDestroy {
     this.startGame();
   }
 
-  /** Leave the mini-game and return to Home. */
+  // leave the mini game and go back to Home.
+  // if the player quits halfway, still give the happiness earned so far
   exit(): void {
     this.stopTimers();
+    if (this.phase === 'playing' && this.score > 0) {
+      this.awardHappiness();
+    }
     this.location.back();
   }
 
@@ -118,7 +127,7 @@ export class MiniGamePage implements OnDestroy {
       popped: false,
     };
     this.shapes.push(shape);
-    // Auto-remove once it has floated off the top (missed).
+    // remove it automatically once it floats off the top (means it was missed)
     this.scheduleRemoval(shape.id, shape.duration);
   }
 
@@ -133,8 +142,15 @@ export class MiniGamePage implements OnDestroy {
     this.stopTimers();
     this.shapes = [];
     this.phase = 'ended';
-    // Award the earned happiness back to the pet (clamped at 100 by the service).
+    this.awardHappiness();
+  }
+
+  // give the score to the pet as happiness (service caps it at 100),
+  // and remember how much it really went up so we can show it
+  private awardHappiness(): void {
+    const before = this.petService.state.happiness;
     this.petService.play(this.score);
+    this.happinessGained = this.petService.state.happiness - before;
   }
 
   private stopTimers(): void {

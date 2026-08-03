@@ -601,6 +601,25 @@ router.patch('/users/:userId/notifications/read-all', asyncHandler(async (req, r
   res.json({ success: true, unreadCount: 0 });
 }));
 
+// ---- Payogotchi pet (team: Calvin) ----
+// The pet is client-authoritative; these just persist/return the whole
+// PetState under users/{userId}/payogotchi/pet. Robust by design: no
+// getUser gate, so the demo works even for accounts not yet in Firestore.
+router.get('/users/:userId/payogotchi', asyncHandler(async (req, res) => {
+  const pet = await db.getPayogotchiPet(req.params.userId);
+  res.json({ pet });
+}));
+
+router.put('/users/:userId/payogotchi', asyncHandler(async (req, res) => {
+  const pet = req.body && req.body.pet ? req.body.pet : req.body;
+  if (!pet || typeof pet !== 'object' || Array.isArray(pet)) {
+    return res.status(400).json({ error: 'Pet payload required.' });
+  }
+
+  const saved = await db.savePayogotchiPet(req.params.userId, pet);
+  res.json({ pet: saved });
+}));
+
 router.get('/users/:userId/receive-settings', asyncHandler(async (req, res) => {
   const user = await db.getUser(req.params.userId);
   if (!user) {

@@ -80,3 +80,7 @@ testem.log
 Thumbs.db
 
 *.env
+# Python virtualenvs / caches
+.venv/
+__pycache__/
+*.pyc

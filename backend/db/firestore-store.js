@@ -6,6 +6,7 @@ const {
   userCardsRef,
   userTransactionsRef,
   userNotificationsRef,
+  userPayogotchiRef,
   appMetaRef,
 } = require('./firestore-paths');
 const { LOW_BALANCE_THRESHOLD } = require('../services/wallet-config');
@@ -594,6 +595,26 @@ async function setCardTopUpEnabled(userId, cardId, enabled) {
   return { ok: true, card: cardFromDoc(updated) };
 }
 
+// ---- Payogotchi (team: Calvin) ----
+// One pet document per user at users/{userId}/payogotchi/pet. The whole
+// PetState object is stored as-is: the game logic stays client-side (the
+// single source of truth), the backend just persists and returns it.
+const PAYOGOTCHI_PET_DOC = 'pet';
+
+async function getPayogotchiPet(userId) {
+  const db = getFirestore();
+  const doc = await userPayogotchiRef(db, userId).doc(PAYOGOTCHI_PET_DOC).get();
+  return doc.exists ? doc.data() : null;
+}
+
+async function savePayogotchiPet(userId, pet) {
+  const db = getFirestore();
+  const ref = userPayogotchiRef(db, userId).doc(PAYOGOTCHI_PET_DOC);
+  await ref.set({ ...pet, updatedAt: Date.now() }, { merge: true });
+  const saved = await ref.get();
+  return saved.data();
+}
+
 module.exports = {
   initialize,
   readDb,
@@ -624,6 +645,8 @@ module.exports = {
   markNotificationRead,
   markAllNotificationsRead,
   setCardTopUpEnabled,
+  getPayogotchiPet,
+  savePayogotchiPet,
   getMultiCurrencyWallet,
   updateMultiCurrencyBalance,
   exchangeCurrency,

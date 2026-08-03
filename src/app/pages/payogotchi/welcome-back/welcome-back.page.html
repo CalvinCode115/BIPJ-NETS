@@ -1,7 +1,51 @@
-<ion-content [fullscreen]="true" class="screen-content">
-  <div class="screen-placeholder">
-    <p class="screen-number">Screen 14</p>
-    <h1 class="screen-title">Welcome Back</h1>
-    <p class="screen-note">Scaffold — design coming soon.</p>
+<ion-content [fullscreen]="true" class="wb-content">
+  <div class="wb-screen">
+    <!-- Falling pastel confetti -->
+    <span
+      class="wb-confetti"
+      *ngFor="let c of confetti"
+      [style.left.%]="c.left"
+      [style.background]="c.color"
+      [style.animation-delay.s]="c.delay"
+      [style.animation-duration.s]="c.duration"
+    ></span>
+
+    <!-- Title -->
+    <header class="wb-header">
+      <h1 class="wb-title">Welcome Back! 🎉</h1>
+      <p class="wb-subtitle">{{ petName }} missed you so much!</p>
+    </header>
+
+    <!-- Pet card -->
+    <div class="wb-pet-card">
+      <div class="wb-pet-glow">
+        <span class="wb-sparkle wb-sparkle-left">✨</span>
+        <span class="wb-sparkle wb-sparkle-right">⭐</span>
+        <app-tapatchi mood="excited" [size]="180"></app-tapatchi>
+        <span class="wb-heart wb-heart-1">💕</span>
+        <span class="wb-heart wb-heart-2">💕</span>
+      </div>
+      <div class="wb-bubble">
+        <p class="wb-bubble-text">Yay! You're back! 💕</p>
+      </div>
+    </div>
+
+    <!-- Welcome Back Bonus card -->
+    <div class="wb-bonus-card">
+      <h3 class="wb-bonus-title">🎁 Welcome Back Bonus!</h3>
+      <div class="wb-bonus-row">
+        <div class="wb-bonus-item">
+          <span class="wb-bonus-icon">✨</span>
+          <span class="wb-bonus-value is-xp">+{{ xpBonus }} XP</span>
+        </div>
+        <div class="wb-bonus-item">
+          <span class="wb-bonus-icon">💎</span>
+          <span class="wb-bonus-value is-nets">+{{ netsBonus }} NETS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <button type="button" class="wb-btn" (click)="continue()">Continue Playing 🚀</button>
   </div>
 </ion-content>

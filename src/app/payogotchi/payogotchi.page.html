@@ -14,7 +14,14 @@
 <ion-content [fullscreen]="true">
   <div class="test-container">
     <h2>Tapatchi Character Test</h2>
-    
+
+    <!-- Demo scenario controls -->
+    <h3>Demo Scenarios:</h3>
+    <div class="mood-buttons">
+      <ion-button color="success" (click)="demoNewUser()">🥚 New user (intro flow)</ion-button>
+      <ion-button color="primary" (click)="demoReturningUser()">⭐ Returning user (Home)</ion-button>
+    </div>
+
     <!-- The Tapatchi! -->
     <div class="pet-display">
       <app-tapatchi [mood]="currentMood" [size]="250"></app-tapatchi>

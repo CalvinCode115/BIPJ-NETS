@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
 import { TransactionRecord } from './transactions.service';
 import { WalletCard } from './cards.service';
+import { PetBridgeService } from './pet-bridge.service';
 
 export interface TransferRecipient {
   id: string;
@@ -56,7 +57,7 @@ export interface QrReceivePayRequest {
   providedIn: 'root',
 })
 export class TransfersService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private petBridge: PetBridgeService) {}
 
   lookupUser(phone: string): Observable<LookupUserResponse> {
     return this.http.get<LookupUserResponse>(`${API_BASE_URL}/users/lookup`, {
@@ -69,13 +70,23 @@ export class TransfersService {
   }
 
   transfer(userId: string, payload: TransferRequest): Observable<TransferResponse> {
-    return this.http.post<TransferResponse>(`${API_BASE_URL}/users/${userId}/transfers`, payload);
+    return this.http
+      .post<TransferResponse>(`${API_BASE_URL}/users/${userId}/transfers`, payload)
+      .pipe(tap((res) => this.feedPet(res)));
   }
 
   payReceiveQr(userId: string, payload: QrReceivePayRequest): Observable<TransferResponse> {
-    return this.http.post<TransferResponse>(
-      `${API_BASE_URL}/users/${userId}/payments/qr/receive`,
-      payload
-    );
+    return this.http
+      .post<TransferResponse>(`${API_BASE_URL}/users/${userId}/payments/qr/receive`, payload)
+      .pipe(tap((res) => this.feedPet(res)));
+  }
+
+  // Payogotchi integration: sending money is still a NETS payment, so it
+  // grows the pet (generic 'other' spend — no hunger, but XP + points).
+  private feedPet(res: TransferResponse): void {
+    if (res?.success) {
+      const merchant = res.toUser?.name ? `To ${res.toUser.name}` : 'Transfer';
+      this.petBridge.record(res.amount, res.transaction?.category ?? 'other', merchant);
+    }
   }
 }
