@@ -34,3 +34,95 @@ h2, h3 {
   color: var(--text-primary);
   margin: 20px 0;
 }
+// ============================================================
+// Character test grid — every variant against every mood.
+// ============================================================
+.pet-caption {
+  text-align: center;
+  font-size: 13px;
+  color: #445;
+  margin: 8px 0 0;
+}
+
+.pose-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #eceff4;
+  color: #6b7280;
+
+  &.is-drawn {
+    background: #e4f6e8;
+    color: #1c7c3c;
+  }
+}
+
+.grid-legend {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 4px 0 10px;
+}
+
+// The table is wider than a phone, so it scrolls on its own rather than
+// making the whole page scroll sideways.
+.char-grid-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.char-grid {
+  border-collapse: collapse;
+
+  th {
+    font-size: 11px;
+    font-weight: 600;
+    color: #445;
+    text-transform: capitalize;
+    padding: 4px 6px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 2px;
+  }
+}
+
+.char-grid-name {
+  text-align: right;
+  padding-right: 10px !important;
+  white-space: nowrap;
+
+  strong {
+    display: block;
+    font-size: 12px;
+    text-transform: capitalize;
+    color: #1f2937;
+  }
+
+  small {
+    display: block;
+    font-size: 10px;
+    color: #9ca3af;
+  }
+}
+
+.char-grid-cell {
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #fafbfc;
+  border: 1px solid transparent;
+
+  // Poses that came straight from Figma get a green edge.
+  &.is-drawn {
+    background: #f4fbf6;
+    border-color: #bfe6ca;
+  }
+}

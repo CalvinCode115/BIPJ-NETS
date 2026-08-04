@@ -65,10 +65,23 @@ ion-content.scroll-content-visible::part(scroll)::-webkit-scrollbar {
 
 .nets-page-header ion-toolbar.nets-page-toolbar {
   --background: #ffffff;
+  // Pin the text/icon colour to match the forced white background. Without
+  // this it inherits --ion-text-color, which the dark.system.css palette
+  // imported above flips to white when the device is in dark mode — giving
+  // an invisible white-on-white title and buttons.
+  --color: #1f2937;
   --border-color: #ececf1;
   --padding-start: 16px;
   --padding-end: 8px;
   --min-height: 52px;
+}
+
+// One title style for every tab, matching the Pay tab's "Pay & Transfer".
+// Colour is set here too, not inherited — see the --color note above.
+.nets-page-toolbar ion-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
 }
 
 .nets-page-toolbar ion-buttons[slot='start'] {

@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, of, tap } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
 import { TransactionRecord } from './transactions.service';
 import { PetBridgeService } from './pet-bridge.service';
+import { TransactionResult } from '../models/pet.model';
 
 export interface QrPaymentDetails {
   id: string;
@@ -28,6 +29,16 @@ export interface QrPayResponse {
   payment: QrPaymentDetails;
   transaction: TransactionRecord;
   card: { id: string; balance: number };
+  // NETS Points credited by the rewards backend for this payment.
+  pointsAwarded?: number;
+  // Present only when the request carried a voucherInstanceId.
+  voucherApplied?: boolean;
+  voucherDiscount?: number;
+  voucherError?: string | null;
+  // What the payment did to the pet. Added client-side by this service,
+  // not returned by the backend.
+  pet?: TransactionResult;
+  petName?: string;
 }
 
 export interface ReceiveQrResponse {
@@ -100,10 +111,14 @@ export class QrPaymentsService {
       );
   }
 
+  // `voucherInstanceId` routes a voucher-discounted payment through this same
+  // method on purpose: the backend endpoint is identical, and going through
+  // here is what feeds the pet. Posting to /payments/qr directly skips the
+  // bridge and silently costs the user their XP.
   payWithQr(
     userId: string,
     payload: string,
-    options: { cardId?: string; cardNumber?: string } = {}
+    options: { cardId?: string; cardNumber?: string; voucherInstanceId?: string } = {}
   ): Observable<QrPayResponse> {
     return this.http
       .post<QrPayResponse>(`${API_BASE_URL}/users/${userId}/payments/qr`, {
@@ -112,10 +127,14 @@ export class QrPaymentsService {
       })
       .pipe(
         // Payogotchi integration: a successful merchant payment feeds the pet.
-        tap((res) => {
-          if (res?.success && res.payment) {
-            this.petBridge.record(res.payment.amount, res.payment.category, res.payment.merchant);
+        // The result is attached to the response so the payment screen can
+        // report the XP earned without knowing how the pet works.
+        map((res) => {
+          if (!res?.success || !res.payment) {
+            return res;
           }
+          const pet = this.petBridge.record(res.payment.amount, res.payment.category, res.payment.merchant);
+          return { ...res, pet, petName: this.petBridge.petName };
         })
       );
   }

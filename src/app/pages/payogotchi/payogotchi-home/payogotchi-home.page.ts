@@ -3,25 +3,12 @@ import { Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { PetService } from '../../../services/pet.service';
 import { PetBridgeService } from '../../../services/pet-bridge.service';
-import { PetStage, PetState, TransactionResult, TxnCategory } from '../../../models/pet.model';
-
-interface DemoTxn {
-  label: string;
-  // shop name that shows up in the feedback popup
-  merchant: string;
-  amount: number;
-  category: TxnCategory;
-  // which colour style the button uses
-  theme: 'coffee' | 'lunch' | 'shop';
-}
-
-interface Quest {
-  label: string;
-  done: boolean;
-  // reward text like "+30 Happy"
-  reward: string;
-  rewardTheme: 'done' | 'happy';
-}
+import { PointsService } from '../../../services/points.service';
+import { PetStage, PetState, TransactionResult } from '../../../models/pet.model';
+import {
+  VARIANT_DISPLAY_NAMES,
+  resolveVariant,
+} from '../../../components/tapatchi/tapatchi.component';
 
 @Component({
   selector: 'app-payogotchi-home',
@@ -32,17 +19,6 @@ interface Quest {
 export class PayogotchiHomePage {
   // direct reference to the shared pet state, so any change shows up straight away
   readonly pet: PetState;
-
-  readonly demoTxns: DemoTxn[] = [
-    { label: '☕ Coffee $5', merchant: 'Coffee Bean', amount: 5, category: 'other', theme: 'coffee' },
-    { label: '🍜 Lunch $12', merchant: 'Hawker Lunch', amount: 12, category: 'food', theme: 'lunch' },
-    { label: '🛍️ Shop $25', merchant: 'Uniqlo', amount: 25, category: 'shopping', theme: 'shop' },
-  ];
-
-  readonly quests: Quest[] = [
-    { label: 'Make first transaction', done: true, reward: '✓ Done', rewardTheme: 'done' },
-    { label: 'Eat at hawker stall', done: false, reward: '+30 Happy', rewardTheme: 'happy' },
-  ];
 
   // ---- Popups that show after a transaction ----
   // result of the latest transaction, decides which popups appear
@@ -62,23 +38,41 @@ export class PayogotchiHomePage {
   evoTo: PetStage = 'Teen';
   evoUnlocks: string[] = [];
 
+  // Real NETS Points balance (Rewards tab's own currency) — Payogotchi no
+  // longer tracks a separate points number of its own, it just displays
+  // this and, on a level-up/evolution, asks the backend to add to it.
+  totalPoints = 0;
+
   constructor(
     private router: Router,
     private petService: PetService,
     private bridge: PetBridgeService,
+    private pointsService: PointsService,
     private toastCtrl: ToastController,
   ) {
     this.pet = this.petService.state;
   }
 
   // When the user returns to Home, play any celebration queued by a real
-  // NETS payment made on the Pay tab (the pet already updated + persisted;
-  // this just shows the feedback / level-up / evolution popups now).
+  // NETS payment made on the Pay tab, or a non-purchase bonus like the
+  // tutorial completion XP (the pet already updated + persisted; this just
+  // shows the feedback / level-up / evolution popups now).
   ionViewWillEnter(): void {
     const pending = this.bridge.consumePending();
     if (pending) {
       this.celebrate(pending.result, pending.merchant);
     }
+    this.loadPointsBalance();
+  }
+
+  // Reads the real balance from the Rewards side (PointsService), the same
+  // one the NETS Points page shows. Best-effort: on failure Total Activity
+  // just keeps whatever it last showed.
+  private loadPointsBalance(): void {
+    this.pointsService.getBalance(this.petService.ownerId).subscribe({
+      next: (res) => (this.totalPoints = res.totalPoints),
+      error: () => {},
+    });
   }
 
   // ---- Display values (the service works these out) ----
@@ -94,18 +88,26 @@ export class PayogotchiHomePage {
     return this.petService.xpProgress * 100;
   }
 
-  // ---- Care actions ----
-  runTransaction(txn: DemoTxn): void {
-    const r = this.petService.applyTransaction(txn.amount, txn.category, txn.merchant);
-    this.celebrate(r, txn.merchant);
+  /** The character's species name, e.g. 'Gozarutchi' — shown under the pet's own name. */
+  get speciesName(): string {
+    return VARIANT_DISPLAY_NAMES[resolveVariant(this.pet.selectedEgg)];
+  }
+
+  get daysTogether(): number {
+    return this.petService.daysTogether;
+  }
+
+  get favouriteMerchant(): string | null {
+    return this.petService.favouriteMerchant;
   }
 
   // Plays the feedback -> level up -> evolution chain for a transaction
-  // result, whether it came from a Home demo button or a real NETS payment
-  // (queued by PetBridgeService while the user was on the Pay tab).
-  private celebrate(r: TransactionResult, merchant: string): void {
+  // result from a real NETS payment (queued by PetBridgeService while the
+  // user was on the Pay tab), or a non-purchase bonus (e.g. tutorial
+  // completion) when `merchant` is omitted.
+  private celebrate(r: TransactionResult, merchant?: string): void {
     this.result = r;
-    this.feedbackMerchant = merchant;
+    this.feedbackMerchant = merchant ?? '';
 
     // fill in the popup data using the actual result
     if (r.leveledUp && r.newLevel != null) {
@@ -131,10 +133,17 @@ export class PayogotchiHomePage {
       return;
     }
 
-    // only show the celebration popups if some XP was actually earned.
-    // closing the feedback popup then leads into level up / evolution
-    if (r.xpGained > 0) {
-      this.showFeedback = true;
+    if (merchant) {
+      // real purchase: show the "you paid X" feedback step first, which
+      // chains into level up / evolution via onFeedbackDismiss()
+      if (r.xpGained > 0) {
+        this.showFeedback = true;
+      }
+    } else if (r.leveledUp) {
+      // non-purchase bonus: no feedback step to show, jump straight in
+      this.showLevelUp = true;
+    } else if (r.evolved) {
+      this.showEvolution = true;
     }
   }
 
@@ -149,27 +158,20 @@ export class PayogotchiHomePage {
     this.showLevelUp = false;
     if (this.result?.evolved) {
       this.showEvolution = true;
+    } else {
+      // refresh Total Activity now the backend has had time to credit the
+      // level-up bonus (fired as soon as the milestone was detected)
+      this.loadPointsBalance();
     }
   }
 
   onEvolutionDismiss(): void {
     this.showEvolution = false;
+    this.loadPointsBalance();
   }
 
   feed(): void {
     this.petService.feed();
-  }
-
-  // demo button: clear today's XP cap so we can level up again during the demo
-  resetXpCap(): void {
-    this.petService.resetDailyXpCap();
-    this.presentToast('♻️ XP cap reset — earn away!', 'success');
-  }
-
-  // demo button: wipe the pet and go through the intro/egg flow again
-  restartOnboarding(): void {
-    this.petService.resetNewUser();
-    this.router.navigateByUrl('/tabs/payogotchi');
   }
 
   private async presentToast(message: string, color: 'warning' | 'success'): Promise<void> {
@@ -206,32 +208,5 @@ export class PayogotchiHomePage {
   }
   openSettings(): void {
     this.go('pet-settings');
-  }
-  // demo button: force the level up popup to show
-  openLevelUp(): void {
-    this.result = null; // opened manually, so don't lead into evolution after
-    this.levelFrom = this.pet.level;
-    this.levelTo = this.pet.level + 1;
-    this.levelReward = 50;
-    this.showLevelUp = true;
-  }
-
-  // demo button: force the evolution popup to show
-  openEvolve(): void {
-    this.result = null;
-    const to: PetStage = this.pet.stage === 'Baby' ? 'Teen' : 'Adult';
-    this.evoFrom = this.pet.stage === 'Adult' ? 'Teen' : this.pet.stage;
-    this.evoTo = to;
-    this.evoUnlocks = this.unlocksFor(to);
-    this.showEvolution = true;
-  }
-  openFaint(): void {
-    this.go('fainted-pet');
-  }
-  openReturn(): void {
-    this.go('welcome-back');
-  }
-  openQuests(): void {
-    // quests are on Yunen's Rewards tab, will link up later
   }
 }

@@ -26,12 +26,12 @@ Eron’s approach: **SGD stays on the card**; users **add** currencies to a pers
 ### Files
 | File | Change |
 |------|--------|
-| `src/app/homepage/home/home.page.ts` | Per-user tracked list, add/remove, rate refresh, formatting, MYR fallback ~3.15 |
-| `src/app/homepage/home/home.page.html` | Currency panel + add sheet; card shows SGD badge (no dropdown) |
-| `src/app/homepage/home/home.page.scss` | Styles for panel + sheet |
+| `src/app/pages/home/home/home.page.ts` | Per-user tracked list, add/remove, rate refresh, formatting, MYR fallback ~3.15 |
+| `src/app/pages/home/home/home.page.html` | Currency panel + add sheet; card shows SGD badge (no dropdown) |
+| `src/app/pages/home/home/home.page.scss` | Styles for panel + sheet |
 | `src/app/utils/card-display.ts` | Optional currency helpers (card face still SGD) |
 | `src/app/services/destination.config.ts` | **Unchanged** — still shared with Travel (do not edit without telling Eron) |
-| `src/app/fx-tracker/fx-tracker.service.ts` | **Updated** — do not cache fallback FX; empty history treated as failure; demo SGD→MYR aligned to ~3.15 |
+| `src/app/pages/travel/fx-tracker/fx-tracker.service.ts` | **Updated** — do not cache fallback FX; empty history treated as failure; demo SGD→MYR aligned to ~3.15 |
 
 ### Note for Eron / Travel
 Home only **reads** `DESTINATIONS` + `FxTrackerService` (does not own Frankfurter / `main.py`). Expanding to “any currency” later is Travel/FX scope. If Travel FAB rate looks wrong after Home currency work, clear browser FX cache (`nets_fx_*`) or Local Storage for `:8100`, keep uvicorn on `:8000`, then hard refresh.
@@ -53,15 +53,15 @@ Use this as a map of **which files moved** and **why**. After pull: restart **No
 
 | File | What changed |
 |------|----------------|
-| `src/app/homepage/home/home.page.ts` | Per-user currency list; FX rate refresh; low-balance soft-dismiss (banner returns until top-up ≥ $50 or Notifications → Low balance off); dynamic card expiry check; add-card input sanitizers write back to `ion-input` |
-| `src/app/homepage/home/home.page.html` | “Also in your currencies” panel + add sheet; SGD badge; top-up spinner; insight eyebrow unchanged (rule-based) |
-| `src/app/homepage/home/home.page.scss` | Currency panel/sheet styles; top-up spinner styles |
+| `src/app/pages/home/home/home.page.ts` | Per-user currency list; FX rate refresh; low-balance soft-dismiss (banner returns until top-up ≥ $50 or Notifications → Low balance off); dynamic card expiry check; add-card input sanitizers write back to `ion-input` |
+| `src/app/pages/home/home/home.page.html` | “Also in your currencies” panel + add sheet; SGD badge; top-up spinner; insight eyebrow unchanged (rule-based) |
+| `src/app/pages/home/home/home.page.scss` | Currency panel/sheet styles; top-up spinner styles |
 
 ### FX shared with Travel (Eron — please read)
 
 | File | What changed |
 |------|----------------|
-| `src/app/fx-tracker/fx-tracker.service.ts` | **Do not cache** demo/fallback FX for 1 hour; empty `/fx/history` treated as failure; demo SGD→MYR ≈ 3.15. Fixes Travel FAB stuck on ~3.47 after Home currency calls |
+| `src/app/pages/travel/fx-tracker/fx-tracker.service.ts` | **Do not cache** demo/fallback FX for 1 hour; empty `/fx/history` treated as failure; demo SGD→MYR ≈ 3.15. Fixes Travel FAB stuck on ~3.47 after Home currency calls |
 | `src/app/services/destination.config.ts` | **Not edited** — Home only reads it |
 
 #### Detail: `fx-tracker.service.ts` — what changed, line by line
@@ -139,7 +139,7 @@ return result;
 
 #### Appendix — original `fx-tracker.service.ts` (before Jun Jie edits)
 
-Source: last committed version (`git show HEAD:src/app/fx-tracker/fx-tracker.service.ts`). Compare with the current working file after pull.
+Source: last committed version (`git show HEAD:src/app/pages/travel/fx-tracker/fx-tracker.service.ts`). Compare with the current working file after pull.
 
 ```typescript
 import { Injectable } from '@angular/core';
@@ -436,9 +436,9 @@ private fetchNewsSentiment(destination: DestinationConfig): Observable<NewsSenti
 
 | File | What changed |
 |------|----------------|
-| `src/app/payment/pay/pay.page.ts` | Payable-card resolution where needed |
-| `src/app/payment/pay/pay.page.html` | Top-up button spinner + “Processing…” |
-| `src/app/payment/pay/pay.page.scss` | Spinner styles |
+| `src/app/pages/pay/pay/pay.page.ts` | Payable-card resolution where needed |
+| `src/app/pages/pay/pay/pay.page.html` | Top-up button spinner + “Processing…” |
+| `src/app/pages/pay/pay/pay.page.scss` | Spinner styles |
 | `src/app/services/cards.service.ts` | `isPayableCard` / `resolveActivePayCard` helpers |
 | `src/app/utils/card-display.ts` | Display helpers (card face stays SGD) |
 
@@ -446,15 +446,15 @@ private fetchNewsSentiment(destination: DestinationConfig): Observable<NewsSenti
 
 | File | What changed |
 |------|----------------|
-| `src/app/homepage/home-qr-code/home-qr-code.page.ts` | Pay/Transfer success auto-clears after **3s** → scan UI; timer cleared on leave |
-| `src/app/homepage/home-qr-code/home-qr-code.page.html` | Success / scan UI wiring |
-| `src/app/homepage/home-qr-code/home-qr-code.page.scss` | Related styles |
+| `src/app/pages/home/home-qr-code/home-qr-code.page.ts` | Pay/Transfer success auto-clears after **3s** → scan UI; timer cleared on leave |
+| `src/app/pages/home/home-qr-code/home-qr-code.page.html` | Success / scan UI wiring |
+| `src/app/pages/home/home-qr-code/home-qr-code.page.scss` | Related styles |
 
 ### Insights page (UI only)
 
 | File | What changed |
 |------|----------------|
-| `src/app/homepage/home-ai-insights/home-ai-insights.page.scss` | Hide scrollbar on Insights `ion-content` (Gemini AI coach was tried then **reverted** — not in this build) |
+| `src/app/pages/home/home-ai-insights/home-ai-insights.page.scss` | Hide scrollbar on Insights `ion-content` (Gemini AI coach was tried then **reverted** — not in this build) |
 
 ### Login / Signup / shared input helpers
 
@@ -524,10 +524,10 @@ Top-up confirm button shows spinner + “Processing…” while the request runs
 ### Files
 | File | Change |
 |------|--------|
-| `src/app/homepage/home/home.page.html` | Spinner on submit |
-| `src/app/homepage/home/home.page.scss` | Spinner styles |
-| `src/app/payment/pay/pay.page.html` | Same on Pay top-up modal |
-| `src/app/payment/pay/pay.page.scss` | Spinner styles |
+| `src/app/pages/home/home/home.page.html` | Spinner on submit |
+| `src/app/pages/home/home/home.page.scss` | Spinner styles |
+| `src/app/pages/pay/pay/pay.page.html` | Same on Pay top-up modal |
+| `src/app/pages/pay/pay/pay.page.scss` | Spinner styles |
 
 ---
 
@@ -539,9 +539,9 @@ After Pay / Transfer success on Home QR (`Paid $…` / `Transferred $…`), the 
 ### Files
 | File | Change |
 |------|--------|
-| `src/app/homepage/home-qr-code/home-qr-code.page.ts` | 3s timer → `scanAnother()`; cleared on leave/destroy |
-| `src/app/homepage/home-qr-code/home-qr-code.page.html` | Related UI wiring (if present in your branch) |
-| `src/app/homepage/home-qr-code/home-qr-code.page.scss` | Related styles |
+| `src/app/pages/home/home-qr-code/home-qr-code.page.ts` | 3s timer → `scanAnother()`; cleared on leave/destroy |
+| `src/app/pages/home/home-qr-code/home-qr-code.page.html` | Related UI wiring (if present in your branch) |
+| `src/app/pages/home/home-qr-code/home-qr-code.page.scss` | Related styles |
 
 ---
 
@@ -554,7 +554,7 @@ Safer resolution of which card to pay with (skip CashCard when not payable, avoi
 | File | Change |
 |------|--------|
 | `src/app/services/cards.service.ts` | `isPayableCard` / `resolveActivePayCard` helpers |
-| `src/app/payment/pay/pay.page.ts` | Uses payable-card resolution where needed |
+| `src/app/pages/pay/pay/pay.page.ts` | Uses payable-card resolution where needed |
 
 ---
 

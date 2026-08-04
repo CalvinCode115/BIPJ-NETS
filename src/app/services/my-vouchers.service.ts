@@ -46,12 +46,13 @@ export class MyVouchersService {
   }
 
   /**
-   * Completes a QR payment WITH a voucher applied. Calls the exact same
-   * `/payments/qr` endpoint your groupmate's QrPaymentsService already
-   * calls, just with one extra field (`voucherInstanceId`) — this avoids
-   * needing to modify qr-payments.service.ts at all. Response shape
-   * matches what payWithQr() already returns, plus voucherApplied /
-   * voucherDiscount / voucherError.
+   * @deprecated Use `QrPaymentsService.payWithQr(userId, payload,
+   * { cardId, voucherInstanceId })` instead — it hits this exact same
+   * endpoint but also feeds the Payogotchi pet.
+   *
+   * Posting to `/payments/qr` from here skips PetBridgeService, so the
+   * payment silently earns NETS Points but no pet XP. Kept only so any
+   * remaining caller keeps compiling; nothing in the app uses it.
    */
   payWithVoucher(
     userId: string,

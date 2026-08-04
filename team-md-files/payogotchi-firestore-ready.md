@@ -16,7 +16,7 @@ Key architecture finding for the lecturer's "real Firestore persistence" require
 - `backend/db/firestore-store.js`: `getPayogotchiPet(userId)` / `savePayogotchiPet(userId, pet)` writing `users/{userId}/payogotchi/pet` (merge + `updatedAt`).
 - `backend/routes/api.js`: `GET`/`PUT /api/users/:userId/payogotchi` (no getUser gate, so demo is robust for accounts not yet in Firestore).
 - `src/app/services/pet.service.ts`: injects `HttpClient` + `AuthService`. **Per-user** — pet keyed on `ownerId = auth.userId ?? 'user_1'`. localStorage cache is namespaced `payogotchi_pet_<owner>`; the bare legacy `payogotchi_pet` is adopted once for `user_1` so the existing hand-built pet carries over. `save()` writes local instantly + **debounced (500ms)** Firestore PUT. New `syncFromCloud()` reconciles (cloud wins on load; if no cloud doc, promotes local). Handles account-switch via `loadedOwner` reset.
-- `src/app/payogotchi/payogotchi-entry.guard.ts`: now `async`, `await pet.syncFromCloud()` before intro-vs-home decision → returning user (Alex/user_1) never flashes intro; brand-new account → intro flow.
+- `src/app/pages/payogotchi/payogotchi-entry.guard.ts`: now `async`, `await pet.syncFromCloud()` before intro-vs-home decision → returning user (Alex/user_1) never flashes intro; brand-new account → intro flow.
 
 Design confirmed by user: **each user has their own Payogotchi** (new user → intro; Alex = existing level).
 

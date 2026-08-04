@@ -221,9 +221,9 @@ export class HomePage {
   };
 
   secondaryActions: SecondaryAction[] = [
-    { label: 'Payogotchi', icon: 'gift', color: '#f2994a' },
+    { label: 'Payogotchi', icon: 'gift', color: '#f2994a', route: '/tabs/payogotchi/payogotchi-home' },
     { label: 'Tx History', icon: 'card', color: '#2f80ed', route: '/tabs/home/home-all-transactions' },
-    { label: 'Rewards', icon: 'ribbon', color: '#f2c94c' },
+    { label: 'Rewards', icon: 'ribbon', color: '#f2c94c', route: '/tabs/rewards'},
     { label: 'Exchange', icon: 'swap-horizontal', color: '#9b51e0', route: '/tabs/fx-tracker' },
   ];
 

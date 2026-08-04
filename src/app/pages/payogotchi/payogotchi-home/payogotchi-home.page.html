@@ -1,65 +1,90 @@
-<ion-content [fullscreen]="true" class="home-content">
+<!-- Same header as the Home / Pay / Travel / Rewards tabs.
+     No 'ion-no-border' here on purpose — that class strips the toolbar's
+     bottom border, which is what separates it from the content on Rewards. -->
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-title>
+      <ion-icon name="game-controller" class="title-icon"></ion-icon>
+      Payogotchi
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openSettings()" aria-label="Pet settings">
+        <ion-icon name="settings-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="home-content">
   <div class="home-screen">
-    <!-- Top bar -->
-    <header class="home-topbar">
-      <button type="button" class="home-icon-btn" aria-label="Menu">≡</button>
-      <h1 class="home-brand">PAYOGOTCHI 🎮</h1>
-      <button type="button" class="home-icon-btn" (click)="openSettings()" aria-label="Settings">⚙️</button>
-    </header>
 
-    <!-- Pet name + level -->
-    <section class="home-identity">
-      <h2 class="home-pet-name">{{ pet.name }}</h2>
-      <p class="home-pet-sub">Level {{ pet.level }} • {{ pet.stage }} Tapatchi</p>
-    </section>
-
-    <!-- XP bar -->
-    <section class="home-xp">
-      <span class="home-xp-star">⭐</span>
-      <div class="home-xp-body">
-        <span class="home-xp-label">XP</span>
-        <div class="home-xp-track">
-          <div class="home-xp-fill" [style.width.%]="xpPercent"></div>
-        </div>
-      </div>
-      <span class="home-xp-value">{{ pet.xp }}/{{ pet.xpMax }}</span>
-    </section>
-
-    <!-- Pet stage: meters + character + speech bubble -->
-    <section class="home-stage">
-      <div class="home-stage-glow"></div>
-      <span class="home-float-star star-1">⭐</span>
-      <span class="home-float-star star-2">⭐</span>
-
-      <!-- Happiness meter (left) -->
-      <div class="home-meter meter-happy">
-        <div class="home-meter-icon">😊</div>
-        <div class="home-meter-track">
-          <div class="home-meter-fill" [style.height.%]="pet.happiness"></div>
-        </div>
-        <span class="home-meter-value">{{ pet.happiness }}</span>
+    <!-- ===== Hero: name, character, level + XP ===== -->
+    <section class="hero">
+      <div class="hero-identity">
+        <h2 class="hero-name">{{ pet.name }}</h2>
+        <p class="hero-species">&amp; {{ speciesName }}</p>
       </div>
 
-      <!-- Pet -->
-      <div class="home-pet">
-        <app-tapatchi [mood]="mood" [size]="180"></app-tapatchi>
-        <div class="home-speech">
-          <span class="home-speech-tail"></span>
-          <p class="home-speech-text">{{ statusText }}</p>
+      <div class="hero-stage">
+        <div class="hero-glow"></div>
+        <span class="hero-star star-1">⭐</span>
+        <span class="hero-star star-2">✨</span>
+        <span class="hero-star star-3">⭐</span>
+
+        <div class="hero-pet">
+          <app-tapatchi [mood]="mood" [size]="200"></app-tapatchi>
         </div>
       </div>
 
-      <!-- Hunger meter (right) -->
-      <div class="home-meter meter-hunger">
-        <div class="home-meter-icon">🍔</div>
-        <div class="home-meter-track">
-          <div class="home-meter-fill" [style.height.%]="pet.hunger"></div>
+      <div class="hero-speech">
+        <span class="hero-speech-tail"></span>
+        <p class="hero-speech-text">{{ statusText }}</p>
+      </div>
+
+      <!-- Level + XP, laid out like a game profile bar -->
+      <div class="hero-level">
+        <div class="hero-level-badge">
+          <span class="hero-level-num">{{ pet.level }}</span>
+          <span class="hero-level-word">LEVEL</span>
         </div>
-        <span class="home-meter-value">{{ pet.hunger }}</span>
+        <div class="hero-level-body">
+          <div class="hero-xp-track">
+            <div class="hero-xp-fill" [style.width.%]="xpPercent"></div>
+          </div>
+          <p class="hero-xp-value">
+            <span class="hero-xp-numbers"><strong>{{ pet.xp }}</strong>/{{ pet.xpMax }} XP</span>
+            <span class="hero-stage-tag">{{ pet.stage }}</span>
+          </p>
+        </div>
       </div>
     </section>
 
-    <!-- Quick actions -->
+    <!-- ===== Care meters ===== -->
+    <section class="care">
+      <div class="care-stat stat-happy">
+        <span class="care-icon">😊</span>
+        <div class="care-body">
+          <span class="care-label">Happiness</span>
+          <div class="care-track">
+            <div class="care-fill" [style.width.%]="pet.happiness"></div>
+          </div>
+        </div>
+        <span class="care-value">{{ pet.happiness }}</span>
+      </div>
+
+      <div class="care-stat stat-hunger">
+        <span class="care-icon">🍔</span>
+        <div class="care-body">
+          <span class="care-label">Hunger</span>
+          <div class="care-track">
+            <div class="care-fill" [style.width.%]="pet.hunger"></div>
+          </div>
+        </div>
+        <span class="care-value">{{ pet.hunger }}</span>
+      </div>
+    </section>
+
+    <!-- ===== Quick actions ===== -->
     <section class="home-actions">
       <button type="button" class="home-action" (click)="openMiniGame()">
         <span class="home-action-icon icon-play">🎮</span>
@@ -75,66 +100,39 @@
       </button>
     </section>
 
-    <!-- Demo mode -->
-    <section class="home-demo">
-      <span class="home-demo-badge">🎮 DEMO MODE</span>
+    <!-- ===== Total activity ===== -->
+    <section class="activity">
+      <div class="activity-heading"><span>TOTAL ACTIVITY</span></div>
 
-      <div class="home-demo-row">
-        <button
-          *ngFor="let txn of demoTxns"
-          type="button"
-          class="home-demo-txn"
-          [class]="'home-demo-txn theme-' + txn.theme"
-          (click)="runTransaction(txn)"
-        >
-          {{ txn.label }}
-        </button>
+      <div class="activity-row">
+        <span class="activity-icon">🎁</span>
+        <span class="activity-label">NETS Points</span>
+        <span class="activity-value">{{ totalPoints | number }}</span>
       </div>
-
-      <div class="home-demo-row states">
-        <button type="button" class="home-demo-state theme-levelup" (click)="openLevelUp()">
-          <span class="state-emoji">🎉</span>
-          <span class="state-label">Level Up</span>
-        </button>
-        <button type="button" class="home-demo-state theme-evolve" (click)="openEvolve()">
-          <span class="state-emoji">🌟</span>
-          <span class="state-label">Evolve</span>
-        </button>
-        <button type="button" class="home-demo-state theme-faint" (click)="openFaint()">
-          <span class="state-emoji">😴</span>
-          <span class="state-label">Faint</span>
-        </button>
-        <button type="button" class="home-demo-state theme-return" (click)="openReturn()">
-          <span class="state-emoji">👋</span>
-          <span class="state-label">Return</span>
-        </button>
+      <div class="activity-row">
+        <span class="activity-icon">⚡</span>
+        <span class="activity-label">Total XP Earned</span>
+        <span class="activity-value">{{ pet.totalXpEarned | number }}</span>
       </div>
-
-      <div class="home-demo-row states">
-        <button type="button" class="home-demo-state theme-evolve" (click)="resetXpCap()">
-          <span class="state-emoji">♻️</span>
-          <span class="state-label">Reset XP Cap</span>
-        </button>
-        <button type="button" class="home-demo-state theme-return" (click)="restartOnboarding()">
-          <span class="state-emoji">🥚</span>
-          <span class="state-label">New User</span>
-        </button>
+      <div class="activity-row">
+        <span class="activity-icon">🧾</span>
+        <span class="activity-label">Transactions</span>
+        <span class="activity-value">{{ pet.totalTransactions | number }}</span>
       </div>
-    </section>
-
-    <!-- Today's quests -->
-    <section class="home-quests">
-      <div class="home-quests-head">
-        <h3 class="home-quests-title">📋 Today's Quests</h3>
-        <button type="button" class="home-quests-viewall" (click)="openQuests()">View All →</button>
+      <div class="activity-row">
+        <span class="activity-icon">🔥</span>
+        <span class="activity-label">Current Streak</span>
+        <span class="activity-value">{{ pet.currentStreak }} {{ pet.currentStreak === 1 ? 'day' : 'days' }}</span>
       </div>
-
-      <div class="home-quest" *ngFor="let quest of quests">
-        <span class="home-quest-mark" [class.done]="quest.done">{{ quest.done ? '✅' : '●' }}</span>
-        <span class="home-quest-label" [class.done]="quest.done">{{ quest.label }}</span>
-        <span class="home-quest-reward" [class]="'home-quest-reward theme-' + quest.rewardTheme">
-          {{ quest.reward }}
-        </span>
+      <div class="activity-row">
+        <span class="activity-icon">📅</span>
+        <span class="activity-label">Days Together</span>
+        <span class="activity-value">{{ daysTogether }}</span>
+      </div>
+      <div class="activity-row" *ngIf="favouriteMerchant">
+        <span class="activity-icon">🏪</span>
+        <span class="activity-label">Favourite Spot</span>
+        <span class="activity-value">{{ favouriteMerchant }}</span>
       </div>
     </section>
   </div>

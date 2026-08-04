@@ -363,7 +363,7 @@ persistence is verified by refreshing the browser and confirming state survives.
 
 ### ✅ New since the spec was written
 - **00 Payogotchi Intro page** (`payogotchi-intro/`) — new-user feature introduction.
-- **`payogotchiEntryGuard`** (`src/app/payogotchi/payogotchi-entry.guard.ts`) — the tab root
+- **`payogotchiEntryGuard`** (`src/app/pages/payogotchi/payogotchi-entry.guard.ts`) — the tab root
   never renders directly; it redirects onboarded users to Home and new users to Intro based on
   pet state. This is the first slice of the §5 guarded-routes answer.
 - **Demo scenario helpers** in `PetService`: `resetNewUser()`, `seedReturningUser()`

@@ -7,7 +7,7 @@ This guide explains what the **Core team (Jun Jie)** has built so you can read *
 **Related docs:**
 - `TEAM-SETUP-GUIDE.md` — clone, Firebase key, `npm start`, demo login
 - `guide.md` — deep dive on how User DNA is computed (same engine applies here)
-- `shared/api-contract.ts` — shared TypeScript types
+- `src/app/services/api-contract.ts` — shared TypeScript types
 
 ---
 
@@ -36,8 +36,8 @@ Each tab has its own folder. Work only in yours:
 
 | Tab | Your folder | Route |
 |-----|-------------|-------|
-| **Rewards** | `src/app/rewards/` | `/tabs/rewards` |
-| **Payogotchi** | `src/app/payogotchi/` | `/tabs/payogotchi` |
+| **Rewards** | `src/app/pages/rewards/` | `/tabs/rewards` |
+| **Payogotchi** | `src/app/pages/payogotchi/` | `/tabs/payogotchi` |
 
 Shared code you may **import** (read-only unless coordinated with Core):
 
@@ -45,7 +45,7 @@ Shared code you may **import** (read-only unless coordinated with Core):
 |------|------|
 | Transaction HTTP client | `src/app/services/transactions.service.ts` |
 | Auth / logged-in user | `src/app/services/auth.service.ts` |
-| Shared TypeScript types | `shared/api-contract.ts` |
+| Shared TypeScript types | `src/app/services/api-contract.ts` |
 | API base URL | `src/app/core/api.config.ts` → `/api` |
 
 Do **not** edit Home, Pay, or Travel folders without asking Core first.
@@ -271,7 +271,7 @@ this.http.get<DnaProfile>(`${API_BASE_URL}/users/${userId}/dna-profile`, { param
 | Trait pills only | `transactionsService.getDashboard(userId, { month, year })` | `dnaTraits`, `recentTransactions`, `monthlySummary` |
 | Traits + insight cards | `transactionsService.getInsights(userId, month, year)` | `traits`, `smartInsights`, `topSpots`, category donuts |
 
-> **Typing note:** Import `DashboardResponse` from `shared/api-contract.ts` for `dnaTraits` and `rewards` — the local type in `transactions.service.ts` is a slimmer subset.
+> **Typing note:** Import `DashboardResponse` from `src/app/services/api-contract.ts` for `dnaTraits` and `rewards` — the local type in `transactions.service.ts` is a slimmer subset.
 
 ### Rewards points (often needed alongside DNA)
 

@@ -7,7 +7,7 @@ metadata:
 
 Payogotchi demo (deadline Thu 2026-07-23-ish) targets two scripted scenarios, chosen by the user:
 
-- **New user:** `/tabs/payogotchi` → `payogotchiEntryGuard` (`src/app/payogotchi/payogotchi-entry.guard.ts`) sees `onboarded === false` → new `intro` screen (`pages/payogotchi/payogotchi-intro`, the "NETS new feature" drop-down animation) → egg-selection → hatching-progress → hatching-animation → naming → `completeOnboarding()` (sets `onboarded=true`) → home.
+- **New user:** `/tabs/payogotchi` → `payogotchiEntryGuard` (`src/app/pages/payogotchi/payogotchi-entry.guard.ts`) sees `onboarded === false` → new `intro` screen (`pages/payogotchi/payogotchi-intro`, the "NETS new feature" drop-down animation) → egg-selection → hatching-progress → hatching-animation → naming → `completeOnboarding()` (sets `onboarded=true`) → home.
 - **Returning user:** `onboarded === true` → straight to `payogotchi-home`, seeded Lv9 780/900 **already at today's XP cap** (dailyXpEarned=200). Demo story: tap → XP blocked (top cap toast via ToastController) → tap **♻️ Reset XP Cap** → tap → rolls into Level 10 with the celebration modal.
 
 Decisions (confirmed by user):

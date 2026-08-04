@@ -91,9 +91,9 @@ Each tab has its own folder under `src/app/`. Work only in your assigned page fo
 |---|---|---|
 | Home | `src/app/home/` | `/tabs/home` |
 | Pay | `src/app/pay/` | `/tabs/pay` |
-| Travel | `src/app/travel/` | `/tabs/travel` |
-| Rewards | `src/app/rewards/` | `/tabs/rewards` |
-| Payogotchi | `src/app/payogotchi/` | `/tabs/payogotchi` |
+| Travel | `src/app/pages/travel/` | `/tabs/travel` |
+| Rewards | `src/app/pages/rewards/` | `/tabs/rewards` |
+| Payogotchi | `src/app/pages/payogotchi/` | `/tabs/payogotchi` |
 
 ---
 

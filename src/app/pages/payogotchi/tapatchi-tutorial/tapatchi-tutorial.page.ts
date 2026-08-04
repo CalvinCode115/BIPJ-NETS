@@ -3,6 +3,7 @@ import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { PetService } from '../../../services/pet.service';
+import { PetBridgeService } from '../../../services/pet-bridge.service';
 
 /** One onboarding slide. `pet: true` renders the live TapatchiComponent; otherwise `emoji` is shown. */
 interface TutorialSlide {
@@ -77,6 +78,7 @@ export class TapatchiTutorialPage implements OnInit {
     private location: Location,
     private toastCtrl: ToastController,
     private pet: PetService,
+    private bridge: PetBridgeService,
   ) {}
 
   ngOnInit(): void {
@@ -119,16 +121,30 @@ export class TapatchiTutorialPage implements OnInit {
     this.location.back();
   }
 
-  /** Award completion XP, celebrate, then return to the home hub. */
+  /**
+   * Award the one-time completion XP (if not already claimed), queue the
+   * level-up/evolution celebration for Home to play, then return there.
+   * Re-reading the tutorial after claiming it once is still allowed — it
+   * just won't pay out XP again.
+   */
   private async finish(): Promise<void> {
-    this.pet.addXp(COMPLETION_XP);
+    const result = this.pet.awardTutorialCompletion(COMPLETION_XP);
+
     const toast = await this.toastCtrl.create({
-      message: `🎉 Tutorial completed! +${COMPLETION_XP} XP for ${this.pet.state.name}`,
-      duration: 2500,
+      message: result
+        ? `🎉 Tutorial completed! +${COMPLETION_XP} XP for ${this.pet.state.name}`
+        : `Thanks for reviewing, ${this.pet.state.name}!`,
+      duration: 2200,
       position: 'top',
       cssClass: 'tutorial-toast',
     });
     await toast.present();
+
+    if (result) {
+      // no merchant: Home skips the "you paid X" step and, if this pushed
+      // the pet over a level threshold, opens the Level Up modal directly
+      this.bridge.queueResult(result);
+    }
     this.router.navigate(['/tabs/payogotchi/payogotchi-home']);
   }
 }

@@ -8,7 +8,10 @@ import { TransactionResult, TxnCategory } from '../models/pet.model';
 // and played the next time the user opens the Payogotchi tab.
 export interface PendingCelebration {
   result: TransactionResult;
-  merchant: string;
+  // absent for a celebration that didn't come from a purchase (e.g. the
+  // tutorial completion bonus) — Home uses this to skip the "you paid X"
+  // feedback step and go straight to level up / evolution.
+  merchant?: string;
 }
 
 // Bridges REAL NETS payments (QR pay, P2P transfers) into the pet.
@@ -25,6 +28,12 @@ export class PetBridgeService {
 
   constructor(private pet: PetService) {}
 
+  // The pet's display name, for messages shown outside the Payogotchi tab.
+  // Exposed here so payment services keep depending only on this bridge.
+  get petName(): string {
+    return this.pet.state.name;
+  }
+
   // Apply a real payment to the pet. `rawCategory` is the backend's
   // free-text category (e.g. 'Coffee', 'Retail'); we map it to the
   // pet's category so food payments restore hunger, etc.
@@ -33,6 +42,13 @@ export class PetBridgeService {
     const result = this.pet.applyTransaction(amount, category, merchant);
     this.pending = mergePending(this.pending, { result, merchant });
     return result;
+  }
+
+  // Queue a celebration for a result that didn't come from a purchase (e.g.
+  // the tutorial completion bonus), so it still plays through Home's
+  // level-up / evolution chain — just without a merchant / feedback step.
+  queueResult(result: TransactionResult): void {
+    this.pending = mergePending(this.pending, { result });
   }
 
   // Home reads this on entry and plays the celebration chain, then it clears.

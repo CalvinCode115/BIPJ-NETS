@@ -1,256 +1,122 @@
 .home-content {
-  // Soft cream vertical gradient from the Figma frame (4786:5557).
-  --background: linear-gradient(180deg, #fff9f5 0%, #fff5f0 100%);
+  --background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 38%, #e2eefc 100%);
+}
+.nets-page-toolbar {
+  --color: #1a1a2e;
+
+  ion-button {
+    --color: #4a4a4a;
+  }
+}
+
+.nets-page-header {
+  box-shadow: 0 2px 6px rgba(37, 82, 145, 0.06);
+}
+
+.title-icon {
+  vertical-align: -3px;
+  margin-right: 6px;
+  font-size: 20px;
+  color: var(--ion-color-primary);
 }
 
 .home-screen {
   display: flex;
   flex-direction: column;
-  padding: 0 0 24px;
+  padding: 12px 16px 28px;
+  gap: 16px;
 }
 
-/* ---- Top bar ---- */
-.home-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  padding: 0 20px;
-}
-
-.home-icon-btn {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-size: 18px;
-  line-height: 1;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: transform 0.12s ease;
-
-  &:active {
-    transform: scale(0.92);
-  }
-}
-
-.home-brand {
-  margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 24px;
-  color: var(--ion-color-primary);
-  white-space: nowrap;
-}
-
-/* ---- Identity ---- */
-.home-identity {
-  padding: 8px 20px;
-}
-
-.home-pet-name {
-  margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 32px;
-  line-height: 1;
-  color: var(--text-primary);
-}
-
-.home-pet-sub {
-  margin: 4px 0 0;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-/* ---- XP bar ---- */
-.home-xp {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 20px 0;
-}
-
-.home-xp-star {
-  font-size: 20px;
-}
-
-.home-xp-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.home-xp-label {
-  font-family: 'Fredoka', 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 12px;
-  color: var(--xp-color);
-}
-
-.home-xp-track {
-  width: 200px;
-  height: 16px;
-  padding: 2px;
-  border: 2px solid var(--xp-color);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 12px rgba(255, 165, 0, 0.4);
-}
-
-.home-xp-fill {
-  height: 100%;
-  border-radius: 6px;
-  background: linear-gradient(90deg, var(--xp-color-light), var(--xp-color));
-  transition: width 0.4s ease;
-}
-
-.home-xp-value {
-  font-family: 'Fredoka', 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--xp-color);
-}
-
-/* ---- Pet stage ---- */
-.home-stage {
+/* ============================================================
+   HERO — name, character, level + XP. A near-white panel that
+   lifts off the blue page wash, so the pet reads as the focus
+   of the screen rather than floating in blank space.
+   ============================================================ */
+.hero {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 20px 20px 8px;
-  min-height: 300px;
-}
-
-.home-stage-glow {
-  position: absolute;
-  top: 50px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(178, 242, 187, 0.3) 0%, rgba(89, 121, 94, 0.12) 40%, rgba(0, 0, 0, 0) 70%);
-  pointer-events: none;
-}
-
-.home-float-star {
-  position: absolute;
-  font-size: 20px;
-  pointer-events: none;
-
-  &.star-1 {
-    top: 90px;
-    left: 60px;
-    opacity: 0.35;
-  }
-  &.star-2 {
-    top: 150px;
-    right: 55px;
-    opacity: 0.6;
-  }
-}
-
-/* ---- Vertical meters ---- */
-.home-meter {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-top: 30px;
-}
-
-.home-meter-icon {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 30px;
-  font-size: 28px;
-}
-
-.meter-happy .home-meter-icon {
-  background: radial-gradient(circle, rgba(255, 107, 157, 0.3) 0%, rgba(255, 107, 157, 0.1) 100%);
-  box-shadow: 0 0 16px rgba(255, 107, 157, 0.4);
-}
-
-.meter-hunger .home-meter-icon {
-  background: radial-gradient(circle, rgba(255, 140, 66, 0.3) 0%, rgba(255, 140, 66, 0.1) 100%);
-  box-shadow: 0 0 16px rgba(255, 140, 66, 0.4);
-}
-
-.home-meter-track {
-  position: relative;
-  width: 12px;
-  height: 80px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.4);
+  padding: 18px 18px 20px;
+  border-radius: 24px;
+  background: linear-gradient(170deg, #ffffff 0%, #fbfdff 45%, #eef5ff 100%);
+  border: 1px solid #e4eefb;
+  box-shadow: 0 8px 20px rgba(37, 82, 145, 0.09);
   overflow: hidden;
 }
 
-.home-meter-fill {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  border-radius: 6px;
-  transition: height 0.4s ease;
+.hero-identity {
+  align-self: flex-start;
+  text-align: left;
 }
 
-.meter-happy .home-meter-fill {
-  background: linear-gradient(180deg, var(--happiness-color-light), var(--happiness-color));
-  box-shadow: 0 0 12px rgba(255, 107, 157, 0.3);
-}
-
-.meter-hunger .home-meter-fill {
-  background: linear-gradient(180deg, var(--hunger-color-light), var(--hunger-color));
-  box-shadow: 0 0 12px rgba(255, 140, 66, 0.3);
-}
-
-.home-meter-value {
+.hero-name {
+  margin: 0;
   font-family: 'Fredoka', 'Inter', sans-serif;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 30px;
+  line-height: 1.05;
+  color: var(--text-primary);
 }
 
-.meter-happy .home-meter-value {
-  color: var(--happiness-color);
+.hero-species {
+  margin: 2px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
 }
 
-.meter-hunger .home-meter-value {
-  color: var(--hunger-color);
+/* Fixed height keeps the panel from resizing as the character changes. */
+.hero-stage {
+  position: relative;
+  width: 100%;
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
 }
 
-/* ---- Pet ---- */
-.home-pet {
+.hero-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.hero-pet {
   position: relative;
   z-index: 1;
   display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
-.home-speech {
+.hero-star {
+  position: absolute;
+  pointer-events: none;
+  font-size: 18px;
+
+  &.star-1 { top: 12%; left: 8%;  opacity: 0.5; }
+  &.star-2 { top: 26%; right: 9%; opacity: 0.7; font-size: 15px; }
+  &.star-3 { bottom: 14%; right: 16%; opacity: 0.4; font-size: 14px; }
+}
+
+.hero-speech {
   position: relative;
-  margin-top: 12px;
-  padding: 10px 18px;
+  margin-top: 2px;
+  padding: 9px 18px;
   background: #ffffff;
   border: 2px solid var(--ion-color-primary);
   border-radius: var(--radius-medium);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
-.home-speech-tail {
+.hero-speech-tail {
   position: absolute;
   top: -9px;
   left: 50%;
@@ -262,7 +128,7 @@
   border-bottom: 9px solid var(--ion-color-primary);
 }
 
-.home-speech-text {
+.hero-speech-text {
   margin: 0;
   font-family: 'Quicksand', 'Inter', sans-serif;
   font-weight: 700;
@@ -271,12 +137,244 @@
   white-space: nowrap;
 }
 
+/* ---- Level badge + XP bar ---- */
+.hero-level {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.hero-level-badge {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+
+.hero-level-num {
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 38px;
+  color: var(--ion-color-primary);
+}
+
+.hero-level-word {
+  margin-top: 2px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-secondary);
+}
+
+.hero-level-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-xp-track {
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(31, 41, 55, 0.08);
+  overflow: hidden;
+}
+
+.hero-xp-fill {
+  height: 100%;
+  border-radius: 7px;
+  background: linear-gradient(90deg, var(--xp-color-light), var(--xp-color));
+  transition: width 0.4s ease;
+}
+
+.hero-xp-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 7px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Kept as one flex item so the row's gap doesn't split "85" from "/200 XP". */
+.hero-xp-numbers {
+  strong {
+    font-family: 'Fredoka', 'Inter', sans-serif;
+    font-size: 15px;
+    color: var(--text-primary);
+  }
+}
+
+.hero-stage-tag {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(215, 25, 32, 0.08);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--ion-color-primary);
+}
+
+/* ============================================================
+   CARE METERS — happiness and hunger
+   ============================================================ */
+.care {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e8f0fa;
+  box-shadow: 0 4px 12px rgba(37, 82, 145, 0.07);
+}
+
+.care-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.care-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 21px;
+}
+
+.stat-happy .care-icon { background: rgba(255, 107, 157, 0.14); }
+.stat-hunger .care-icon { background: rgba(255, 140, 66, 0.16); }
+
+.care-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.care-label {
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.care-track {
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(31, 41, 55, 0.07);
+  overflow: hidden;
+}
+
+.care-fill {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 0.4s ease;
+}
+
+.care-value {
+  flex: none;
+  min-width: 34px;
+  text-align: right;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.stat-happy {
+  .care-label, .care-value { color: var(--happiness-color); }
+  .care-fill { background: linear-gradient(90deg, var(--happiness-color-light), var(--happiness-color)); }
+}
+
+.stat-hunger {
+  .care-label, .care-value { color: var(--hunger-color); }
+  .care-fill { background: linear-gradient(90deg, var(--hunger-color-light), var(--hunger-color)); }
+}
+
+/* ============================================================
+   TOTAL ACTIVITY — lifetime stats, the way a game profile
+   lists them. Also gives the page real content to fill out.
+   ============================================================ */
+/* On its own white card: this sits at the bottom of the page where the blue
+   wash is strongest, and the row hairlines would otherwise disappear. */
+.activity {
+  padding: 6px 16px 10px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid #e8f0fa;
+  box-shadow: 0 4px 12px rgba(37, 82, 145, 0.07);
+}
+
+.activity-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 10px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--text-secondary);
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ececf1;
+  }
+}
+
+.activity-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 4px;
+  border-bottom: 1px solid #f4f4f7;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.activity-icon {
+  flex: none;
+  width: 26px;
+  font-size: 17px;
+  text-align: center;
+}
+
+.activity-label {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.activity-value {
+  flex: none;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ion-color-primary);
+}
+
 /* ---- Quick actions ---- */
 .home-actions {
   display: flex;
   gap: 12px;
   justify-content: center;
-  padding: 10px 16px;
+  padding: 2px 0 4px;
 }
 
 .home-action {
@@ -287,10 +385,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: none;
+  border: 1px solid #e8f0fa;
   border-radius: var(--radius-large);
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 4px 12px rgba(37, 82, 145, 0.08);
   cursor: pointer;
   transition: transform 0.12s ease;
 
@@ -324,190 +422,6 @@
   font-weight: 700;
   font-size: 14px;
   color: var(--text-primary);
-}
-
-/* ---- Demo mode ---- */
-.home-demo {
-  margin: 16px 16px 12px;
-  padding: 16px;
-  border: 2px dashed var(--payogotchi-sky-blue);
-  border-radius: var(--radius-medium);
-  background: linear-gradient(155deg, #e0f2ff 0%, #f0f4ff 100%);
-}
-
-.home-demo-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--payogotchi-lemon);
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 10px;
-  color: var(--text-primary);
-}
-
-.home-demo-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-
-  &.states {
-    gap: 4px;
-  }
-}
-
-.home-demo-txn {
-  flex: 1;
-  height: 44px;
-  border-radius: var(--radius-small);
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: transform 0.12s ease;
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.theme-coffee {
-  background: #ffe4d0;
-  border: 1px solid var(--xp-color);
-}
-.theme-lunch {
-  background: #fff5e6;
-  border: 1px solid var(--xp-color-light);
-}
-.theme-shop {
-  background: #ffe4f0;
-  border: 1px solid var(--happiness-color-light);
-}
-
-.home-demo-state {
-  flex: 1;
-  height: 44px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-small);
-  cursor: pointer;
-  transition: transform 0.12s ease;
-
-  &:active {
-    transform: scale(0.94);
-  }
-}
-
-.state-emoji {
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.state-label {
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  color: var(--text-primary);
-}
-
-.theme-levelup {
-  background: #fffbf0;
-  border: 1px solid var(--xp-color-light);
-}
-.theme-evolve {
-  background: #f5f0ff;
-  border: 1px solid var(--payogotchi-lavender);
-}
-.theme-faint {
-  background: #e8ddff;
-  border: 1px solid var(--payogotchi-lavender);
-}
-.theme-return {
-  background: #fff8e0;
-  border: 1px solid var(--payogotchi-lemon);
-}
-
-/* ---- Today's quests ---- */
-.home-quests {
-  margin: 0 16px;
-  padding: 14px;
-  border-radius: var(--radius-medium);
-  background: var(--payogotchi-light-blue-accent);
-}
-
-.home-quests-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.home-quests-title {
-  margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
-.home-quests-viewall {
-  border: none;
-  background: transparent;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--ion-color-primary);
-  cursor: pointer;
-}
-
-.home-quest {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.home-quest-mark {
-  font-size: 14px;
-  color: var(--ion-color-primary);
-
-  &.done {
-    font-size: 16px;
-  }
-}
-
-.home-quest-label {
-  flex: 1;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--text-primary);
-
-  &.done {
-    font-weight: 400;
-    color: var(--text-secondary);
-    text-decoration: line-through;
-  }
-}
-
-.home-quest-reward {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 11px;
-  white-space: nowrap;
-
-  &.theme-done {
-    background: var(--payogotchi-mint);
-    color: var(--text-primary);
-  }
-  &.theme-happy {
-    background: #ffe4f0;
-    color: var(--happiness-color);
-  }
 }
 
 /* ============ Phase 2: celebration modals ============ */

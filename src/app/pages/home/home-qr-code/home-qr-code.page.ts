@@ -17,7 +17,7 @@ import {
   isPayableCard,
   resolveActivePayCard,
 } from '../../../services/cards.service';
-import { QrPaymentDetails, QrPaymentsService } from '../../../services/qr-payments.service';
+import { QrPayResponse, QrPaymentDetails, QrPaymentsService } from '../../../services/qr-payments.service';
 import { ReceiptScanResult, ReceiptsService } from '../../../services/receipts.service';
 import { TransactionsService } from '../../../services/transactions.service';
 import { ReceiveQrDetails, TransfersService } from '../../../services/transfers.service';
@@ -28,6 +28,7 @@ import {
   shortReceiveLabel,
 } from '../../../utils/display-name';
 import { imageDataFromSource } from '../../../utils/receipt-image-hash';
+import { buildRewardsToastMessage } from '../../../utils/rewards-toast';
 import {
   decodeAnyQrFromImageData,
   decodeReceiptScanPayload,
@@ -455,60 +456,101 @@ export class QrCodePage implements OnDestroy {
     this.paymentError = '';
 
     if (this.selectedVoucherInstanceId) {
-      this.myVouchers.payWithVoucher(userId, this.pendingPayload, cardId, this.selectedVoucherInstanceId).subscribe({
-        next: async (response) => {
-          this.isProcessing = false;
-          this.paymentSuccess = response.message;
-          this.pendingPayment = null;
-          this.pendingPayload = '';
-          this.selectedVoucherInstanceId = null;
-          this.selectedVoucherDiscount = 0;
+      // Goes through QrPaymentsService (not MyVouchersService) so the pet
+      // still gets its XP — the endpoint is the same, but posting directly
+      // skips the Payogotchi bridge.
+      this.qrPayments
+        .payWithQr(userId, this.pendingPayload, { cardId, voucherInstanceId: this.selectedVoucherInstanceId })
+        .subscribe({
+          next: async (response) => {
+            this.isProcessing = false;
+            this.paymentSuccess = response.message;
+            this.pendingPayment = null;
+            this.pendingPayload = '';
+            this.selectedVoucherInstanceId = null;
+            this.selectedVoucherDiscount = 0;
+            this.loadActiveCard();
 
-          if (response.voucherApplied) {
-            const toast = await this.toastController.create({
-              message: `Voucher applied — you saved $${response.voucherDiscount.toFixed(2)}!`,
-              duration: 2000,
-              position: 'top',
-              color: 'success',
-            });
-            await toast.present();
-          } else if (response.voucherError) {
-            const toast = await this.toastController.create({
-              message: `Payment succeeded, but the voucher couldn't be applied: ${response.voucherError}`,
-              duration: 3000,
-              position: 'top',
-              color: 'warning',
-            });
-            await toast.present();
-          }
+            if (response.voucherApplied) {
+              const toast = await this.toastController.create({
+                message: `Voucher applied — you saved $${(response.voucherDiscount ?? 0).toFixed(2)}!`,
+                duration: 2000,
+                position: 'top',
+                color: 'success',
+              });
+              await toast.present();
+            } else if (response.voucherError) {
+              const toast = await this.toastController.create({
+                message: `Payment succeeded, but the voucher couldn't be applied: ${response.voucherError}`,
+                duration: 3000,
+                position: 'top',
+                color: 'warning',
+              });
+              await toast.present();
+            }
 
-          if (this.canPayWithQr) {
-            this.startCamera();
-          }
-        },
-        error: (err: { error?: { error?: string }; message?: string }) => {
-          this.isProcessing = false;
-          this.paymentError = err?.error?.error ?? err?.message ?? 'Payment failed. Please try again.';
-        },
-      });
+            await this.showRewardsToast(response);
+
+            if (this.canPayWithQr) {
+              this.startCamera();
+            }
+          },
+          error: (err: { error?: { error?: string }; message?: string }) => {
+            this.isProcessing = false;
+            this.paymentError = err?.error?.error ?? err?.message ?? 'Payment failed. Please try again.';
+          },
+        });
       return;
     }
 
     this.qrPayments
       .payWithQr(userId, this.pendingPayload, { cardId })
       .subscribe({
-        next: (response) => {
+        next: async (response) => {
           this.isProcessing = false;
           this.pendingPayment = null;
           this.pendingPayload = '';
           this.loadActiveCard();
           this.showPaymentSuccess(response.message);
+          await this.showRewardsToast(response);
         },
         error: (err: { error?: { error?: string }; message?: string }) => {
           this.isProcessing = false;
           this.paymentError = err?.error?.error ?? err?.message ?? 'Payment failed. Please try again.';
         },
       });
+  }
+
+  // Announces what the payment earned: the pet's XP and the account's NETS
+  // Points. Stays silent when a payment earned neither. Takes both QR
+  // payments and transfers — transfers carry no pointsAwarded, so those
+  // show XP only.
+  private async showRewardsToast(
+    response: Pick<QrPayResponse, 'pet' | 'petName' | 'pointsAwarded'>
+  ): Promise<void> {
+    const message = buildRewardsToastMessage({
+      xpGained: response.pet?.xpGained,
+      xpCapped: response.pet?.xpCapped,
+      pointsAwarded: response.pointsAwarded,
+      leveledUp: response.pet?.leveledUp,
+      newLevel: response.pet?.newLevel,
+      evolved: response.pet?.evolved,
+      newStage: response.pet?.newStage,
+      revived: response.pet?.revived,
+      petName: response.petName,
+    });
+    if (!message) {
+      return;
+    }
+
+    const toast = await this.toastController.create({
+      message,
+      duration: 3500,
+      position: 'top',
+      color: 'success',
+      icon: 'sparkles',
+    });
+    await toast.present();
   }
 
   confirmTransfer(): void {
@@ -541,7 +583,7 @@ export class QrCodePage implements OnDestroy {
         fromCardId: cardId,
       })
       .subscribe({
-        next: (response) => {
+        next: async (response) => {
           this.isProcessing = false;
           this.pendingReceive = null;
           this.pendingPayload = '';
@@ -549,6 +591,7 @@ export class QrCodePage implements OnDestroy {
           this.transferAmountText = '';
           this.loadActiveCard();
           this.showPaymentSuccess(response.message);
+          await this.showRewardsToast(response);
         },
         error: (err: { error?: { error?: string }; message?: string }) => {
           this.isProcessing = false;

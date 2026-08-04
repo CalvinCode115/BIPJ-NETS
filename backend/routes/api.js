@@ -33,6 +33,7 @@ const {
 const { clampCreditLimit } = require('../services/credit-config');
 const { formatBalanceLeft } = require('../services/balance-message');
 const transactionRewards = require('../services/transaction-rewards');
+const payogotchiRewards = require('../services/payogotchi-rewards');
 const marketplaceRouter = require('./marketplace');
 const myVouchersRouter = require('./my-vouchers');
 const myVouchers = require('../services/my-vouchers');
@@ -312,7 +313,9 @@ router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
     qrPayment.createTransactionFromQr(req.params.userId, paymentToCharge, card)
   );
 
-  await transactionRewards.awardTransactionRewards(req.params.userId, saved);
+  // Returns { pointsAwarded } so the client can tell the user what they
+  // earned. Never throws — on failure it reports 0 and the payment stands.
+  const rewards = await transactionRewards.awardTransactionRewards(req.params.userId, saved);
 
   const refreshedCard = await db.setCardBalance(card.id, cardUtils.applyDebit(card, paymentToCharge.amount));
 
@@ -330,6 +333,7 @@ router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
     voucherApplied,
     voucherDiscount,
     voucherError,
+    pointsAwarded: rewards.pointsAwarded ?? 0,
   });
 }));
 
@@ -672,6 +676,20 @@ router.put('/users/:userId/payogotchi', asyncHandler(async (req, res) => {
 
   const saved = await db.savePayogotchiPet(req.params.userId, pet);
   res.json({ pet: saved });
+}));
+
+// Awards real NETS Points for a level-up and/or evolution milestone — see
+// payogotchi-rewards.js for the bonus scale. Bridges Payogotchi's XP loop
+// into the same points balance/ledger the Rewards tab reads (points.js).
+router.post('/users/:userId/payogotchi/milestone-bonus', asyncHandler(async (req, res) => {
+  const { fromLevel, toLevel, evolved, newStage } = req.body || {};
+  const result = await payogotchiRewards.awardPetMilestone(req.params.userId, {
+    fromLevel,
+    toLevel,
+    evolved,
+    newStage,
+  });
+  res.json(result);
 }));
 
 router.get('/users/:userId/receive-settings', asyncHandler(async (req, res) => {

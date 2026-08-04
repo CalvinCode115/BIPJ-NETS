@@ -313,8 +313,8 @@ Also returns:
 
 | File | Responsibility |
 |------|----------------|
-| `src/app/travel/` | Travel tab UI (**mostly empty template today**) |
-| `shared/api-contract.ts` | TypeScript types — extend `DnaProfile` if needed |
+| `src/app/pages/travel/` | Travel tab UI (**mostly empty template today**) |
+| `src/app/services/api-contract.ts` | TypeScript types — extend `DnaProfile` if needed |
 
 ---
 

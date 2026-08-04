@@ -19,8 +19,6 @@ export interface PetState {
   // 0-100, only food transactions fill this back up
   hunger: number;
 
-  // NETS Points balance (earn 10% of base XP per transaction)
-  netsPoints: number;
   // which egg the user picked at the start, e.g. 'pink'
   selectedEgg: string;
   // when the pet was last fed (timestamp), null if never
@@ -35,6 +33,25 @@ export interface PetState {
   dailyXpDate: string;
   // true once the user finished picking an egg + hatching + naming
   onboarded: boolean;
+
+  // ---- Lifetime stats, shown on the pet-settings "Journey" card ----
+  // when onboarding finished (the pet's "birthday"), null until then
+  createdAt: number | null;
+  // count of every transaction that earned XP, never resets
+  totalTransactions: number;
+  // cumulative XP across every level, never resets (unlike xp above)
+  totalXpEarned: number;
+  // transaction count per merchant name, used to work out the favourite
+  merchantCounts: Record<string, number>;
+  // consecutive days (including today) with at least one transaction
+  currentStreak: number;
+  // best currentStreak has ever been
+  longestStreak: number;
+  // last date (YYYY-MM-DD) a transaction was counted towards the streak
+  lastTransactionDate: string;
+  // true once the one-time tutorial completion XP has been claimed —
+  // the tutorial can still be re-read after this, just without the reward
+  tutorialCompleted: boolean;
 }
 
 // What applyTransaction() gives back after a payment.
@@ -46,6 +63,11 @@ export interface TransactionResult {
   xpCapped: boolean;
   hungerRestored: number;
   happinessGained: number;
+  // Real NETS Points credited for a level-up/evolution milestone triggered
+  // by this event — 0 for a plain transaction with no milestone. Plain
+  // spending already earns its own real points on the Rewards side (see
+  // backend/services/transaction-rewards.js), so Payogotchi doesn't award
+  // separate points for every transaction, only for these rarer milestones.
   pointsEarned: number;
   leveledUp: boolean;
   newLevel?: number;

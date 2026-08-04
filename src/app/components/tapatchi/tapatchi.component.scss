@@ -22,19 +22,25 @@
 // IDLE BOUNCE (Happy & Normal moods)
 // ============================================
 .tapatchi-container.animated.mood-happy {
-  .body, .cheek, .eyes, .mouth {
+  .body, .head-group, .cheek, .eyes, .mouth {
     animation: idle-bounce 2.5s ease-in-out infinite;
     transform-origin: 120px 125px;
   }
-  
+
   .arm-left, .arm-right {
     animation: idle-arms 2.5s ease-in-out infinite;
     transform-origin: center;
   }
+
+  // Ears only exist on rigged characters with bunny-style ears (pink); a
+  // no-op on characters with no .ear-left/.ear-right elements.
+  .ear-left, .ear-right {
+    animation: ear-sway 2.6s ease-in-out infinite;
+  }
 }
 
 .tapatchi-container.animated.mood-normal {
-  .body, .cheek, .eyes, .mouth {
+  .body, .head-group, .cheek, .eyes, .mouth {
     animation: idle-bounce 3s ease-in-out infinite;
     transform-origin: 120px 125px;
   }
@@ -50,11 +56,20 @@
 }
 
 @keyframes idle-arms {
-  0%, 100% { 
-    transform: translateY(0); 
+  0%, 100% {
+    transform: translateY(0);
   }
-  50% { 
-    transform: translateY(-3px); 
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes ear-sway {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-4deg);
   }
 }
 
@@ -62,7 +77,7 @@
 // EXCITED ANIMATION (Big jump + sparkles)
 // ============================================
 .tapatchi-container.animated.mood-excited {
-  .body, .cheek, .eyes, .mouth, .leg, .arm {
+  .body, .head-group, .cheek, .eyes, .mouth, .leg, .arm, .ear-left, .ear-right {
     animation: excited-jump 0.7s ease-in-out infinite;
   }
   
@@ -100,7 +115,7 @@
 // SAD ANIMATION (Slow droop)
 // ============================================
 .tapatchi-container.animated.mood-sad {
-  .body, .cheek, .eyes, .mouth {
+  .body, .head-group, .cheek, .eyes, .mouth {
     animation: sad-droop 3.5s ease-in-out infinite;
     transform-origin: 120px 125px;
   }
@@ -119,7 +134,7 @@
 // STARVING ANIMATION (Shaking, tears)
 // ============================================
 .tapatchi-container.animated.mood-starving {
-  .body, .cheek, .mouth {
+  .body, .head-group, .cheek, .mouth {
     animation: starving-shake 0.4s ease-in-out infinite;
   }
   
@@ -155,7 +170,7 @@
 // SLEEPING ANIMATION (Slow breathing + Z's)
 // ============================================
 .tapatchi-container.animated.mood-sleeping {
-  .body, .cheek, .eyes, .mouth {
+  .body, .head-group, .cheek, .eyes, .mouth {
     animation: sleeping-breathe 3s ease-in-out infinite;
     transform-origin: 120px 125px;
   }
@@ -193,9 +208,10 @@
 }
 
 // ============================================
-// MOOD-SPECIFIC COLOR OVERRIDES
+// MOOD-SPECIFIC COLOR OVERRIDES (green only — its hand-picked palette
+// doesn't apply to other rigged characters' .body/.cheek elements)
 // ============================================
-.tapatchi-container.mood-sad {
+.tapatchi-container[data-variant="green"].mood-sad {
   .body {
     fill: #8BB833; // Slightly desaturated green
   }
@@ -204,7 +220,7 @@
   }
 }
 
-.tapatchi-container.mood-starving {
+.tapatchi-container[data-variant="green"].mood-starving {
   .body {
     fill: #7FA82B; // Even more muted green
   }
@@ -213,10 +229,119 @@
   }
 }
 
-.tapatchi-container.mood-sleeping {
+.tapatchi-container[data-variant="green"].mood-sleeping {
   opacity: 0.9;
-  
+
   .body {
     fill: #9ED03B;
   }
+}
+// ============================================================
+// FIGMA CHARACTERS (pink, blue, orange, yellow, white, black,
+// purple). Their artwork is a single exported vector, so the
+// motion is applied to the whole character rather than to
+// individual limbs the way the inline green Tapatchi does.
+// ============================================================
+.tapatchi-container.is-art {
+  .tapatchi-art {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.08));
+    // Keeps the crisp vector edges from softening while animating.
+    transform-origin: 50% 85%;
+    -webkit-user-drag: none;
+  }
+
+  // Overlays (z's, sparkles, tears) sit on top of the artwork.
+  .tapatchi-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+}
+
+.tapatchi-container.is-art.animated {
+  &.mood-happy .tapatchi-art { animation: art-bounce 2.5s ease-in-out infinite; }
+  &.mood-normal .tapatchi-art { animation: art-bounce 3.2s ease-in-out infinite; }
+  &.mood-excited .tapatchi-art { animation: art-jump 0.7s ease-in-out infinite; }
+  &.mood-sad .tapatchi-art { animation: art-droop 3.5s ease-in-out infinite; }
+  &.mood-starving .tapatchi-art { animation: art-shake 0.4s ease-in-out infinite; }
+  &.mood-sleeping .tapatchi-art { animation: art-breathe 3s ease-in-out infinite; }
+  // Fainted has its own drawn pose, so it only needs a faint settle.
+  &.mood-fainted .tapatchi-art { animation: art-faint 4s ease-in-out infinite; }
+}
+
+@keyframes art-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-6px) scale(1.02); }
+}
+
+@keyframes art-jump {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30%      { transform: translateY(-14px) scale(1.05); }
+  60%      { transform: translateY(-4px) scale(0.98); }
+}
+
+@keyframes art-droop {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(4px) rotate(-2deg); }
+}
+
+@keyframes art-shake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}
+
+@keyframes art-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
+
+@keyframes art-faint {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(2px) rotate(0.6deg); }
+}
+
+// ------------------------------------------------------------
+// Mood tint for characters reusing a drawn pose. The original
+// green Tapatchi recolours its body per mood; these characters
+// are one flat vector, so the same read is achieved with a
+// filter instead of a fill override.
+// ------------------------------------------------------------
+.tapatchi-container.is-art.is-fallback-pose {
+  &.mood-sad .tapatchi-art      { filter: saturate(0.72) brightness(0.97) drop-shadow(0 4px 8px rgba(0,0,0,0.08)); }
+  &.mood-starving .tapatchi-art { filter: saturate(0.5) brightness(0.94) drop-shadow(0 4px 8px rgba(0,0,0,0.08)); }
+  &.mood-sleeping .tapatchi-art { filter: saturate(0.85) brightness(1.02) drop-shadow(0 4px 8px rgba(0,0,0,0.06)); opacity: 0.92; }
+  &.mood-normal .tapatchi-art   { filter: saturate(0.95) drop-shadow(0 4px 8px rgba(0,0,0,0.08)); }
+}
+
+// The drawn fainted pose already reads as knocked out; just drain it a little.
+.tapatchi-container.is-art.mood-fainted .tapatchi-art {
+  filter: saturate(0.8) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.1));
+}
+
+// ------------------------------------------------------------
+// Same fallback tint, for rigged characters (pink, ...) reusing a drawn
+// pose — they render an inline <svg class="tapatchi-svg"> instead of an
+// <img class="tapatchi-art">, so the filter targets that element instead.
+// ------------------------------------------------------------
+.tapatchi-container.is-rigged-character.is-fallback-pose {
+  &.mood-sad .tapatchi-svg      { filter: saturate(0.72) brightness(0.97) drop-shadow(0 4px 8px rgba(0,0,0,0.08)); }
+  &.mood-starving .tapatchi-svg { filter: saturate(0.5) brightness(0.94) drop-shadow(0 4px 8px rgba(0,0,0,0.08)); }
+  &.mood-sleeping .tapatchi-svg { filter: saturate(0.85) brightness(1.02) drop-shadow(0 4px 8px rgba(0,0,0,0.06)); opacity: 0.92; }
+  &.mood-normal .tapatchi-svg   { filter: saturate(0.95) drop-shadow(0 4px 8px rgba(0,0,0,0.08)); }
+}
+
+.tapatchi-container.is-rigged-character.mood-fainted .tapatchi-svg {
+  filter: saturate(0.8) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.1));
+}
+
+.tapatchi-container.is-rigged-character.animated.mood-fainted .tapatchi-svg {
+  animation: art-faint 4s ease-in-out infinite;
 }

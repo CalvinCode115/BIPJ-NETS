@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
 import { TransactionRecord } from './transactions.service';
 import { WalletCard } from './cards.service';
 import { PetBridgeService } from './pet-bridge.service';
+import { TransactionResult } from '../models/pet.model';
 
 export interface TransferRecipient {
   id: string;
@@ -37,6 +38,8 @@ export interface TransferResponse {
   fromCard: WalletCard;
   toCard?: WalletCard;
   transaction: TransactionRecord;
+  pet?: TransactionResult;
+  petName?: string;
 }
 
 export interface ReceiveQrDetails {
@@ -72,21 +75,25 @@ export class TransfersService {
   transfer(userId: string, payload: TransferRequest): Observable<TransferResponse> {
     return this.http
       .post<TransferResponse>(`${API_BASE_URL}/users/${userId}/transfers`, payload)
-      .pipe(tap((res) => this.feedPet(res)));
+      .pipe(map((res) => this.feedPet(res)));
   }
 
   payReceiveQr(userId: string, payload: QrReceivePayRequest): Observable<TransferResponse> {
     return this.http
       .post<TransferResponse>(`${API_BASE_URL}/users/${userId}/payments/qr/receive`, payload)
-      .pipe(tap((res) => this.feedPet(res)));
+      .pipe(map((res) => this.feedPet(res)));
   }
 
   // Payogotchi integration: sending money is still a NETS payment, so it
   // grows the pet (generic 'other' spend — no hunger, but XP + points).
-  private feedPet(res: TransferResponse): void {
-    if (res?.success) {
-      const merchant = res.toUser?.name ? `To ${res.toUser.name}` : 'Transfer';
-      this.petBridge.record(res.amount, res.transaction?.category ?? 'other', merchant);
+  // Returns the response with the pet outcome attached so the payment
+  // screen can report the XP earned.
+  private feedPet(res: TransferResponse): TransferResponse {
+    if (!res?.success) {
+      return res;
     }
+    const merchant = res.toUser?.name ? `To ${res.toUser.name}` : 'Transfer';
+    const pet = this.petBridge.record(res.amount, res.transaction?.category ?? 'other', merchant);
+    return { ...res, pet, petName: this.petBridge.petName };
   }
 }

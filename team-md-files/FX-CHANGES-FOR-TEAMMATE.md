@@ -56,7 +56,7 @@ Reason:
 
 Changed file:
 
-- `src/app/fx-tracker/fx-tracker.page.ts`
+- `src/app/pages/travel/fx-tracker/fx-tracker.page.ts`
 
 Original behaviour:
 
@@ -109,7 +109,7 @@ Reason:
 
 Changed files:
 
-- `src/app/homepage/home/home.page.ts`
+- `src/app/pages/home/home/home.page.ts`
 - `src/app/services/auth.service.ts`
 
 Home now:
@@ -215,10 +215,10 @@ Reason:
 
 Changed files:
 
-- `src/app/homepage/home/home.page.ts`
-- `src/app/homepage/home/home.page.html`
-- `src/app/homepage/home-all-transactions/home-all-transactions.page.ts`
-- `src/app/homepage/home-all-transactions/home-all-transactions.page.html`
+- `src/app/pages/home/home/home.page.ts`
+- `src/app/pages/home/home/home.page.html`
+- `src/app/pages/home/home-all-transactions/home-all-transactions.page.ts`
+- `src/app/pages/home/home-all-transactions/home-all-transactions.page.html`
 
 New behaviour:
 
@@ -724,13 +724,13 @@ Please verify:
 
 ## Files most relevant to the FX teammate
 
-- `src/app/fx-tracker/fx-tracker.page.ts`
-- `src/app/fx-tracker/fx-tracker.service.ts`
+- `src/app/pages/travel/fx-tracker/fx-tracker.page.ts`
+- `src/app/pages/travel/fx-tracker/fx-tracker.service.ts`
 - `src/app/services/card-linked-exchange.service.ts`
 - `src/app/services/cards.service.ts`
 - `src/app/utils/card-storage.ts`
-- `src/app/homepage/home/home.page.ts`
-- `src/app/homepage/home/home.page.html`
+- `src/app/pages/home/home/home.page.ts`
+- `src/app/pages/home/home/home.page.html`
 - `src/app/services/transactions.service.ts`
 - `backend/routes/api.js`
 - `backend/db/firestore-store.js`
