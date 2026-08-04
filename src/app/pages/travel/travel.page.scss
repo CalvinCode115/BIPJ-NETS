@@ -2956,7 +2956,7 @@
   z-index: 100;
   background: #1a1a2e;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 
   .destination-current {
     display: flex;
@@ -2964,12 +2964,12 @@
     gap: 10px;
     cursor: pointer;
     padding: 8px 12px;
-    background: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     transition: background 0.2s;
 
     &:active {
-      background: rgba(255,255,255,0.15);
+      background: rgba(255, 255, 255, 0.15);
     }
 
     .destination-flag {
@@ -2984,16 +2984,16 @@
     }
 
     .destination-currency {
-      color: rgba(255,255,255,0.5);
+      color: rgba(255, 255, 255, 0.5);
       font-size: 12px;
       font-weight: 500;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255, 255, 255, 0.1);
       padding: 2px 8px;
       border-radius: 10px;
     }
 
     ion-icon {
-      color: rgba(255,255,255,0.5);
+      color: rgba(255, 255, 255, 0.5);
       font-size: 18px;
       transition: transform 0.2s;
 
@@ -3010,7 +3010,7 @@
     right: 16px;
     background: #fff;
     border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     overflow: hidden;
 
     .destination-option {
@@ -3026,7 +3026,8 @@
         border-bottom: none;
       }
 
-      &:active, &.active {
+      &:active,
+      &.active {
         background: #f5f5f7;
       }
 
@@ -3073,8 +3074,10 @@
   position: fixed;
   inset: 0;
   z-index: 99;
-  background: rgba(0,0,0,0.3);
-}/* ── Destination Selector Bubble ── */
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ── Destination Selector Bubble ── */
 .destination-selector {
   display: flex;
   align-items: center;
@@ -3188,8 +3191,15 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 /* ── Globe Modal Fullscreen Override ── */
@@ -3242,8 +3252,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Weather ── */
@@ -3693,8 +3710,15 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 /* ── Globe Modal Fullscreen Override ── */
@@ -3747,8 +3771,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── Weather ── */
@@ -4123,7 +4154,9 @@
   font-size: 12px;
   color: #555;
   margin: 8px 0 0;
-}/* Globe icon in destination bar */
+}
+
+/* Globe icon in destination bar */
 .destination-current .globe-icon {
   color: var(--nets-red);
   font-size: 20px;
@@ -4144,6 +4177,7 @@
   max-height: 100% !important;
   border-radius: 0 !important;
 }
+
 /* Globe icon in destination bar */
 .destination-current .globe-icon {
   color: var(--nets-red);
@@ -4166,6 +4200,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   max-height: 100% !important;
   border-radius: 0 !important;
 }
+
 /* Add to travel.page.scss */
 .plan-actions {
   display: flex;
@@ -4257,12 +4292,13 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   font-size: 20px;
   flex-shrink: 0;
 }
+
 .plan-section {
   margin: 16px;
   background: white;
   border-radius: 20px;
   padding: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .plan-header {
@@ -4464,7 +4500,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
 .payment-confirm-btn {
   --background: linear-gradient(135deg, #0057ff, #2f80ff);
   --border-radius: 16px;
-  --box-shadow: 0 8px 20px rgba(0,87,255,0.25);
+  --box-shadow: 0 8px 20px rgba(0, 87, 255, 0.25);
   margin: 0 16px 16px;
   height: 52px;
   font-weight: 700;
@@ -4475,6 +4511,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   --background: #d5dbe6;
   --box-shadow: none;
 }
+
 .duration-section {
   margin: 20px 0;
 }
@@ -4532,11 +4569,12 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
 .duration-options button.selected .duration-unit {
   color: #0057ff;
 }
+
 .destination-bar {
   &.locked {
     background: rgba(215, 25, 32, 0.08);
     border: 1px solid rgba(215, 25, 32, 0.2);
-    
+
     .destination-current {
       cursor: not-allowed;
       opacity: 0.9;
@@ -4553,8 +4591,113 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   color: #d71920;
   padding: 4px 0 0;
   font-weight: 500;
-  
+
   ion-icon {
     font-size: 12px;
+  }
+}
+
+.planner-section {
+  padding: 16px;
+  background: #f8f9fc;
+  border-radius: 16px;
+  margin: 16px;
+}
+
+.planner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  span {
+    color: #6b7280;
+    font-size: 13px;
+  }
+}
+
+.days-input {
+  margin-bottom: 12px;
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+  }
+}
+
+.day-plan {
+  margin: 16px;
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #111827;
+  }
+
+  span {
+    font-size: 12px;
+    color: #6b7280;
+  }
+}
+
+.day-venue {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.venue-order {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2f80ed;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.venue-info {
+  display: flex;
+  flex-direction: column;
+
+  .venue-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #111827;
+  }
+
+  .venue-meta {
+    font-size: 12px;
+    color: #9ca3af;
   }
 }

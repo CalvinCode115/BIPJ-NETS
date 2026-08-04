@@ -14,20 +14,20 @@
 
 <ion-content class="travel-content scroll-content-visible">
 
-<!-- Sticky Destination Selector -->
-<div class="destination-bar" [class.locked]="isTripLocked">
-  <div class="destination-current" (click)="!isTripLocked && openGlobeModal()">
-    <span class="destination-flag">{{ currentDestination.flag }}</span>
-    <span class="destination-name">{{ currentDestination.name }}</span>
-    <span class="destination-currency">{{ currentDestination.currencyCode }}</span>
-    <ion-icon name="globe-outline" class="globe-icon" *ngIf="!isTripLocked"></ion-icon>
-    <ion-icon name="lock-closed-outline" class="globe-icon" *ngIf="isTripLocked" style="color: #d71920;"></ion-icon>
+  <!-- Sticky Destination Selector -->
+  <div class="destination-bar" [class.locked]="isTripLocked">
+    <div class="destination-current" (click)="!isTripLocked && openGlobeModal()">
+      <span class="destination-flag">{{ currentDestination.flag }}</span>
+      <span class="destination-name">{{ currentDestination.name }}</span>
+      <span class="destination-currency">{{ currentDestination.currencyCode }}</span>
+      <ion-icon name="globe-outline" class="globe-icon" *ngIf="!isTripLocked"></ion-icon>
+      <ion-icon name="lock-closed-outline" class="globe-icon" *ngIf="isTripLocked" style="color: #d71920;"></ion-icon>
+    </div>
+    <div class="trip-lock-badge" *ngIf="isTripLocked">
+      <ion-icon name="airplane"></ion-icon>
+      Trip in progress — Tap "Arrive Home" to switch countries
+    </div>
   </div>
-  <div class="trip-lock-badge" *ngIf="isTripLocked">
-    <ion-icon name="airplane"></ion-icon>
-    Trip in progress — Tap "Arrive Home" to switch countries
-  </div>
-</div>
 
   <!-- ── WEATHER FORECAST STRIP ── -->
   <div class="weather-strip" *ngIf="forecast.length > 0">
@@ -59,7 +59,47 @@
       </div>
     </ion-card-content>
   </ion-card>
+  <!-- Add this above or below your existing plan section -->
+  <div class="planner-section" *ngIf="plannedVenues.length > 0">
+    <div class="planner-header">
+      <h3>🗓️ Smart Day Planner</h3>
+      <span>{{ plannedVenues.length }} venues → {{ numTripDays }} days</span>
+    </div>
 
+    <div class="days-input">
+      <label>Trip duration:</label>
+      <ion-segment [(ngModel)]="numTripDays">
+        <ion-segment-button [value]="1">1 day</ion-segment-button>
+        <ion-segment-button [value]="2">2 days</ion-segment-button>
+        <ion-segment-button [value]="3">3 days</ion-segment-button>
+        <ion-segment-button [value]="4">4 days</ion-segment-button>
+        <ion-segment-button [value]="5">5 days</ion-segment-button>
+      </ion-segment>
+    </div>
+
+    <ion-button expand="block" (click)="generateDayPlans()">
+      <ion-icon name="sparkles-outline" slot="start"></ion-icon>
+      Generate My Itinerary
+    </ion-button>
+  </div>
+
+  <!-- Display generated days -->
+  <div class="day-plan" *ngFor="let day of dayPlans">
+    <div class="day-header">
+      <h4>Day {{ day.day }}: {{ day.theme }}</h4>
+      <span>🚶 {{ day.estimatedWalkingKm }}km | ⏱️ {{ day.totalDurationMinutes / 60 }} hrs</span>
+    </div>
+
+    <div class="day-venues">
+      <div class="day-venue" *ngFor="let venue of day.venues; let i = index">
+        <span class="venue-order">{{ i + 1 }}</span>
+        <div class="venue-info">
+          <span class="venue-name">{{ venue.name }}</span>
+          <span class="venue-meta">{{ venue.type }} • {{ venue.durationMinutes }} min</span>
+        </div>
+      </div>
+    </div>
+  </div>
   <!-- ── WEATHER-OPTIMIZED ITINERARY ── -->
   <ion-card class="itinerary-card" *ngIf="itinerary.length > 0">
     <ion-card-header>
@@ -122,7 +162,8 @@
   <div class="trip-toggle-bar">
     <div class="trip-toggle-label">
       <ion-icon [name]="isTripMode ? 'airplane' : 'home'"></ion-icon>
-      <span>{{ isTripMode ? '✈️ In ' + currentDestination.name + ' · Day ' + tripDay + ' of ' + tripTotalDays : '🏠 Planning at Home' }}</span>
+      <span>{{ isTripMode ? '✈️ In ' + currentDestination.name + ' · Day ' + tripDay + ' of ' + tripTotalDays : '🏠
+        Planning at Home' }}</span>
     </div>
     <ion-toggle #tripToggle [checked]="isTripMode" (ionChange)="toggleTripMode()"></ion-toggle>
   </div>
@@ -216,7 +257,8 @@
 
         <div class="plan-info">
           <span class="plan-name">{{ venue.venueName }}</span>
-          <span class="plan-meta">{{ getStars(venue.rating) }} {{ venue.rating }} · {{ getPriceLevel(venue.priceLevel) }}</span>
+          <span class="plan-meta">{{ getStars(venue.rating) }} {{ venue.rating }} · {{ getPriceLevel(venue.priceLevel)
+            }}</span>
         </div>
 
         <!-- Planning Mode: Remove button -->
@@ -734,10 +776,12 @@
           <span>Based on your DNA</span>
         </div>
         <p class="dna-rec-text">
-          Your {{ selectedTripDuration }}-day spending pattern suggests <strong>${{ dnaBudgetRecommendation | number:'1.0-0' }}</strong>
+          Your {{ selectedTripDuration }}-day spending pattern suggests <strong>${{ dnaBudgetRecommendation |
+            number:'1.0-0' }}</strong>
         </p>
         <p class="dna-rec-sub" *ngIf="dnaDailyAverage > 0">
-          That's about ${{ dnaDailyAverage * selectedTripDuration | number:'1.0-0' }} for {{ selectedTripDuration }} days (${{ dnaDailyAverage | number:'1.0-0' }}/day)
+          That's about ${{ dnaDailyAverage * selectedTripDuration | number:'1.0-0' }} for {{ selectedTripDuration }}
+          days (${{ dnaDailyAverage | number:'1.0-0' }}/day)
         </p>
       </div>
 
@@ -748,7 +792,8 @@
           [class.dna-match]="opt === dnaBudgetRecommendation">
           <span class="budget-opt-amount">${{ opt }}</span>
           <span class="budget-opt-label" *ngIf="opt === dnaBudgetRecommendation">DNA Match</span>
-          <span class="budget-opt-label" *ngIf="opt !== dnaBudgetRecommendation">${{ opt / selectedTripDuration | number:'1.0-0' }}/day</span>
+          <span class="budget-opt-label" *ngIf="opt !== dnaBudgetRecommendation">${{ opt / selectedTripDuration |
+            number:'1.0-0' }}/day</span>
         </button>
       </div>
 
@@ -766,7 +811,8 @@
       <div class="budget-summary">
         <span class="budget-summary-label">Trip Budget</span>
         <span class="budget-summary-value">${{ selectedBudgetOption | number:'1.0-0' }}</span>
-        <span class="budget-summary-daily">~${{ selectedBudgetOption / selectedTripDuration | number:'1.0-0' }} per day · {{ selectedTripDuration }} days</span>
+        <span class="budget-summary-daily">~${{ selectedBudgetOption / selectedTripDuration | number:'1.0-0' }} per day
+          · {{ selectedTripDuration }} days</span>
       </div>
 
       <!-- Actions -->
@@ -841,7 +887,8 @@
 
       <!-- SGD equivalent -->
       <p class="payment-equivalent" *ngIf="paymentInForeignCurrency && fxInsight?.currentRate && paymentAmount > 0">
-        ≈ SGD {{ paymentAmount && fxInsight && fxInsight.currentRate ? (paymentAmount / fxInsight.currentRate).toFixed(2) : '0.00' }}
+        ≈ SGD {{ paymentAmount && fxInsight && fxInsight.currentRate ? (paymentAmount /
+        fxInsight.currentRate).toFixed(2) : '0.00' }}
       </p>
 
       <!-- Insufficient balance warning -->

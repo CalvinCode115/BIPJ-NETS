@@ -36,16 +36,23 @@ export interface RecommendationCard {
   title: string;
   description: string;
   venueName: string;
-  rating: number;
+  rating?: number;
   reviewCount: number;
-  priceLevel: number;
+  priceLevel?: number;
   address: string;
+  types?: string[];
   photoUrl?: string;
   isHero?: boolean;
   distance?: number; // meters from center
   openNow?: boolean;
   dnaMatchScore?: number;
   whyMatch: string[]; // badges like ["💰 Fits budget", "☕ Coffee DNA", "🕐 Open now"]
+  lat?: number;
+  lng?: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export interface CategorySection {

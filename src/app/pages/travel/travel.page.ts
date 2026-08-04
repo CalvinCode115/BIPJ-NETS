@@ -37,6 +37,7 @@ import {
 
 import { PackingItem, WeatherService, DailyForecast } from './weather.service';
 import { CardCurrencyBalance, CardLinkedExchangeService } from '../../services/card-linked-exchange.service';
+import { SmartPlannerService, PlannedVenue, DayPlan } from '../../services/smart-planner.service';
 @Component({
   selector: 'app-travel',
   templateUrl: './travel.page.html',
@@ -132,6 +133,10 @@ export class TravelPage implements OnInit {
 
   tripDurationOptions = [1, 2, 3, 4, 5, 6, 7, 10, 14];
   selectedTripDuration = 4;
+
+  dayPlans: DayPlan[] = [];
+  numTripDays: number = 3; // User can adjust this
+
   constructor(
     private http: HttpClient,
     private travelService: TravelService,
@@ -145,6 +150,7 @@ export class TravelPage implements OnInit {
     private modalCtrl: ModalController,
     private countryData: CountryDataService,
     public cardExchange: CardLinkedExchangeService,
+    private smartPlanner: SmartPlannerService
   ) { }
 
   ngOnInit() {
@@ -483,11 +489,37 @@ export class TravelPage implements OnInit {
 
   // ========== PLAN / TO-DO ==========
   addToPlan(card: RecommendationCard) {
-    if (!this.plannedVenues.find(v => v.venueName === card.venueName)) {
-      this.plannedVenues.push(card);
-      this.savePlan();
+     this.logCardFields(card);
+  if (!this.plannedVenues.find(v => v.venueName === card.venueName)) {
+    let lat: number | undefined;
+    let lng: number | undefined;
+    
+    const cardAny = card as any;
+    
+    if (cardAny.location) {
+      lat = cardAny.location.latitude;
+      lng = cardAny.location.longitude;
+    } else if (cardAny.lat && cardAny.lng) {
+      lat = cardAny.lat;
+      lng = cardAny.lng;
+    } else if (cardAny.geometry?.location) {
+      lat = cardAny.geometry.location.lat;
+      lng = cardAny.geometry.location.lng;
     }
+    
+    const center = this.getDestinationCenter();
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+      lat = center.lat + (Math.random() - 0.5) * 0.05;
+      lng = center.lng + (Math.random() - 0.5) * 0.05;
+    }
+    
+    const venueWithCoords = { ...card, lat, lng };
+    this.plannedVenues.push(venueWithCoords);
+    this.savePlan();
+    
+    console.log('Added:', venueWithCoords.venueName, 'at', lat.toFixed(4), lng.toFixed(4));
   }
+}
 
   removeFromPlan(card: RecommendationCard) {
     this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== card.venueName);
@@ -1003,17 +1035,15 @@ export class TravelPage implements OnInit {
     this.loadActiveCard();
   }
 
-  getPriceLevel(level: number): string {
-    if (!level) return '';
-    return '💰'.repeat(Math.min(level, 4));
-  }
+getPriceLevel(level: number | undefined): string {
+  const l = level || 1;
+  return '$'.repeat(l);
+}
 
-  getStars(rating: number): string {
-    if (!rating) return '';
-    const full = Math.floor(rating);
-    const half = rating % 1 >= 0.5 ? 1 : 0;
-    return '★'.repeat(full) + (half ? '½' : '');
-  }
+getStars(rating: number | undefined): string {
+  const r = rating || 0;
+  return '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r));
+}
 
   openInMaps(card: RecommendationCard) {
     const query = encodeURIComponent(`${card.venueName}, ${card.address}`);
@@ -1528,4 +1558,52 @@ export class TravelPage implements OnInit {
       } catch { /* ignore */ }
     }
   }
+
+  generateDayPlans() {
+    if (!this.plannedVenues.length) {
+      alert('Add some venues to your plan first!');
+      return;
+    }
+
+    // DEBUG
+    console.log('Planned venues:', this.plannedVenues.map(v => ({
+      name: v.venueName,
+      lat: v.lat,
+      lng: v.lng
+    })));
+
+    const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues);
+    this.dayPlans = this.smartPlanner.clusterIntoDays(venues, this.numTripDays);
+
+    console.log('Generated days:', this.dayPlans.length);
+    this.dayPlans.forEach(d => {
+      console.log(`Day ${d.day} (${d.theme}):`, d.venues.map(v => v.name));
+    });
+  }
+
+  getDestinationCenter(): { lat: number; lng: number } {
+    const centers: Record<string, { lat: number; lng: number }> = {
+      'johor-bahru': { lat: 1.4927, lng: 103.7414 },
+      'tokyo': { lat: 35.6762, lng: 139.6503 },
+      'bangkok': { lat: 13.7563, lng: 100.5018 },
+      'seoul': { lat: 37.5665, lng: 126.9780 },
+      'kuala-lumpur': { lat: 3.1390, lng: 101.6869 },
+      'sydney': { lat: -33.8688, lng: 151.2093 },
+    };
+
+    return centers[this.currentDestination.id] || { lat: 1.35, lng: 103.8 };
+  }
+
+  logCardFields(card: any) {
+  console.log('=== CARD FIELDS ===');
+  console.log('venueName:', card.venueName);
+  console.log('Has location?:', !!card.location);
+  console.log('location:', card.location);
+  console.log('Has lat?:', !!card.lat, card.lat);
+  console.log('Has lng?:', !!card.lng, card.lng);
+  console.log('Has geometry?:', !!card.geometry);
+  console.log('Has coordinates?:', !!card.coordinates);
+  console.log('All keys:', Object.keys(card));
+  console.log('===================');
+}
 }
