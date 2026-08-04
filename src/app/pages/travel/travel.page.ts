@@ -230,14 +230,15 @@ export class TravelPage implements OnInit {
         }));
         this.places = result.places || [];
 
+        // ═══ FIX: Attach coordinates from places to recommendations ═══
+        this.attachCoordinates();
+
         if (result.budget && !this.budget) {
           this.budget = result.budget;
           this.saveBudget();
         }
 
-        // ← KEY: trigger itinerary rebuild now that places are here
         this.onPlacesLoaded();
-
         this.isLoading = false;
       },
       error: (err: any) => {
@@ -488,39 +489,48 @@ export class TravelPage implements OnInit {
   }
 
   // ========== PLAN / TO-DO ==========
-  addToPlan(card: RecommendationCard) {
-     this.logCardFields(card);
+addToPlan(card: RecommendationCard) {
   if (!this.plannedVenues.find(v => v.venueName === card.venueName)) {
-    let lat: number | undefined;
-    let lng: number | undefined;
+    let lat = card.lat;
+    let lng = card.lng;
     
-    const cardAny = card as any;
-    
-    if (cardAny.location) {
-      lat = cardAny.location.latitude;
-      lng = cardAny.location.longitude;
-    } else if (cardAny.lat && cardAny.lng) {
-      lat = cardAny.lat;
-      lng = cardAny.lng;
-    } else if (cardAny.geometry?.location) {
-      lat = cardAny.geometry.location.lat;
-      lng = cardAny.geometry.location.lng;
+    // Active lookup from places
+    if (!lat || !lng) {
+      const match = this.places.find(p => {
+        const pName = p.name?.toLowerCase() || '';
+        const cName = card.venueName?.toLowerCase() || '';
+        return pName === cName || 
+               pName.includes(cName) || 
+               cName.includes(pName) ||
+               p.vicinity?.toLowerCase().includes(cName);
+      });
+      
+      if (match?.geometry?.location) {
+        lat = match.geometry.location.lat;
+        lng = match.geometry.location.lng;
+        console.log('Found place match for', card.venueName, ':', lat, lng);
+      }
     }
     
-    const center = this.getDestinationCenter();
+    if ((!lat || !lng) && card.location) {
+      lat = card.location.latitude;
+      lng = card.location.longitude;
+    }
+    
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      lat = center.lat + (Math.random() - 0.5) * 0.05;
-      lng = center.lng + (Math.random() - 0.5) * 0.05;
+      const center = this.getDestinationCenter();
+      lat = center.lat + (Math.random() - 0.5) * 0.08;
+      lng = center.lng + (Math.random() - 0.5) * 0.08;
+      console.warn('Fallback for', card.venueName, ':', lat.toFixed(5), lng.toFixed(5));
     }
     
     const venueWithCoords = { ...card, lat, lng };
     this.plannedVenues.push(venueWithCoords);
     this.savePlan();
     
-    console.log('Added:', venueWithCoords.venueName, 'at', lat.toFixed(4), lng.toFixed(4));
+    console.log('Added:', card.venueName, 'at', lat.toFixed(5), lng.toFixed(5));
   }
 }
-
   removeFromPlan(card: RecommendationCard) {
     this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== card.venueName);
     this.savePlan();
@@ -1035,15 +1045,15 @@ export class TravelPage implements OnInit {
     this.loadActiveCard();
   }
 
-getPriceLevel(level: number | undefined): string {
-  const l = level || 1;
-  return '$'.repeat(l);
-}
+  getPriceLevel(level: number | undefined): string {
+    const l = level || 1;
+    return '$'.repeat(l);
+  }
 
-getStars(rating: number | undefined): string {
-  const r = rating || 0;
-  return '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r));
-}
+  getStars(rating: number | undefined): string {
+    const r = rating || 0;
+    return '★'.repeat(Math.round(r)) + '☆'.repeat(5 - Math.round(r));
+  }
 
   openInMaps(card: RecommendationCard) {
     const query = encodeURIComponent(`${card.venueName}, ${card.address}`);
@@ -1565,14 +1575,8 @@ getStars(rating: number | undefined): string {
       return;
     }
 
-    // DEBUG
-    console.log('Planned venues:', this.plannedVenues.map(v => ({
-      name: v.venueName,
-      lat: v.lat,
-      lng: v.lng
-    })));
-
-    const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues);
+    const center = this.getDestinationCenter();
+    const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
     this.dayPlans = this.smartPlanner.clusterIntoDays(venues, this.numTripDays);
 
     console.log('Generated days:', this.dayPlans.length);
@@ -1591,19 +1595,83 @@ getStars(rating: number | undefined): string {
       'sydney': { lat: -33.8688, lng: 151.2093 },
     };
 
-    return centers[this.currentDestination.id] || { lat: 1.35, lng: 103.8 };
+    const result = centers[this.currentDestination.id] || { lat: 1.35, lng: 103.8 };
+    console.log('Destination center for', this.currentDestination.id, ':', result);
+    return result;
   }
 
   logCardFields(card: any) {
-  console.log('=== CARD FIELDS ===');
-  console.log('venueName:', card.venueName);
-  console.log('Has location?:', !!card.location);
-  console.log('location:', card.location);
-  console.log('Has lat?:', !!card.lat, card.lat);
-  console.log('Has lng?:', !!card.lng, card.lng);
-  console.log('Has geometry?:', !!card.geometry);
-  console.log('Has coordinates?:', !!card.coordinates);
-  console.log('All keys:', Object.keys(card));
-  console.log('===================');
-}
+    console.log('=== CARD FIELDS ===');
+    console.log('venueName:', card.venueName);
+    console.log('Has location?:', !!card.location);
+    console.log('location:', card.location);
+    console.log('Has lat?:', !!card.lat, card.lat);
+    console.log('Has lng?:', !!card.lng, card.lng);
+    console.log('Has geometry?:', !!card.geometry);
+    console.log('Has coordinates?:', !!card.coordinates);
+    console.log('All keys:', Object.keys(card));
+    console.log('===================');
+  }
+  onDaysChange(event: any) {
+    this.numTripDays = parseInt(event.detail.value, 10);
+  }
+
+  private attachCoordinates() {
+    // Create a lookup map from place_id or name to coordinates
+    const placeCoords = new Map<string, { lat: number; lng: number }>();
+
+    for (const place of this.places) {
+      const key = place.place_id || place.name;
+      if (place.geometry?.location) {
+        placeCoords.set(key, {
+          lat: place.geometry.location.lat,
+          lng: place.geometry.location.lng
+        });
+      }
+    }
+
+    // Attach to recommendations
+    for (const rec of this.recommendations) {
+      // Try to find matching place by name
+      const match = this.places.find(p =>
+        p.name === rec.venueName ||
+        p.vicinity?.includes(rec.venueName) ||
+        rec.venueName.includes(p.name)
+      );
+
+      if (match?.geometry?.location) {
+        rec.lat = match.geometry.location.lat;
+        rec.lng = match.geometry.location.lng;
+        rec.location = {
+          latitude: match.geometry.location.lat,
+          longitude: match.geometry.location.lng
+        };
+      }
+    }
+
+    // Also attach to category cards
+    for (const cat of this.categories) {
+      for (const card of cat.cards) {
+        const match = this.places.find(p =>
+          p.name === card.venueName ||
+          p.vicinity?.includes(card.venueName) ||
+          card.venueName.includes(p.name)
+        );
+
+        if (match?.geometry?.location) {
+          card.lat = match.geometry.location.lat;
+          card.lng = match.geometry.location.lng;
+          card.location = {
+            latitude: match.geometry.location.lat,
+            longitude: match.geometry.location.lng
+          };
+        }
+      }
+    }
+
+    console.log('Attached coordinates to',
+      this.recommendations.filter(r => r.lat).length, 'recommendations and',
+      this.categories.reduce((sum, c) => sum + c.cards.filter(c => c.lat).length, 0), 'category cards'
+    );
+  }
 }

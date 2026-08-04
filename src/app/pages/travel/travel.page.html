@@ -59,45 +59,71 @@
       </div>
     </ion-card-content>
   </ion-card>
-  <!-- Add this above or below your existing plan section -->
-  <div class="planner-section" *ngIf="plannedVenues.length > 0">
-    <div class="planner-header">
-      <h3>🗓️ Smart Day Planner</h3>
-      <span>{{ plannedVenues.length }} venues → {{ numTripDays }} days</span>
-    </div>
 
-    <div class="days-input">
-      <label>Trip duration:</label>
-      <ion-segment [(ngModel)]="numTripDays">
-        <ion-segment-button [value]="1">1 day</ion-segment-button>
-        <ion-segment-button [value]="2">2 days</ion-segment-button>
-        <ion-segment-button [value]="3">3 days</ion-segment-button>
-        <ion-segment-button [value]="4">4 days</ion-segment-button>
-        <ion-segment-button [value]="5">5 days</ion-segment-button>
-      </ion-segment>
-    </div>
-
-    <ion-button expand="block" (click)="generateDayPlans()">
-      <ion-icon name="sparkles-outline" slot="start"></ion-icon>
-      Generate My Itinerary
-    </ion-button>
+  <!-- SMART DAY PLANNER CONTROLS -->
+<div class="planner-section" *ngIf="plannedVenues.length > 0">
+  <div class="planner-header">
+    <h3>🗓️ Smart Day Planner</h3>
+    <span>{{ plannedVenues.length }} venues → {{ numTripDays }} days</span>
   </div>
-
-  <!-- Display generated days -->
+  
+  <div class="days-input">
+    <label>Trip duration:</label>
+    <ion-segment [value]="numTripDays" (ionChange)="onDaysChange($event)">
+      <ion-segment-button value="1">1 day</ion-segment-button>
+      <ion-segment-button value="2">2 days</ion-segment-button>
+      <ion-segment-button value="3">3 days</ion-segment-button>
+      <ion-segment-button value="4">4 days</ion-segment-button>
+      <ion-segment-button value="5">5 days</ion-segment-button>
+    </ion-segment>
+  </div>
+  
+  <ion-button expand="block" (click)="generateDayPlans()">
+    <ion-icon name="sparkles-outline" slot="start"></ion-icon>
+    Generate My Itinerary
+  </ion-button>
+</div>
+  <!-- Generated day plans — CORRECTLY NESTED -->
   <div class="day-plan" *ngFor="let day of dayPlans">
     <div class="day-header">
       <h4>Day {{ day.day }}: {{ day.theme }}</h4>
-      <span>🚶 {{ day.estimatedWalkingKm }}km | ⏱️ {{ day.totalDurationMinutes / 60 }} hrs</span>
+      <span>🚶 {{ day.estimatedWalkingKm }}km | ⏱️ {{ day.totalDurationMinutes / 60 | number:'1.0-0' }} hrs</span>
     </div>
 
     <div class="day-venues">
-      <div class="day-venue" *ngFor="let venue of day.venues; let i = index">
-        <span class="venue-order">{{ i + 1 }}</span>
-        <div class="venue-info">
-          <span class="venue-name">{{ venue.name }}</span>
-          <span class="venue-meta">{{ venue.type }} • {{ venue.durationMinutes }} min</span>
+      <!-- Loop through venues -->
+      <ng-container *ngFor="let venue of day.venues; let i = index">
+
+        <!-- Venue item -->
+        <div class="day-venue">
+          <div class="venue-time">
+            <span class="start-time">{{ venue.startTime }}</span>
+            <span class="time-separator">-</span>
+            <span class="end-time">{{ venue.endTime }}</span>
+          </div>
+
+          <span class="venue-order" [class.ai-suggested]="!venue.userAdded">
+            {{ venue.isMeal ? '🍽️' : (i + 1) }}
+          </span>
+
+          <div class="venue-info">
+            <span class="venue-name" [class.ai-suggested]="!venue.userAdded">
+              {{ venue.name }}
+              <span *ngIf="!venue.userAdded" class="ai-badge">AI</span>
+            </span>
+            <span class="venue-meta">
+              {{ venue.type }} • {{ venue.durationMinutes }} min
+            </span>
+          </div>
         </div>
-      </div>
+
+        <!-- Travel time to NEXT venue — INSIDE the same ngFor -->
+        <div class="travel-segment" *ngIf="venue.travelToNext">
+          <ion-icon name="car-outline"></ion-icon>
+          <span>{{ venue.travelToNext }} min travel</span>
+        </div>
+
+      </ng-container>
     </div>
   </div>
   <!-- ── WEATHER-OPTIMIZED ITINERARY ── -->
