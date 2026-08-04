@@ -31,8 +31,18 @@ log.txt
 
 # Node
 /node_modules
+/backend/node_modules
 npm-debug.log
 yarn-error.log
+
+# Local SQLite database (each developer has their own)
+/backend/data/wallet.db
+/backend/data/wallet.db-wal
+/backend/data/wallet.db-shm
+
+# Firebase service account (never commit)
+/backend/firebase/service-account.json
+/backend/config/firebase-service-account.json
 
 # IDEs and editors
 .idea/
@@ -68,3 +78,9 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+*.env
+# Python virtualenvs / caches
+.venv/
+__pycache__/
+*.pyc

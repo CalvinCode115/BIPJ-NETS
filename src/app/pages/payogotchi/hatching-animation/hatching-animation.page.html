@@ -1,0 +1,68 @@
+<ion-content [fullscreen]="true" class="hatch-anim-content">
+  <div class="hatch-anim-screen" [class.revealed]="isRevealed" (click)="skip()">
+    <!-- Header copy (fades in on reveal) -->
+    <header class="hatch-anim-header">
+      <h1 class="hatch-anim-title">It's a Tapatchi! 🎉</h1>
+      <p class="hatch-anim-subtitle">Welcome your new companion!</p>
+    </header>
+
+    <!-- Center stage: egg cracks open, pet pops out -->
+    <div class="hatch-anim-stage">
+      <!-- Soft golden glow behind the pet -->
+      <div class="hatch-anim-glow"></div>
+
+      <!-- Confetti particles -->
+      <div class="hatch-anim-confetti">
+        <span
+          *ngFor="let p of particles; trackBy: trackByIndex"
+          class="hatch-anim-particle"
+          [class.round]="p.rounded"
+          [style.left.%]="p.left"
+          [style.top.%]="p.top"
+          [style.width.px]="p.size"
+          [style.height.px]="p.size"
+          [style.background]="p.color"
+          [style.animation-delay.s]="p.delay"
+        ></span>
+      </div>
+
+      <!-- The egg (hidden once it bursts) -->
+      <div
+        class="hatch-anim-egg-wrap"
+        [class.is-shaking]="phase === 'shaking'"
+        [class.is-cracking]="phase === 'cracking'"
+        [class.is-bursting]="phase === 'bursting'"
+        *ngIf="!isRevealed"
+      >
+        <div class="hatch-anim-egg" [style.background]="eggGradient">
+          <span *ngIf="eggRare" class="hatch-anim-egg-badge">RARE ✦</span>
+          <span *ngIf="eggEmoji" class="hatch-anim-egg-emoji">{{ eggEmoji }}</span>
+
+          <!-- Cracks that deepen as the egg breaks -->
+          <svg class="hatch-anim-cracks" viewBox="0 0 100 130" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M50 6 L46 34 L57 52 L44 74 L54 96 L48 120" />
+            <path d="M46 34 L30 40 M46 34 L64 44" />
+            <path d="M44 74 L26 80 M54 96 L74 90" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Burst flash at the moment of hatching -->
+      <div class="hatch-anim-flash" [class.active]="phase === 'bursting' || isRevealed"></div>
+
+      <!-- The revealed Tapatchi -->
+      <div class="hatch-anim-pet" *ngIf="isRevealed">
+        <span class="hatch-anim-sparkle sparkle-left">✨</span>
+        <span class="hatch-anim-sparkle sparkle-right">⭐</span>
+        <app-tapatchi mood="excited" [size]="190"></app-tapatchi>
+      </div>
+    </div>
+
+    <!-- CTA (fades in on reveal) -->
+    <div class="hatch-anim-cta">
+      <button type="button" class="hatch-anim-btn" (click)="meetTapatchi(); $event.stopPropagation()">
+        Meet Your Tapatchi →
+      </button>
+    </div>
+  </div>
+</ion-content>

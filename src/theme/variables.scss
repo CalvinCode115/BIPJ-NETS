@@ -1,2 +1,58 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+:root {
+  --ion-color-primary: #e30613;
+  --ion-color-primary-rgb: 227, 6, 19;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #c80511;
+  --ion-color-primary-tint: #e61f2b;
+
+  --nets-red: #e30613;
+  --nets-blue: #1e3a8a;
+  --nets-dark: #1a1a2e;
+  --nets-purple: #3d2f5c;
+  --nets-purple-dark: #2a1f42;
+  --nets-bg: #ffffff;
+  --nets-text: #1a1a2e;
+  --nets-muted: #8e8e93;
+  --nets-insight-bg: #fff8e1;
+  --nets-insight-border: #ffe082;
+  --nets-card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  /* ---- Payogotchi design system (additive; see overview.md) ---- */
+  --payogotchi-cream: #fff9f5;
+  --payogotchi-soft-pink: #ffb6c1;
+  --payogotchi-sky-blue: #87ceeb;
+  --payogotchi-mint: #b2f2bb;
+  --payogotchi-lemon: #ffe066;
+  --payogotchi-lavender: #d4bbff;
+  --payogotchi-light-blue-accent: #f0f4ff;
+
+  /* Meter colors */
+  --xp-color: #ffa500;
+  --xp-color-light: #ffd700;
+  --hunger-color: #ff6b1a;
+  --hunger-color-light: #ff8c42;
+  --happiness-color: #ff4081;
+  --happiness-color-light: #ff6b9d;
+
+  /* Tapatchi character colors */
+  --tapatchi-green: #9ed03b;
+  --tapatchi-outline: #1e3a8a;
+  --tapatchi-cheeks: #ffe066;
+
+  /* Text colors */
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --text-light: #9e9e9e;
+  --text-accent: #e30613;
+
+  /* Radius scale */
+  --radius-small: 12px;
+  --radius-medium: 16px;
+  --radius-large: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 100px;
+
+  /* Shadow */
+  --shadow-soft: 0px 4px 12px rgba(0, 0, 0, 0.08);
+}

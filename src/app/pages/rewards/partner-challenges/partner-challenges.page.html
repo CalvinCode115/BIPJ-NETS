@@ -1,0 +1,160 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Partner Challenges</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="partner-challenges-content">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div *ngIf="loading" class="state-message">Loading challenges...</div>
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+    <!-- Special challenges cleared -->
+    <div class="cleared-card">
+      <div class="cleared-icon">
+        <ion-icon name="trophy-outline"></ion-icon>
+      </div>
+      <div class="cleared-text">
+        <span class="cleared-label">Special Challenges Cleared</span>
+        <span class="cleared-value">{{ clearedCount }}/{{ totalCount }}</span>
+      </div>
+    </div>
+    <div class="cleared-progress-bar">
+      <div class="cleared-progress-fill" [style.width.%]="totalCount > 0 ? (clearedCount / totalCount * 100) : 0"></div>
+    </div>
+
+    <!-- Active challenge cards -->
+    <div
+      class="challenge-card"
+      *ngFor="let challenge of activeChallenges"
+      [ngClass]="'challenge-card--' + challenge.difficulty"
+      [class.challenge-card--completed]="challenge.progress?.completed">
+
+      <div class="challenge-header">
+        <div class="challenge-icon" [ngClass]="'challenge-icon--' + challenge.difficulty">
+          <ion-icon [name]="challenge.icon"></ion-icon>
+        </div>
+        <div class="challenge-title-block">
+          <span class="challenge-title">{{ challenge.merchantName }}</span>
+          <span class="challenge-location" *ngIf="challenge.location">{{ challenge.location }}</span>
+        </div>
+        <div class="challenge-tags">
+          <span class="difficulty-tag" [ngClass]="'difficulty-tag--' + challenge.difficulty">{{ challenge.difficulty | titlecase }}</span>
+          <span class="completed-tag" *ngIf="challenge.progress?.completed">
+            <ion-icon name="checkmark-circle"></ion-icon> Completed
+          </span>
+        </div>
+      </div>
+
+      <div class="challenge-completion-rate">
+        <ion-icon name="people-outline"></ion-icon>
+        {{ challenge.completionRatePercent }}% of users completed this
+      </div>
+
+      <!-- Not started yet -->
+      <ion-button
+        *ngIf="!challenge.progress"
+        expand="block"
+        shape="round"
+        class="start-btn"
+        [disabled]="busyChallengeId === challenge.id"
+        (click)="start(challenge.id)">
+        {{ busyChallengeId === challenge.id ? 'Starting...' : 'Start Challenge' }}
+      </ion-button>
+
+      <!-- Started: show progress -->
+      <ng-container *ngIf="challenge.progress as progress">
+        <div class="challenge-progress-row" *ngIf="challenge.requirementType === 'spend_amount_at_merchant'">
+          <span class="challenge-progress-value">${{ progress.current }}</span>
+          <div class="challenge-progress-bar">
+            <div class="challenge-progress-fill" [style.width.%]="(progress.current / progress.target) * 100"></div>
+          </div>
+          <span class="challenge-progress-value">${{ progress.target }}</span>
+        </div>
+
+        <ng-container *ngIf="challenge.requirementType === 'visit_count_at_merchants'">
+          <div class="visit-row">
+            <span
+              class="visit-circle"
+              *ngFor="let step of [].constructor(progress.target); let i = index"
+              [class.visit-circle--filled]="i < progress.current">
+              {{ i + 1 }}
+            </span>
+          </div>
+          <span class="challenge-progress-caption">{{ progress.current }}/{{ progress.target }} cafes visited</span>
+        </ng-container>
+
+        <ng-container *ngIf="challenge.requirementType === 'visit_stall_count'">
+          <div class="visit-row">
+            <span
+              class="check-box"
+              *ngFor="let step of [].constructor(progress.target); let i = index"
+              [class.check-box--filled]="i < progress.current">
+              <ion-icon name="checkmark-outline" *ngIf="i < progress.current"></ion-icon>
+            </span>
+          </div>
+          <span class="challenge-progress-caption">{{ progress.current }}/{{ progress.target }} stalls visited</span>
+        </ng-container>
+
+        <ion-button
+          *ngIf="progress.completed && !progress.claimed"
+          expand="block"
+          shape="round"
+          class="claim-btn"
+          [disabled]="busyChallengeId === challenge.id"
+          (click)="claim(challenge.id)">
+          {{ busyChallengeId === challenge.id ? 'Claiming...' : 'Claim Reward' }}
+        </ion-button>
+      </ng-container>
+
+      <span class="rewards-label">REWARDS</span>
+      <div class="challenge-pills">
+        <span class="pill pill--points">+{{ challenge.points }} NETS Points</span>
+        <span class="pill" [ngClass]="'pill--' + reward.style" *ngFor="let reward of challenge.rewards">{{ reward.label }}</span>
+      </div>
+
+      <div class="challenge-footer">
+        <ion-icon name="time-outline"></ion-icon>
+        {{ footerLabel(challenge) }}
+      </div>
+    </div>
+
+    <!-- Past Challenges (claimed, or expired without completing) -->
+    <ng-container *ngIf="pastChallenges.length > 0">
+      <div class="section-heading">
+        <ion-icon name="archive-outline" class="section-heading-icon"></ion-icon>
+        <span>Past Challenges</span>
+      </div>
+
+      <div class="challenge-card challenge-card--past" *ngFor="let challenge of pastChallenges">
+        <div class="challenge-header">
+          <div class="challenge-icon" [ngClass]="'challenge-icon--' + challenge.difficulty">
+            <ion-icon [name]="challenge.icon"></ion-icon>
+          </div>
+          <div class="challenge-title-block">
+            <span class="challenge-title">{{ challenge.merchantName }}</span>
+            <span class="challenge-location" *ngIf="challenge.location">{{ challenge.location }}</span>
+          </div>
+          <span class="past-outcome-tag" [ngClass]="challenge.progress?.claimed ? 'past-outcome-tag--claimed' : 'past-outcome-tag--expired'">
+            {{ challenge.progress?.claimed ? 'Reward Claimed' : 'Expired' }}
+          </span>
+        </div>
+
+        <div class="challenge-pills">
+          <span class="pill pill--points">+{{ challenge.points }} NETS Points</span>
+          <span class="pill" [ngClass]="'pill--' + reward.style" *ngFor="let reward of challenge.rewards">{{ reward.label }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+
+</ion-content>

@@ -1,0 +1,75 @@
+<ion-content [fullscreen]="true" class="mini-content">
+  <div class="mini-screen">
+    <!-- Header -->
+    <header class="mini-header">
+      <button type="button" class="mini-back" (click)="exit()" aria-label="Back">‹</button>
+      <h1 class="mini-title">Play with {{ petName }}</h1>
+      <div class="mini-trophy">🏆 {{ score }}</div>
+    </header>
+
+    <!-- Stats bar -->
+    <div class="mini-stats">
+      <div class="mini-stat">
+        <span class="mini-stat-icon">⏱️</span>
+        <span class="mini-stat-value">{{ timerDisplay }}</span>
+      </div>
+      <span class="mini-stat-divider"></span>
+      <div class="mini-stat">
+        <span class="mini-stat-icon">🎮</span>
+        <span class="mini-stat-text">Plays today: {{ playsToday }}/{{ maxPlays }}</span>
+      </div>
+    </div>
+
+    <!-- Play area -->
+    <div class="mini-arena">
+      <!-- Pet backdrop (dimmed while playing) -->
+      <div class="mini-pet" [class.dimmed]="phase === 'playing'">
+        <app-tapatchi [mood]="phase === 'idle' ? 'happy' : 'excited'" [size]="130"></app-tapatchi>
+      </div>
+
+      <!-- Persistent prompt while playing -->
+      <p class="mini-play-prompt" *ngIf="phase === 'playing'">Tap the shapes! 💕</p>
+
+      <!-- Floating tappable shapes -->
+      <button
+        *ngFor="let shape of shapes; trackBy: trackByShapeId"
+        type="button"
+        class="mini-shape"
+        [ngClass]="'theme-' + shape.theme"
+        [class.popped]="shape.popped"
+        [style.left.%]="shape.left"
+        [style.--dur]="shape.duration + 'ms'"
+        (click)="tapShape(shape)"
+      >
+        <span class="mini-shape-emoji">{{ shape.emoji }}</span>
+      </button>
+
+      <!-- Idle prompt -->
+      <div class="mini-overlay" *ngIf="phase === 'idle'">
+        <p class="mini-prompt-title">Tap the hearts! 💕</p>
+        <p class="mini-prompt-sub">Make {{ petName }} happy by tapping floating shapes</p>
+        <button type="button" class="mini-btn" (click)="startGame()">Start Game! 🎮</button>
+      </div>
+
+      <!-- End result -->
+      <div class="mini-overlay" *ngIf="phase === 'ended'">
+        <p class="mini-result-title">Time's up! 🎉</p>
+        <p class="mini-result-sub">You scored {{ score }} points!</p>
+        <button type="button" class="mini-btn" (click)="playAgain()">Play Again! 🔄</button>
+      </div>
+    </div>
+
+    <!-- Happiness gained: while playing show the score so far, once the
+         game ends show how much the meter really went up -->
+    <p class="mini-happiness" *ngIf="phase !== 'ended'">Happiness gained: +{{ score }}</p>
+    <p class="mini-happiness" *ngIf="phase === 'ended'">
+      Happiness gained: +{{ happinessGained }} 😊
+      <span *ngIf="happinessGained < score">(meter is full!)</span>
+    </p>
+
+    <!-- End Game -->
+    <div class="mini-endgame">
+      <button type="button" class="mini-endgame-btn" (click)="exit()">End Game</button>
+    </div>
+  </div>
+</ion-content>

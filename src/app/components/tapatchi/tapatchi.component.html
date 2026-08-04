@@ -1,0 +1,455 @@
+<div 
+  class="tapatchi-container" 
+  [class.animated]="animated"
+  [class.mood-happy]="mood === 'happy'"
+  [class.mood-normal]="mood === 'normal'"
+  [class.mood-sad]="mood === 'sad'"
+  [class.mood-starving]="mood === 'starving'"
+  [class.mood-sleeping]="mood === 'sleeping'"
+  [class.mood-excited]="mood === 'excited'"
+  [class.mood-fainted]="mood === 'fainted'"
+  [class.is-art]="isPlainArt"
+  [class.is-rigged-character]="isRigged && resolvedVariant !== 'green'"
+  [class.is-fallback-pose]="isFallbackPose"
+  [attr.data-variant]="resolvedVariant"
+  [style.width.px]="size"
+  [style.height.px]="size"
+>
+  <svg
+    *ngIf="resolvedVariant === 'green'"
+    viewBox="0 0 240 240"
+    xmlns="http://www.w3.org/2000/svg"
+    class="tapatchi-svg"
+  >
+    <!-- ============================================ -->
+    <!-- SHADOW UNDER BODY -->
+    <!-- ============================================ -->
+    <ellipse 
+      cx="120" 
+      cy="220" 
+      rx="70" 
+      ry="8" 
+      fill="rgba(0,0,0,0.15)"
+      class="shadow"
+    />
+
+    <!-- ============================================ -->
+    <!-- SIDE EARS / ARMS (small bumps on sides) -->
+    <!-- ============================================ -->
+    <!-- Left ear/arm -->
+    <ellipse 
+      cx="35" 
+      cy="135" 
+      rx="14" 
+      ry="20" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="arm arm-left"
+    />
+
+    <!-- Right ear/arm -->
+    <ellipse 
+      cx="205" 
+      cy="135" 
+      rx="14" 
+      ry="20" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="arm arm-right"
+    />
+
+    <!-- ============================================ -->
+    <!-- FEET (chunky, visible) -->
+    <!-- ============================================ -->
+    <!-- Left foot -->
+    <ellipse 
+      cx="85" 
+      cy="210" 
+      rx="22" 
+      ry="14" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="leg leg-left"
+    />
+
+    <!-- Right foot -->
+    <ellipse 
+      cx="155" 
+      cy="210" 
+      rx="22" 
+      ry="14" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="5"
+      stroke-linejoin="round"
+      class="leg leg-right"
+    />
+
+    <!-- ============================================ -->
+    <!-- MAIN BODY (Big, puffy, slightly squat) -->
+    <!-- ============================================ -->
+    <ellipse 
+      cx="120" 
+      cy="125" 
+      rx="88" 
+      ry="82" 
+      fill="#9ED03B" 
+      stroke="#1E3A8A" 
+      stroke-width="6"
+      stroke-linejoin="round"
+      class="body"
+    />
+
+    <!-- ============================================ -->
+    <!-- CHEEKS (Bigger, softer, peachy-yellow) -->
+    <!-- ============================================ -->
+    <!-- Left cheek -->
+    <ellipse 
+      cx="68" 
+      cy="145" 
+      rx="22" 
+      ry="18" 
+      fill="#FFE066"
+      opacity="0.85"
+      class="cheek cheek-left"
+    />
+
+    <!-- Right cheek -->
+    <ellipse 
+      cx="172" 
+      cy="145" 
+      rx="22" 
+      ry="18" 
+      fill="#FFE066"
+      opacity="0.85"
+      class="cheek cheek-right"
+    />
+
+    <!-- ============================================ -->
+    <!-- EYES GROUP -->
+    <!-- ============================================ -->
+    <g class="eyes">
+      <!-- Happy/Normal/Excited eyes (with shine) -->
+      <ng-container *ngIf="mood === 'happy' || mood === 'normal' || mood === 'excited'">
+        <!-- Left eye - outer black -->
+        <ellipse cx="93" cy="105" rx="10" ry="13" fill="#1E3A8A" class="eye-left"/>
+        <!-- Left eye - shine -->
+        <ellipse cx="97" cy="100" rx="3.5" ry="4.5" fill="#FFFFFF"/>
+        <!-- Left eye - small shine -->
+        <circle cx="91" cy="110" r="1.5" fill="#FFFFFF"/>
+        
+        <!-- Right eye - outer black -->
+        <ellipse cx="147" cy="105" rx="10" ry="13" fill="#1E3A8A" class="eye-right"/>
+        <!-- Right eye - shine -->
+        <ellipse cx="151" cy="100" rx="3.5" ry="4.5" fill="#FFFFFF"/>
+        <!-- Right eye - small shine -->
+        <circle cx="145" cy="110" r="1.5" fill="#FFFFFF"/>
+      </ng-container>
+
+      <!-- Sad eyes (droopy) -->
+      <g class="eyes-sad" *ngIf="mood === 'sad'">
+        <path d="M 83 110 Q 93 118 103 110" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M 137 110 Q 147 118 157 110" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- Starving eyes (worried, half-closed) -->
+      <g class="eyes-starving" *ngIf="mood === 'starving'">
+        <path d="M 83 105 Q 93 115 103 105" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M 137 105 Q 147 115 157 105" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <!-- Sleeping eyes (closed peaceful curves) -->
+      <g class="eyes-sleeping" *ngIf="mood === 'sleeping'">
+        <path d="M 80 108 Q 93 100 106 108" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M 134 108 Q 147 100 160 108" stroke="#1E3A8A" stroke-width="5" fill="none" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <!-- ============================================ -->
+    <!-- MOUTH (Thicker, more confident) -->
+    <!-- ============================================ -->
+    <g class="mouth">
+      <!-- Happy smile (big and confident) -->
+      <path 
+        *ngIf="mood === 'happy' || mood === 'excited'" 
+        d="M 90 155 Q 120 180 150 155" 
+        stroke="#1E3A8A" 
+        stroke-width="6" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+
+      <!-- Normal smile (smaller) -->
+      <path 
+        *ngIf="mood === 'normal'" 
+        d="M 100 158 Q 120 172 140 158" 
+        stroke="#1E3A8A" 
+        stroke-width="6" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+
+      <!-- Sad mouth (frown) -->
+      <path 
+        *ngIf="mood === 'sad'" 
+        d="M 100 170 Q 120 155 140 170" 
+        stroke="#1E3A8A" 
+        stroke-width="6" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+
+      <!-- Starving mouth (small worried o) -->
+      <ellipse 
+        *ngIf="mood === 'starving'" 
+        cx="120" 
+        cy="165" 
+        rx="7" 
+        ry="10" 
+        fill="#1E3A8A"
+      />
+
+      <!-- Sleeping mouth (tiny smile) -->
+      <path 
+        *ngIf="mood === 'sleeping'" 
+        d="M 110 162 Q 120 168 130 162" 
+        stroke="#1E3A8A" 
+        stroke-width="4" 
+        fill="none" 
+        stroke-linecap="round"
+      />
+    </g>
+
+    <!-- ============================================ -->
+    <!-- SLEEP Z's -->
+    <!-- ============================================ -->
+    <g *ngIf="mood === 'sleeping'" class="sleep-zs">
+      <text x="175" y="65" font-family="Fredoka, sans-serif" font-size="28" font-weight="700" fill="#87CEEB" class="z z1">z</text>
+      <text x="195" y="50" font-family="Fredoka, sans-serif" font-size="22" font-weight="700" fill="#87CEEB" class="z z2">z</text>
+      <text x="212" y="38" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#87CEEB" class="z z3">z</text>
+    </g>
+
+    <!-- ============================================ -->
+    <!-- TEARS (for starving) -->
+    <!-- ============================================ -->
+    <g *ngIf="mood === 'starving'" class="tears">
+      <path d="M 85 125 Q 83 135 85 145 Q 87 135 85 125 Z" fill="#87CEEB" class="tear tear-left"/>
+      <path d="M 155 125 Q 153 135 155 145 Q 157 135 155 125 Z" fill="#87CEEB" class="tear tear-right"/>
+    </g>
+
+    <!-- ============================================ -->
+    <!-- SPARKLES / STARS (for excited mood) -->
+    <!-- ============================================ -->
+    <g *ngIf="mood === 'excited'" class="sparkles">
+      <!-- Top left star -->
+      <g class="sparkle s1" transform="translate(20, 50)">
+        <path d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+      </g>
+      
+      <!-- Top right star -->
+      <g class="sparkle s2" transform="translate(220, 60)">
+        <path d="M 0 -12 L 4 -4 L 12 0 L 4 4 L 0 12 L -4 4 L -12 0 L -4 -4 Z" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+      </g>
+      
+      <!-- Middle left small star -->
+      <g class="sparkle s3" transform="translate(15, 130)">
+        <path d="M 0 -7 L 2 -2 L 7 0 L 2 2 L 0 7 L -2 2 L -7 0 L -2 -2 Z" fill="#FFD700"/>
+      </g>
+      
+      <!-- Middle right small star -->
+      <g class="sparkle s4" transform="translate(225, 110)">
+        <path d="M 0 -7 L 2 -2 L 7 0 L 2 2 L 0 7 L -2 2 L -7 0 L -2 -2 Z" fill="#FFD700"/>
+      </g>
+    </g>
+  </svg>
+
+  <!-- ============================================ -->
+  <!-- PINK (Tapatchi bunny) — rigged inline SVG,    -->
+  <!-- same treatment as green: named part groups so -->
+  <!-- ears/arms/etc can animate individually rather -->
+  <!-- than the whole character moving as one block. -->
+  <!-- Only happy + fainted are drawn in Figma; every -->
+  <!-- other mood reuses happy and is told apart by   -->
+  <!-- motion + the tint filters below.               -->
+  <!-- ============================================ -->
+  <svg
+    *ngIf="resolvedVariant === 'pink' && resolvedPose === 'happy'"
+    viewBox="-12.00 75.62 275.00 345.41"
+    xmlns="http://www.w3.org/2000/svg"
+    class="tapatchi-svg"
+  >
+    <path class="shadow" d="M126.531 405.246C162.274 405.014 191.225 400.944 191.194 396.155C191.163 391.367 162.161 387.673 126.418 387.905C90.6742 388.138 61.7235 392.208 61.7546 396.996C61.7857 401.785 90.7869 405.478 126.531 405.246Z" fill="#B45078" fill-opacity="0.15"/>
+
+    <g class="leg leg-left">
+      <path d="M99.0443 389.322C114.167 389.224 126.368 380.271 126.297 369.326C126.226 358.381 113.909 349.588 98.7866 349.686C83.6643 349.785 71.4629 358.737 71.5341 369.682C71.6052 380.627 83.922 389.42 99.0443 389.322Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+      <path opacity="0.5" d="M91.4558 370.791C97.6422 370.751 102.639 367.946 102.617 364.525C102.595 361.105 97.5617 358.365 91.3753 358.405C85.1889 358.445 80.1919 361.251 80.2141 364.671C80.2363 368.091 85.2694 370.832 91.4558 370.791Z" fill="#FFE0EC"/>
+    </g>
+    <g class="leg leg-right">
+      <path d="M153.807 388.966C168.929 388.868 181.131 379.915 181.059 368.97C180.988 358.025 168.672 349.232 153.549 349.33C138.427 349.429 126.226 358.381 126.297 369.326C126.368 380.271 138.685 389.064 153.807 388.966Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+      <path opacity="0.5" d="M146.218 370.435C152.405 370.395 157.402 367.59 157.38 364.17C157.357 360.749 152.324 358.009 146.138 358.049C139.952 358.089 134.955 360.895 134.977 364.315C134.999 367.735 140.032 370.476 146.218 370.435Z" fill="#FFE0EC"/>
+    </g>
+
+    <path class="arm arm-left" d="M26.6102 303.294C42.9192 297.903 53.1547 284.586 49.4718 273.549C45.7889 262.513 29.5823 257.936 13.2733 263.327C-3.03576 268.718 -13.2713 282.035 -9.58839 293.072C-5.9055 304.108 10.3011 308.685 26.6102 303.294Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+    <path class="arm arm-right" d="M225.117 302.003C241.494 307.182 257.64 302.395 261.179 291.312C264.718 280.228 254.311 267.045 237.933 261.867C221.555 256.688 205.409 261.475 201.87 272.559C198.331 283.642 208.739 296.825 225.117 302.003Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+
+    <g class="ear ear-left" style="transform-origin: 70px 195px">
+      <path d="M91.2103 203.34C109.855 198.585 119.437 173.242 112.613 146.735C105.789 120.229 85.1423 102.595 66.4976 107.351C47.8528 112.106 38.2704 137.448 45.0947 163.955C51.9189 190.462 72.5656 208.095 91.2103 203.34Z" fill="#FF8FAE" stroke="#1E3A8A" stroke-width="3.85"/>
+      <path d="M86.8852 186.542C98.2052 183.654 103.786 167.347 99.3503 150.118C94.9145 132.888 82.1419 121.261 70.8219 124.149C59.5019 127.036 53.9211 143.343 58.3568 160.572C62.7926 177.802 75.5652 189.429 86.8852 186.542Z" fill="#FFD8E8"/>
+      <path opacity="0.35" d="M79.6821 156.173C84.3433 154.984 86.6006 148.112 84.7239 140.822C82.8473 133.533 77.5473 128.587 72.8861 129.776C68.2249 130.965 65.9676 137.838 67.8443 145.127C69.721 152.417 75.0209 157.362 79.6821 156.173Z" fill="white"/>
+    </g>
+    <g class="ear ear-right" style="transform-origin: 183px 195px">
+      <path d="M159.223 202.898C177.928 207.41 198.344 189.51 204.823 162.917C211.302 136.324 201.391 111.108 182.686 106.595C163.981 102.083 143.565 119.983 137.086 146.576C130.607 173.169 140.518 198.385 159.223 202.898Z" fill="#FF8FAE" stroke="#1E3A8A" stroke-width="3.85"/>
+      <path d="M163.33 186.044C174.686 188.784 187.307 176.992 191.518 159.707C195.729 142.421 189.937 126.188 178.581 123.448C167.224 120.708 154.604 132.5 150.392 149.786C146.181 167.071 151.973 183.305 163.33 186.044Z" fill="#FFD8E8"/>
+      <path opacity="0.35" d="M165.158 155.618C169.835 156.746 175.07 151.732 176.852 144.419C178.633 137.106 176.287 130.263 171.611 129.135C166.934 128.007 161.699 133.021 159.917 140.334C158.136 147.647 160.482 154.49 165.158 155.618Z" fill="white"/>
+    </g>
+
+    <path class="body" d="M126.313 371.804C182.678 371.437 228.075 325.667 227.71 269.574C227.346 213.48 181.357 168.304 124.992 168.671C68.6274 169.037 23.2301 214.807 23.5948 270.9C23.9594 326.994 69.9478 372.17 126.313 371.804Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="4.4"/>
+
+    <path class="head-group headband" d="M43.187 221.226C97.8853 210.961 152.648 210.605 207.475 220.158" stroke="#FF6B9D" stroke-width="16.5" stroke-linecap="round" fill="none"/>
+    <path class="head-group headband" opacity="0.7" d="M50.6223 216.223C100.353 207.642 150.137 207.319 199.975 215.253" stroke="#FFA0C4" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+
+    <path class="head-group face-shine" opacity="0.28" d="M85.6964 250.678C106.318 250.544 122.962 239.344 122.874 225.663C122.785 211.982 105.996 200.999 85.3743 201.133C64.753 201.267 48.1082 212.467 48.1972 226.148C48.2861 239.83 65.0751 250.812 85.6964 250.678Z" fill="white"/>
+
+    <g class="eyes">
+      <path d="M88.5162 301.445C105.701 301.333 119.53 285.715 119.406 266.561C119.281 247.407 105.25 231.971 88.0654 232.082C70.8809 232.194 57.0511 247.812 57.1756 266.966C57.3001 286.12 71.3318 301.557 88.5162 301.445Z" fill="white" stroke="#1E3A8A" stroke-width="2.75"/>
+      <path d="M163.192 300.96C180.376 300.848 194.206 285.23 194.082 266.076C193.957 246.922 179.926 231.485 162.741 231.597C145.557 231.709 131.727 247.327 131.851 266.481C131.976 285.634 146.008 301.071 163.192 300.96Z" fill="white" stroke="#1E3A8A" stroke-width="2.75"/>
+
+      <path d="M90.9647 295.236C102.65 295.16 112.051 284.007 111.962 270.326C111.873 256.644 102.328 245.615 90.6427 245.691C78.9573 245.767 69.5565 256.92 69.6454 270.601C69.7343 284.282 79.2793 295.312 90.9647 295.236Z" fill="#1E3A8A"/>
+      <path opacity="0.55" d="M88.3873 281.627C95.9485 281.578 102.031 274.329 101.973 265.436C101.916 256.543 95.7391 249.374 88.178 249.423C80.6168 249.472 74.5342 256.721 74.592 265.614C74.6498 274.507 80.8262 281.676 88.3873 281.627Z" fill="#5B8FEA"/>
+      <path d="M80.8471 270.528C86.0025 270.495 90.1456 264.922 90.1012 258.081C90.0567 251.241 85.8414 245.722 80.6861 245.756C75.5308 245.789 71.3876 251.362 71.4321 258.203C71.4765 265.043 75.6918 270.562 80.8471 270.528Z" fill="white"/>
+      <path d="M98.3646 284.659C100.77 284.643 102.708 282.69 102.693 280.296C102.677 277.901 100.714 275.973 98.3083 275.989C95.9025 276.004 93.9648 277.958 93.9803 280.352C93.9959 282.746 95.9588 284.675 98.3646 284.659Z" fill="white"/>
+
+      <path d="M160.663 294.783C172.348 294.707 181.749 283.554 181.66 269.873C181.571 256.191 172.026 245.162 160.341 245.238C148.656 245.314 139.255 256.466 139.344 270.148C139.433 283.829 148.978 294.859 160.663 294.783Z" fill="#1E3A8A"/>
+      <path opacity="0.55" d="M158.086 281.174C165.647 281.125 171.729 273.876 171.672 264.983C171.614 256.09 165.437 248.921 157.876 248.97C150.315 249.019 144.232 256.268 144.29 265.161C144.348 274.054 150.524 281.223 158.086 281.174Z" fill="#5B8FEA"/>
+      <path d="M150.545 270.075C155.701 270.041 159.844 264.469 159.799 257.628C159.755 250.787 155.54 245.269 150.384 245.303C145.229 245.336 141.086 250.909 141.13 257.749C141.175 264.59 145.39 270.108 150.545 270.075Z" fill="white"/>
+      <path d="M168.062 284.206C170.468 284.19 172.405 282.237 172.39 279.842C172.374 277.448 170.411 275.52 168.006 275.536C165.6 275.551 163.662 277.505 163.678 279.899C163.693 282.293 165.656 284.222 168.062 284.206Z" fill="white"/>
+    </g>
+
+    <path class="cheek cheek-left" opacity="0.72" d="M56.2289 312.803C70.6638 312.709 82.3188 305.424 82.261 296.531C82.2032 287.638 70.4545 280.505 56.0196 280.599C41.5846 280.692 29.9297 287.978 29.9875 296.871C30.0453 305.763 41.794 312.896 56.2289 312.803Z" fill="#FF9EBB"/>
+    <path class="cheek cheek-right" opacity="0.72" d="M195.624 311.897C210.059 311.803 221.714 304.518 221.656 295.625C221.599 286.732 209.85 279.599 195.415 279.693C180.98 279.787 169.325 287.072 169.383 295.965C169.441 304.858 181.189 311.991 195.624 311.897Z" fill="#FF9EBB"/>
+
+    <path class="head-group nose" opacity="0.7" d="M125.842 299.344C129.279 299.322 132.052 297.363 132.037 294.969C132.021 292.574 129.222 290.652 125.786 290.674C122.349 290.696 119.575 292.655 119.591 295.05C119.606 297.444 122.405 299.367 125.842 299.344Z" fill="#C85080"/>
+
+    <g class="mouth">
+      <path d="M103.459 302.586C118.48 315.701 133.415 315.604 148.265 302.295" stroke="#C85080" stroke-width="3.3" stroke-linecap="round" fill="none"/>
+    </g>
+
+    <path class="head-group headband-curl" d="M121.476 202.137C128.879 192.18 142.578 193.329 141.398 203.246C140.218 213.163 130.269 214.467 125.258 209.545" stroke="#C85080" stroke-width="2.75" stroke-linecap="round" fill="none"/>
+  </svg>
+
+  <svg
+    *ngIf="resolvedVariant === 'pink' && resolvedPose === 'fainted'"
+    viewBox="321.50 68.00 310.01 355.26"
+    xmlns="http://www.w3.org/2000/svg"
+    class="tapatchi-svg"
+  >
+    <path class="shadow" d="M366.563 381.634C397.077 389.81 422.706 393.108 423.807 389.001C424.908 384.893 401.063 374.935 370.549 366.759C340.035 358.582 314.406 355.284 313.305 359.392C312.204 363.499 336.049 373.458 366.563 381.634Z" fill="#B45078" fill-opacity="0.15"/>
+
+    <g class="leg leg-left">
+      <path d="M346.888 361.558C359.798 365.017 372.303 360.21 374.819 350.821C377.334 341.432 368.908 331.017 355.998 327.557C343.089 324.098 330.584 328.905 328.068 338.294C325.552 347.683 333.978 358.099 346.888 361.558Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+      <path opacity="0.5" d="M344.784 343.912C350.065 345.327 354.984 344.095 355.77 341.161C356.556 338.227 352.912 334.702 347.631 333.286C342.35 331.871 337.431 333.103 336.645 336.037C335.859 338.971 339.503 342.496 344.784 343.912Z" fill="#FFE0EC"/>
+    </g>
+    <g class="leg leg-right">
+      <path d="M393.639 374.085C406.549 377.544 419.054 372.737 421.57 363.348C424.085 353.959 415.659 343.543 402.749 340.084C389.84 336.625 377.335 341.432 374.819 350.821C372.303 360.21 380.729 370.626 393.639 374.085Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+      <path opacity="0.5" d="M391.535 356.438C396.816 357.854 401.735 356.622 402.521 353.688C403.307 350.754 399.663 347.228 394.382 345.813C389.101 344.398 384.182 345.63 383.396 348.564C382.61 351.498 386.254 355.023 391.535 356.438Z" fill="#FFE0EC"/>
+    </g>
+
+    <path class="arm arm-left" d="M305.413 270.919C320.58 270.124 332.437 261.119 331.896 250.806C331.356 240.492 318.622 232.776 303.455 233.571C288.288 234.365 276.431 243.371 276.972 253.684C277.512 263.998 290.246 271.714 305.413 270.919Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+    <path class="arm arm-right" d="M474.878 316.327C487.615 324.599 502.501 324.283 508.126 315.622C513.751 306.96 507.985 293.233 495.247 284.961C482.509 276.689 467.624 277.005 461.999 285.667C456.374 294.328 462.14 308.055 474.878 316.327Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="3.3"/>
+
+    <g class="ear ear-left">
+      <path d="M383.991 200.465C400.999 200.761 415.13 181.306 415.554 157.009C415.978 132.712 402.535 112.775 385.527 112.478C368.519 112.181 354.388 131.637 353.964 155.934C353.539 180.231 366.983 200.168 383.991 200.465Z" fill="#FF8FAE" stroke="#1E3A8A" stroke-width="3.85"/>
+      <path d="M384.26 185.067C394.587 185.247 403.181 172.591 403.457 156.798C403.732 141.005 395.585 128.056 385.259 127.876C374.933 127.695 366.338 140.352 366.062 156.145C365.787 171.938 373.934 184.887 384.26 185.067Z" fill="#FFD8E8"/>
+      <path opacity="0.35" d="M385.27 157.375C389.522 157.449 393.063 152.092 393.18 145.411C393.296 138.729 389.944 133.253 385.692 133.178C381.44 133.104 377.899 138.46 377.782 145.142C377.665 151.824 381.018 157.3 385.27 157.375Z" fill="white"/>
+    </g>
+    <g class="ear ear-right">
+      <path d="M442.054 216.022C456.932 224.269 478.543 213.725 490.324 192.471C502.105 171.217 499.595 147.302 484.718 139.056C469.84 130.809 448.229 141.353 436.448 162.607C424.667 183.861 427.177 207.775 442.054 216.022Z" fill="#FF8FAE" stroke="#1E3A8A" stroke-width="3.85"/>
+      <path d="M449.52 202.553C458.553 207.56 472.083 200.42 479.741 186.605C487.398 172.79 486.284 157.532 477.251 152.525C468.218 147.518 454.688 154.658 447.03 168.473C439.372 182.288 440.487 197.546 449.52 202.553Z" fill="#FFD8E8"/>
+      <path opacity="0.35" d="M458.241 176.928C461.961 178.989 467.602 175.923 470.842 170.078C474.082 164.233 473.693 157.824 469.974 155.762C466.254 153.7 460.613 156.767 457.373 162.612C454.133 168.456 454.522 174.866 458.241 176.928Z" fill="white"/>
+    </g>
+
+    <path class="body" d="M374.25 352.946C422.369 365.84 471.829 337.284 484.722 289.165C497.615 241.046 469.06 191.586 420.941 178.693C372.822 165.8 323.362 194.356 310.469 242.474C297.576 290.593 326.131 340.053 374.25 352.946Z" fill="#FFB8D1" stroke="#1E3A8A" stroke-width="4.4"/>
+
+    <path class="head-group headband" d="M338.857 204.528C387.886 208.555 434.636 221.082 479.11 242.109" stroke="#FF6B9D" stroke-width="16.5" stroke-linecap="round" fill="none"/>
+    <path class="head-group headband" opacity="0.7" d="M346.37 201.986C390.769 206.291 433.27 217.679 473.873 236.151" stroke="#FFA0C4" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+
+    <path class="head-group face-shine" opacity="0.28" d="M368.15 239.709C385.754 244.426 402.574 238.736 405.719 226.999C408.864 215.263 397.142 201.925 379.538 197.208C361.933 192.491 345.113 198.181 341.968 209.917C338.823 221.654 350.545 234.992 368.15 239.709Z" fill="white"/>
+
+    <g class="eyes">
+      <path d="M358.602 283.841C373.272 287.772 388.734 277.639 393.137 261.208C397.539 244.777 389.216 228.271 374.545 224.34C359.875 220.409 344.413 230.542 340.011 246.973C335.608 263.404 343.932 279.91 358.602 283.841Z" fill="white" stroke="#1E3A8A" stroke-width="2.75"/>
+      <path d="M422.353 300.923C437.023 304.854 452.485 294.721 456.888 278.29C461.29 261.859 452.967 245.353 438.296 241.422C423.626 237.491 408.164 247.624 403.762 264.055C399.359 280.486 407.683 296.992 422.353 300.923Z" fill="white" stroke="#1E3A8A" stroke-width="2.75"/>
+      <path d="M358.796 240.619L374.352 267.563" stroke="#1E3A8A" stroke-width="4.95" stroke-linecap="round"/>
+      <path d="M380.046 246.313L353.102 261.869" stroke="#1E3A8A" stroke-width="4.95" stroke-linecap="round"/>
+      <path d="M422.547 257.701L438.103 284.645" stroke="#1E3A8A" stroke-width="4.95" stroke-linecap="round"/>
+      <path d="M443.797 263.395L416.853 278.951" stroke="#1E3A8A" stroke-width="4.95" stroke-linecap="round"/>
+    </g>
+
+    <path class="cheek cheek-left" opacity="0.72" d="M328.415 286.002C340.738 289.304 352.385 285.796 354.429 278.168C356.473 270.539 348.14 261.678 335.817 258.376C323.494 255.074 311.847 258.582 309.803 266.21C307.759 273.839 316.092 282.7 328.415 286.002Z" fill="#FF9EBB"/>
+    <path class="cheek cheek-right" opacity="0.72" d="M447.417 317.888C459.74 321.19 471.386 317.683 473.431 310.054C475.475 302.426 467.142 293.565 454.819 290.263C442.496 286.961 430.849 290.468 428.805 298.097C426.761 305.725 435.093 314.586 447.417 317.888Z" fill="#FF9EBB"/>
+
+    <path class="head-group nose" opacity="0.7" d="M390.905 290.788C393.839 291.575 396.663 290.547 397.214 288.493C397.764 286.439 395.832 284.137 392.898 283.351C389.963 282.565 387.139 283.592 386.589 285.646C386.038 287.7 387.971 290.002 390.905 290.788Z" fill="#C85080"/>
+
+    <g class="mouth">
+      <path d="M374.179 293.709C385.045 292.825 394.962 295.482 403.929 301.681" stroke="#C85080" stroke-width="3.3" stroke-linecap="round" fill="none"/>
+    </g>
+
+    <path class="head-group headband-curl" d="M410.066 206.527C418.719 199.735 430.122 203.929 426.782 212.145C423.442 220.36 414.657 219.145 411.546 213.756" stroke="#C85080" stroke-width="2.75" stroke-linecap="round" fill="none"/>
+
+    <g class="faint-zs">
+      <path d="M347.762 185.174L348.327 183.065L356.64 177.01L356.665 176.918L350.638 175.304L351.394 172.481L361.679 175.237L361.063 177.537L353.183 183.504L353.158 183.595L359.235 185.223L358.479 188.045L347.762 185.174Z" fill="#9999CC"/>
+      <path d="M337.55 162.56L337.841 161.473L344.917 156.122L344.943 156.026L339.847 154.66L340.203 153.332L347.134 155.189L346.83 156.324L339.911 161.666L339.886 161.762L345.174 163.179L344.818 164.507L337.55 162.56Z" fill="#AAAADD"/>
+      <path d="M332.866 144.74L333.066 143.993L337.931 140.315L337.949 140.248L334.446 139.31L334.69 138.396L339.455 139.673L339.246 140.453L334.49 144.126L334.472 144.192L338.108 145.166L337.863 146.079L332.866 144.74Z" fill="#BBBBEE"/>
+    </g>
+  </svg>
+
+  <!-- ============================================ -->
+  <!-- FIGMA CHARACTERS (blue, orange, yellow, white,-->
+  <!-- black, purple) — exported flat vector art.    -->
+  <!-- Moods without their own pose reuse the drawn  -->
+  <!-- one and are told apart by motion + tint.      -->
+  <!-- ============================================ -->
+  <ng-container *ngIf="isPlainArt">
+    <img class="tapatchi-art" [src]="artSrc" [alt]="displayName + ' looking ' + mood" draggable="false" />
+  </ng-container>
+
+  <!-- Overlays shared by every non-green character, whether rendered as    -->
+  <!-- flat art or rigged inline SVG (pink's fainted pose has its own baked -->
+  <!-- in Z's, so this sleeping overlay only ever applies to a fallback     -->
+  <!-- pose, never alongside it).                                          -->
+  <ng-container *ngIf="resolvedVariant !== 'green'">
+    <!-- Sleep z's, for a pose that has no sleeping artwork of its own -->
+    <svg *ngIf="mood === 'sleeping'" class="tapatchi-overlay sleep-zs" viewBox="0 0 240 240" aria-hidden="true">
+      <text x="172" y="62" font-family="Fredoka, sans-serif" font-size="28" font-weight="700" fill="#87CEEB" class="z z1">z</text>
+      <text x="194" y="46" font-family="Fredoka, sans-serif" font-size="22" font-weight="700" fill="#87CEEB" class="z z2">z</text>
+      <text x="212" y="33" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#87CEEB" class="z z3">z</text>
+    </svg>
+
+    <!-- Sparkles, only when the character has no excited pose of its own -->
+    <svg *ngIf="mood === 'excited' && isFallbackPose" class="tapatchi-overlay sparkles" viewBox="0 0 240 240" aria-hidden="true">
+      <g class="sparkle s1" transform="translate(24, 52)">
+        <path d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+      </g>
+      <g class="sparkle s2" transform="translate(216, 62)">
+        <path d="M 0 -12 L 4 -4 L 12 0 L 4 4 L 0 12 L -4 4 L -12 0 L -4 -4 Z" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+      </g>
+      <g class="sparkle s3" transform="translate(18, 132)">
+        <path d="M 0 -7 L 2 -2 L 7 0 L 2 2 L 0 7 L -2 2 L -7 0 L -2 -2 Z" fill="#FFD700"/>
+      </g>
+      <g class="sparkle s4" transform="translate(222, 112)">
+        <path d="M 0 -7 L 2 -2 L 7 0 L 2 2 L 0 7 L -2 2 L -7 0 L -2 -2 Z" fill="#FFD700"/>
+      </g>
+    </svg>
+
+    <!-- Tears, for the starving pose -->
+    <svg *ngIf="mood === 'starving'" class="tapatchi-overlay tears" viewBox="0 0 240 240" aria-hidden="true">
+      <path d="M 84 122 Q 82 132 84 142 Q 86 132 84 122 Z" fill="#87CEEB" class="tear tear-left"/>
+      <path d="M 156 122 Q 154 132 156 142 Q 158 132 156 122 Z" fill="#87CEEB" class="tear tear-right"/>
+    </svg>
+  </ng-container>
+</div>

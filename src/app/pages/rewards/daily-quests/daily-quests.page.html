@@ -1,0 +1,106 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Daily Quests</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="daily-quests-content">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div *ngIf="loading" class="state-message">Loading your quests...</div>
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+    <!-- Resets in -->
+    <div class="resets-banner">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>Resets in: <strong>{{ resetsIn }}</strong></span>
+    </div>
+
+    <!-- Progress ring card -->
+    <div class="progress-card">
+      <div class="progress-ring" [style.--progress]="totalCount > 0 ? (completedCount / totalCount * 100) : 0">
+        <span class="progress-ring-value">{{ completedCount }}/{{ totalCount }}</span>
+      </div>
+      <div class="progress-text">
+        <span class="progress-label">Quests Completed</span>
+        <span class="progress-percent">{{ totalCount > 0 ? ((completedCount / totalCount * 100) | number:'1.0-0') : 0 }}%</span>
+      </div>
+      <span class="progress-sparkle">✨</span>
+    </div>
+
+    <!-- Incomplete quests -->
+    <div class="section-heading">
+      <ion-icon name="flash-outline" class="section-heading-icon section-heading-icon--incomplete"></ion-icon>
+      <span>Incomplete Quests</span>
+    </div>
+
+    <div class="quest-card" *ngFor="let quest of incompleteQuests">
+      <div class="quest-card-header">
+        <div class="quest-icon">
+          <ion-icon [name]="quest.icon"></ion-icon>
+        </div>
+        <div class="quest-info">
+          <span class="quest-title">{{ quest.title }}</span>
+          <span class="quest-description">{{ quest.description }}</span>
+        </div>
+      </div>
+
+      <div class="quest-progress-row" *ngIf="quest.progress.target > 1 && !quest.progress.completed">
+        <span class="quest-progress-value">{{ quest.requirementType === 'spend_amount' ? '$' : '' }}{{ quest.progress.current }}</span>
+        <div class="quest-progress-bar">
+          <div class="quest-progress-fill" [style.width.%]="(quest.progress.current / quest.progress.target) * 100"></div>
+        </div>
+        <span class="quest-progress-value">{{ quest.requirementType === 'spend_amount' ? '$' : '' }}{{ quest.progress.target }}</span>
+      </div>
+
+      <div class="quest-pills">
+        <span class="pill pill--points">+{{ quest.points }} Points</span>
+        <span class="pill" [ngClass]="'pill--' + reward.style" *ngFor="let reward of quest.rewards">{{ reward.label }}</span>
+      </div>
+
+      <ion-button
+        *ngIf="quest.progress.completed"
+        expand="block"
+        shape="round"
+        class="claim-btn"
+        [disabled]="claimingId === quest.id"
+        (click)="claim(quest.id)">
+        {{ claimingId === quest.id ? 'Claiming...' : 'Claim Reward' }}
+      </ion-button>
+    </div>
+
+    <!-- Completed -->
+    <ng-container *ngIf="completedQuests.length > 0">
+      <div class="section-heading">
+        <ion-icon name="checkmark-circle-outline" class="section-heading-icon section-heading-icon--completed"></ion-icon>
+        <span>Completed</span>
+      </div>
+
+      <div class="quest-card quest-card--completed" *ngFor="let quest of completedQuests">
+        <div class="quest-card-header">
+          <div class="quest-icon quest-icon--completed">
+            <ion-icon name="checkmark-outline"></ion-icon>
+          </div>
+          <div class="quest-info">
+            <span class="quest-title">{{ quest.title }}</span>
+            <span class="quest-description">{{ quest.description }}</span>
+          </div>
+        </div>
+
+        <div class="quest-pills">
+          <span class="pill pill--points">+{{ quest.points }} Points</span>
+          <span class="pill" [ngClass]="'pill--' + reward.style" *ngFor="let reward of quest.rewards">{{ reward.label }}</span>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+
+</ion-content>

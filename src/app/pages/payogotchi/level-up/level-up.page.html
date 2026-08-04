@@ -1,0 +1,49 @@
+<ion-content [fullscreen]="true" class="lvl-content">
+  <div class="lvl-screen">
+    <!-- Gold sunburst rays -->
+    <div class="lvl-rays"></div>
+
+    <!-- Title -->
+    <header class="lvl-header">
+      <h1 class="lvl-title">LEVEL UP!</h1>
+      <p class="lvl-subtitle">{{ petName }} is growing stronger!</p>
+    </header>
+
+    <!-- Pet with pulsing rings -->
+    <div class="lvl-hero">
+      <span class="lvl-ring ring-1"></span>
+      <span class="lvl-ring ring-2"></span>
+      <span class="lvl-ring ring-3"></span>
+      <div class="lvl-hero-glow"></div>
+      <app-tapatchi mood="excited" [size]="210"></app-tapatchi>
+    </div>
+
+    <!-- Bottom stack -->
+    <div class="lvl-bottom">
+      <!-- Before → Now level -->
+      <div class="lvl-levels">
+        <div class="lvl-level is-before">
+          <span class="lvl-level-num">{{ beforeLevel }}</span>
+          <span class="lvl-level-label">Before</span>
+        </div>
+        <span class="lvl-level-arrow">→</span>
+        <div class="lvl-level is-now">
+          <span class="lvl-level-num">{{ nowLevel }}</span>
+          <span class="lvl-level-label">Now</span>
+        </div>
+      </div>
+
+      <!-- Reward card -->
+      <div class="lvl-reward">
+        <span class="lvl-reward-icon">🎁</span>
+        <div class="lvl-reward-body">
+          <p class="lvl-reward-title">+{{ reward }} NETS Points!</p>
+          <p class="lvl-reward-sub">Credited to your account</p>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <button type="button" class="lvl-btn" (click)="continue()">Continue 🚀</button>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,280 @@
+.tx-header {
+  ion-toolbar {
+    --background: #fff;
+    --border-width: 0;
+  }
+
+  ion-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+
+  ion-button {
+    --color: #1a1a2e;
+  }
+}
+
+.tx-content {
+  --background: #ffffff;
+  --padding-bottom: 24px;
+}
+
+.tx-page {
+  padding: 8px 16px 32px;
+}
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.search-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f5f7;
+  border-radius: 12px;
+  padding: 0 12px;
+  height: 44px;
+
+  ion-icon {
+    font-size: 18px;
+    color: #8e8e93;
+    flex-shrink: 0;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    color: #1a1a2e;
+    outline: none;
+
+    &::placeholder {
+      color: #8e8e93;
+    }
+  }
+}
+
+.filter-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: #f5f5f7;
+  color: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  ion-icon {
+    font-size: 20px;
+  }
+
+  &.open,
+  &.has-filters {
+    background: #ede7f6;
+    color: #6c63ff;
+  }
+}
+
+.filter-panel {
+  margin-bottom: 14px;
+}
+
+.filter-section {
+  margin-bottom: 14px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.filter-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8e8e93;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  border: 1px solid #e8e8ed;
+  background: #fff;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a2e;
+  cursor: pointer;
+
+  &.active {
+    background: #6c63ff;
+    border-color: #6c63ff;
+    color: #fff;
+  }
+}
+
+.summary-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #6c63ff 0%, #2f80ed 100%);
+  border-radius: 14px;
+  padding: 16px 18px;
+  color: #fff;
+  margin: 0 0 20px;
+}
+
+.summary-label {
+  margin: 0 0 4px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.summary-amount {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.summary-meta {
+  text-align: right;
+  font-size: 11px;
+  opacity: 0.9;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-group {
+  margin-bottom: 8px;
+}
+
+.date-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+
+  .positive {
+    color: #27ae60;
+  }
+
+  .negative {
+    color: #1a1a2e;
+  }
+}
+
+.tx-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.tx-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+.tx-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-merchant {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.tx-meta {
+  margin: 0;
+  font-size: 12px;
+  color: #8e8e93;
+}
+
+.tx-amount {
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+
+  &.income {
+    color: #27ae60;
+  }
+
+  &.expenditure {
+    color: #1a1a2e;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 16px;
+  color: #8e8e93;
+
+  ion-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.load-more-btn {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #e8e8ed;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6c63ff;
+  cursor: pointer;
+}
+
+.period-row {
+  margin-bottom: 16px;
+}
+
+.change-period-btn {
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6c63ff;
+  cursor: pointer;
+}

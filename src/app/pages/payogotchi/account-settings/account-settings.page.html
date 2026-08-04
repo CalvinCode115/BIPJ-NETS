@@ -1,0 +1,43 @@
+<ion-content [fullscreen]="true" class="account-content">
+  <!-- Top bar -->
+  <header class="account-topbar">
+    <button type="button" class="account-back" (click)="back()" aria-label="Back">←</button>
+    <h1 class="account-title">Account Settings</h1>
+  </header>
+
+  <div class="account-screen">
+    <!-- Profile card -->
+    <section class="account-profile">
+      <div class="account-avatar">👤</div>
+      <div class="account-profile-info">
+        <p class="account-profile-name">{{ profile.name }}</p>
+        <p class="account-profile-email">{{ profile.email }}</p>
+        <p class="account-profile-tier">{{ profile.tier }}</p>
+        <p class="account-profile-since">{{ profile.since }}</p>
+      </div>
+      <button type="button" class="account-edit" (click)="editProfile()" aria-label="Edit profile">✏️</button>
+    </section>
+
+    <!-- Grouped menu -->
+    <section class="account-menu" *ngFor="let section of sections">
+      <p class="account-section-heading">{{ section.heading }}</p>
+      <button
+        type="button"
+        class="account-row"
+        *ngFor="let row of section.rows"
+        (click)="onRow(row)"
+      >
+        <span class="account-row-icon">{{ row.icon }}</span>
+        <span class="account-row-body">
+          <span class="account-row-title">{{ row.title }}</span>
+          <span class="account-row-subtitle">{{ row.subtitle }}</span>
+        </span>
+        <span class="account-row-chevron">›</span>
+      </button>
+    </section>
+
+    <!-- Log out + version -->
+    <button type="button" class="account-logout" (click)="logOut()">Log Out</button>
+    <p class="account-version">{{ appVersion }}</p>
+  </div>
+</ion-content>

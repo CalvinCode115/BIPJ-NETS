@@ -1,0 +1,242 @@
+.settings-content {
+  --background: var(--payogotchi-cream);
+}
+
+.settings-screen {
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 24px;
+}
+
+/* ---- Top bar ---- */
+.settings-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 4px 8px;
+}
+
+.settings-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 18px;
+  background: #ffffff;
+  color: var(--text-primary);
+  font-size: 22px;
+  line-height: 1;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+}
+
+.settings-title {
+  margin: 0;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+/* ---- Pet profile card ---- */
+.settings-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 8px;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 10px;
+  border-radius: 60px;
+  background: linear-gradient(135deg, var(--payogotchi-mint) 0%, var(--payogotchi-sky-blue) 100%);
+}
+
+.settings-pet-name {
+  margin: 0;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--text-primary);
+}
+
+.settings-pet-sub {
+  margin: 2px 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.settings-stats {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--payogotchi-mint) 20%, #ffffff);
+}
+
+.settings-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.settings-stat-icon {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.settings-stat-value {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.settings-stat-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* ---- Journey card ---- */
+.settings-journey {
+  margin-top: 24px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
+}
+
+.settings-journey-title {
+  margin: 0;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.settings-journey-list {
+  margin-top: 12px;
+}
+
+.settings-journey-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-light) 25%, transparent);
+}
+
+.settings-journey-row:last-child {
+  border-bottom: none;
+}
+
+.settings-journey-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-journey-icon {
+  width: 24px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.settings-journey-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.settings-journey-value {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* ---- Grouped menu ---- */
+.settings-menu {
+  margin-top: 16px;
+}
+
+.settings-section-heading {
+  margin: 0 0 8px 4px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: var(--radius-medium);
+  background: #ffffff;
+  text-align: left;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+}
+
+.settings-row-icon {
+  width: 28px;
+  font-size: 22px;
+  text-align: center;
+}
+
+.settings-row-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.settings-row-subtitle {
+  margin-top: 2px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.settings-row-subtitle.danger {
+  color: var(--text-accent);
+}
+
+.settings-row-chevron {
+  color: var(--text-light);
+  font-size: 20px;
+  line-height: 1;
+}

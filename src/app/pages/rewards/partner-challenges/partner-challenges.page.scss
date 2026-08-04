@@ -1,0 +1,376 @@
+.nets-page-toolbar {
+  --background: #ffffff;
+  --border-color: transparent;
+}
+
+.partner-challenges-content {
+  --background: #ffffff;
+  --padding-start: 20px;
+  --padding-end: 20px;
+  --padding-top: 12px;
+}
+
+// ---- Special challenges cleared ----
+.cleared-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #fbe4c8;
+  background: #fffaf2;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 8px;
+
+  .cleared-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 14px;
+    background: #ff6a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 24px;
+  }
+
+  .cleared-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cleared-label {
+    font-size: 13px;
+    color: #8a8a8e;
+  }
+
+  .cleared-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1a1a1a;
+  }
+}
+
+.cleared-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: #f0e0d0;
+  overflow: hidden;
+  margin-bottom: 24px;
+
+  .cleared-progress-fill {
+    height: 100%;
+    background: #ff3b30;
+    border-radius: 3px;
+  }
+}
+
+// ---- Challenge card ----
+.challenge-card {
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #ececee;
+
+  &--average {
+    border-color: #f5dba0;
+  }
+
+  &--hard {
+    border-color: #f5c0c0;
+  }
+
+  // Card background/border color reflects COMPLETION only, never difficulty.
+  // (The icon square below still uses difficulty-based color — that's fine,
+  // it's just a visual difficulty indicator, separate from card state.)
+  &--completed {
+    background: #eefaf1;
+    border-color: #1fa564;
+  }
+
+  &--past {
+    background: #fafafa;
+  }
+
+  .challenge-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .challenge-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 22px;
+
+    &--average, &--hard {
+      background: #ff5a1a;
+    }
+
+    &--easy {
+      background: #1fa564;
+    }
+  }
+
+  .challenge-title-block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .challenge-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1.3;
+    }
+
+    .challenge-location {
+      font-size: 12px;
+      color: #8a8a8e;
+      margin-top: 2px;
+    }
+  }
+
+  .challenge-tags {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .completed-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1fa564;
+    white-space: nowrap;
+
+    ion-icon {
+      font-size: 13px;
+    }
+  }
+
+  .difficulty-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+
+    &--average { background: #fdf1c0; color: #b5860f; }
+    &--hard { background: #fbdada; color: #d1372e; }
+    &--easy { background: #d9f2e3; color: #1fa564; }
+  }
+
+  .challenge-completion-rate {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #8a8a8e;
+    margin-bottom: 10px;
+
+    ion-icon {
+      font-size: 14px;
+    }
+  }
+
+  .challenge-task {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 10px;
+  }
+}
+
+// ---- Spend progress row ----
+.challenge-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+
+  .challenge-progress-value {
+    font-size: 12px;
+    color: #8a8a8e;
+    white-space: nowrap;
+  }
+
+  .challenge-progress-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #ececee;
+    overflow: hidden;
+
+    .challenge-progress-fill {
+      height: 100%;
+      background: #ff5a1a;
+      border-radius: 3px;
+    }
+  }
+}
+
+// ---- Numbered visit circles ----
+.visit-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.visit-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ececee;
+  color: #b0b0b4;
+
+  &--filled {
+    background: #ff8a1a;
+    color: #ffffff;
+  }
+}
+
+// ---- Checkmark boxes ----
+.check-box {
+  flex: 1;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ececee;
+  color: #ffffff;
+  font-size: 16px;
+
+  &--filled {
+    background: #1fa564;
+  }
+}
+
+.challenge-progress-caption {
+  display: block;
+  font-size: 12px;
+  color: #8a8a8e;
+  margin-bottom: 12px;
+}
+
+// ---- Rewards ----
+.rewards-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a8a8e;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.challenge-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 14px;
+
+  &--points { background: #ede4fb; color: #7b3fd1; }
+  &--item { background: #fbe4e6; color: #e0303d; }
+  &--buff { background: #fdf1de; color: #d99a2b; }
+  &--title { background: #fdf1de; color: #d99a2b; }
+  &--voucher { background: #e3ecfd; color: #3d6fe0; }
+  &--badge { background: #d9f2e3; color: #1fa564; }
+}
+
+// ---- Footer ----
+.challenge-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8a8a8e;
+  background: #f5f5f6;
+  border-radius: 10px;
+  padding: 8px 12px;
+
+  ion-icon {
+    font-size: 14px;
+  }
+}
+
+// ---- Section heading (Past Challenges) ----
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+  margin-top: 8px;
+
+  .section-heading-icon {
+    font-size: 18px;
+    color: #8a8a8e;
+  }
+}
+
+.past-outcome-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+
+  &--claimed { background: #d9f2e3; color: #1fa564; }
+  &--expired { background: #ececee; color: #8a8a8e; }
+}
+
+// ---- Start / Claim buttons ----
+.start-btn {
+  --background: #3d6fe0;
+  --border-radius: 20px;
+  font-weight: 700;
+  text-transform: none;
+  margin-bottom: 12px;
+}
+
+.claim-btn {
+  --background: #1fa564;
+  --border-radius: 20px;
+  font-weight: 700;
+  text-transform: none;
+  margin-bottom: 12px;
+}
+
+// ---- Loading / error states ----
+.state-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #8a8a8e;
+  font-size: 14px;
+
+  &--error {
+    color: #e0303d;
+  }
+}

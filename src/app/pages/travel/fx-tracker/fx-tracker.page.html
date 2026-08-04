@@ -1,0 +1,233 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>FX Tracker</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refresh()">
+        <ion-icon name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Destination Header -->
+  <div class="destination-header">
+    <div class="flag">{{ currentDestination.flag }}</div>
+    <div class="destination-info">
+      <h2>{{ destination }}</h2>
+      <p>{{ baseCurrency }} → {{ targetCurrency }}</p>
+    </div>
+  </div>
+
+  <!-- Direction Toggle -->
+  <div class="direction-toggle">
+    <button [class.active]="!isReversed" (click)="setDirection(false)">
+      {{ currentDestination.homeCurrencyCode || 'SGD' }} → {{ currentDestination.currencyCode }}
+    </button>
+    <button [class.active]="isReversed" (click)="setDirection(true)">
+      {{ currentDestination.currencyCode }} → {{ currentDestination.homeCurrencyCode || 'SGD' }}
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-state" *ngIf="isLoading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading FX data...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="error-state" *ngIf="error && !isLoading">
+    <ion-icon name="alert-circle-outline"></ion-icon>
+    <p>{{ error }}</p>
+    <ion-button fill="outline" size="small" (click)="refresh()">Retry</ion-button>
+  </div>
+
+  <!-- FX Data -->
+  <div class="fx-content" *ngIf="insight && !isLoading">
+    <!-- Current Rate -->
+    <div class="rate-card">
+      <div class="rate-main">
+        <span class="rate-value">{{ exchangeRate | number:'1.4-4' }}</span>
+        <span class="rate-pair">{{ targetCurrency }}/{{ baseCurrency }}</span>
+      </div>
+      <div class="rate-change" [class.up]="insight.trend === 'up'" [class.down]="insight.trend === 'down'">
+        <ion-icon [name]="getTrendIcon()"></ion-icon>
+        <span>{{ insight.changePercent | number:'1.2-2' }}%</span>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-container">
+      <canvas #fxChart></canvas>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">30-Day High</span>
+        <span class="stat-value">{{ insight.high30d | number:'1.4-4' }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">30-Day Low</span>
+        <span class="stat-value">{{ insight.low30d | number:'1.4-4' }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Trend</span>
+        <span class="stat-value" [style.color]="getTrendColor()">
+          <ion-icon [name]="getTrendIcon()"></ion-icon>
+          {{ insight.trend | titlecase }}
+        </span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Signal</span>
+        <span class="stat-value" [style.color]="getSignalColor()">
+          <ion-icon [name]="getSignalIcon()"></ion-icon>
+          {{ insight.prediction.technicalSignal | titlecase }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Trend Analysis -->
+    <div class="trend-card">
+      <div class="trend-header">
+        <ion-icon [name]="getTrendIcon()" [style.color]="getTrendColor()"></ion-icon>
+        <span [style.color]="getTrendColor()">{{ getTrendLabel() }}</span>
+      </div>
+      <p class="trend-desc">{{ $any(insight.prediction).narrative }}</p>
+      <div class="forecast-badge" *ngIf="insight.prediction.forecastRates?.length">
+        <span>7-Day Forecast: {{ insight.prediction.forecastRates[insight.prediction.forecastRates.length - 1].rate |
+          number:'1.4-4' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── QUICK EXCHANGE SECTION ─── -->
+  <div class="exchange-section" *ngIf="insight">
+    <div class="exchange-header">
+      <ion-icon name="swap-horizontal-outline"></ion-icon>
+      <span>Quick Exchange</span>
+    </div>
+
+    <!-- Wallet Preview -->
+    <div class="wallet-preview" *ngIf="wallet">
+      <div class="wallet-row">
+        <span class="wallet-label">Your {{ baseCurrency }}</span>
+        <span class="wallet-balance">{{ formatBalance(wallet.balances[baseCurrency], baseCurrency) }} {{ baseCurrency
+          }}</span>
+      </div>
+      <div class="wallet-currencies" *ngIf="walletCurrencies.length > 1">
+        <span class="currency-chip" *ngFor="let curr of walletCurrencies" [class.active]="curr === targetCurrency">
+          {{ getCurrencyFlag(curr) }} {{ curr }}: {{ formatBalance(wallet.balances[curr], curr) }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Exchange Form -->
+    <div class="exchange-form">
+      <div class="exchange-row">
+        <div class="exchange-input-group">
+          <label>From</label>
+          <div class="currency-select">
+            <span>{{ getCurrencyFlag(baseCurrency) }}</span>
+            <span>{{ baseCurrency }}</span>
+          </div>
+        </div>
+
+        <ion-icon name="arrow-down" (click)="swapExchangeDirection()"></ion-icon>
+
+        <div class="exchange-input-group">
+          <label>To</label>
+          <div class="currency-select">
+            <span>{{ getCurrencyFlag(targetCurrency) }}</span>
+            <span>{{ targetCurrency }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="amount-input-wrapper">
+        <label>Amount to Exchange</label>
+        <input type="number" [(ngModel)]="exchangeAmount" (input)="updateExchangePreview()" placeholder="0.00" min="0"
+          step="0.01" class="amount-input" />
+        <span class="amount-currency">{{ baseCurrency }}</span>
+      </div>
+
+      <!-- Preview -->
+      <div class="exchange-preview" *ngIf="exchangeAmount > 0">
+        <div class="preview-row">
+          <span>You send</span>
+          <span>{{ exchangeAmount | number:'1.2-2' }} {{ baseCurrency }}</span>
+        </div>
+        <div class="preview-row fee">
+          <span>Fee (0.5%)</span>
+          <span>-{{ exchangeFee | number:'1.2-2' }} {{ baseCurrency }}</span>
+        </div>
+        <div class="preview-row rate">
+          <span>Rate</span>
+          <span>1 {{ baseCurrency }} = {{ exchangeRate | number:'1.4-4' }} {{ targetCurrency }}</span>
+        </div>
+        <div class="preview-row total">
+          <span>You receive</span>
+          <span class="receive-amount">{{ exchangePreview | number:'1.2-2' }} {{ targetCurrency }}</span>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div class="exchange-error" *ngIf="exchangeAmount > 0 && !canExchange()">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+        <span>Insufficient {{ baseCurrency }} balance</span>
+      </div>
+
+      <!-- Button -->
+      <button class="exchange-btn" [disabled]="!canExchange() || isExchanging" (click)="executeExchange()"
+        [class.loading]="isExchanging">
+        <ion-spinner *ngIf="isExchanging" name="crescent"></ion-spinner>
+        <span *ngIf="!isExchanging">💱 Exchange Now</span>
+      </button>
+
+      <!-- Result -->
+      <div class="exchange-result" *ngIf="exchangeResult">
+        <div class="result-success" *ngIf="exchangeResult.success">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <p>{{ exchangeResult.message }}</p>
+          <div class="new-balances" *ngIf="exchangeResult.newBalances">
+            <span class="balance-chip" *ngFor="let item of exchangeResult.newBalances | keyvalue">
+              {{ getCurrencyFlag($any(item.key)) }} {{ item.key }}: {{ formatBalance($any(item.value), $any(item.key))
+              }}
+            </span>
+          </div>
+        </div>
+        <div class="result-error" *ngIf="!exchangeResult.success">
+          <ion-icon name="close-circle-outline"></ion-icon>
+          <p>{{ exchangeResult.message }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── RECENT EXCHANGES ─── -->
+  <div class="exchange-history" *ngIf="recentExchanges.length > 0">
+    <div class="history-header">
+      <ion-icon name="time-outline"></ion-icon>
+      <span>Recent Exchanges</span>
+    </div>
+    <div class="history-list">
+      <div class="history-item" *ngFor="let tx of recentExchanges">
+        <div class="history-main">
+          <span class="history-amount">{{ tx.amount | number:'1.2-2' }} {{ tx.fromCurrency }}</span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span class="history-received">{{ tx.received | number:'1.2-2' }} {{ tx.toCurrency }}</span>
+        </div>
+        <div class="history-meta">
+          <span class="history-rate">Rate: {{ tx.rate | number:'1.4-4' }}</span>
+          <span class="history-fee">Fee: {{ tx.fee | number:'1.2-2' }}</span>
+          <span class="history-date">{{ tx.timestamp | date:'short' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

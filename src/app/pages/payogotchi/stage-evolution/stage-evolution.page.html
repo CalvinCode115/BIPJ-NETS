@@ -1,0 +1,62 @@
+<ion-content [fullscreen]="true" class="evo-content">
+  <div class="evo-screen">
+    <!-- Floating particles -->
+    <div class="evo-particles">
+      <span
+        *ngFor="let p of particles; trackBy: trackByIndex"
+        class="evo-particle"
+        [style.left.%]="p.left"
+        [style.top.%]="p.top"
+        [style.width.px]="p.size"
+        [style.height.px]="p.size"
+        [style.background]="p.color"
+        [style.opacity]="p.opacity"
+        [style.animation-delay.s]="p.delay"
+      ></span>
+    </div>
+
+    <!-- Title -->
+    <header class="evo-header">
+      <h1 class="evo-title">EVOLUTION!</h1>
+      <p class="evo-subtitle">{{ fromStage }} → {{ toStage }} Tapatchi</p>
+    </header>
+
+    <!-- Hero: the evolved pet -->
+    <div class="evo-hero">
+      <div class="evo-hero-glow"></div>
+      <span class="evo-crown">👑</span>
+      <app-tapatchi mood="happy" [size]="230"></app-tapatchi>
+    </div>
+
+    <!-- Bottom stack -->
+    <div class="evo-bottom">
+      <!-- Before → After comparison -->
+      <div class="evo-compare">
+        <div class="evo-compare-item is-before">
+          <app-tapatchi mood="normal" [size]="64" [animated]="false"></app-tapatchi>
+          <span class="evo-compare-label">{{ fromStage }}</span>
+        </div>
+        <span class="evo-compare-arrow">→</span>
+        <div class="evo-compare-item is-after">
+          <span class="evo-compare-crown">👑</span>
+          <app-tapatchi mood="happy" [size]="72" [animated]="false"></app-tapatchi>
+          <span class="evo-compare-label is-active">{{ toStage }}</span>
+        </div>
+      </div>
+
+      <!-- New unlocks -->
+      <div class="evo-unlocks">
+        <p class="evo-unlocks-title">🎁 New unlocks:</p>
+        <div class="evo-unlock" *ngFor="let unlock of unlocks">
+          <span class="evo-unlock-dot">•</span>
+          <span class="evo-unlock-text">{{ unlock }}</span>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <button type="button" class="evo-btn" (click)="meetNewPet()">
+        Meet New {{ petName }}! 🎉
+      </button>
+    </div>
+  </div>
+</ion-content>

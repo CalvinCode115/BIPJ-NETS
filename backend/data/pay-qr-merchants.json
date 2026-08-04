@@ -1,0 +1,411 @@
+{
+  "merchants": [
+    {
+      "id": "qr_starbucks_raffles",
+      "merchant": "Starbucks Raffles Place",
+      "amount": 8.5,
+      "category": "Coffee",
+      "location": "Raffles Place",
+      "tags": [
+        "drink_coffee"
+      ],
+      "filename": "qr_starbucks_raffles.png",
+      "imageUrl": "assets/demo-qr/qr_starbucks_raffles.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_starbucks_raffles\",\"merchant\":\"Starbucks Raffles Place\",\"amount\":8.5,\"category\":\"Coffee\"}"
+    },
+    {
+      "id": "qr_starbucks_one",
+      "merchant": "Starbucks One Raffles",
+      "amount": 9.2,
+      "category": "Coffee",
+      "location": "One Raffles Place",
+      "tags": [
+        "drink_coffee"
+      ],
+      "filename": "qr_starbucks_one.png",
+      "imageUrl": "assets/demo-qr/qr_starbucks_one.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_starbucks_one\",\"merchant\":\"Starbucks One Raffles\",\"amount\":9.2,\"category\":\"Coffee\"}"
+    },
+    {
+      "id": "qr_li_ho",
+      "merchant": "LiHO Tea",
+      "amount": 6.8,
+      "category": "Drinks",
+      "location": "Orchard Road",
+      "tags": [
+        "drink_bubble_tea"
+      ],
+      "filename": "qr_li_ho.png",
+      "imageUrl": "assets/demo-qr/qr_li_ho.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_li_ho\",\"merchant\":\"LiHO Tea\",\"amount\":6.8,\"category\":\"Drinks\"}"
+    },
+    {
+      "id": "qr_gong_cha",
+      "merchant": "Gong Cha",
+      "amount": 7.5,
+      "category": "Drinks",
+      "location": "Jurong Point",
+      "tags": [
+        "drink_bubble_tea"
+      ],
+      "filename": "qr_gong_cha.png",
+      "imageUrl": "assets/demo-qr/qr_gong_cha.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_gong_cha\",\"merchant\":\"Gong Cha\",\"amount\":7.5,\"category\":\"Drinks\"}"
+    },
+    {
+      "id": "qr_mr_bean",
+      "merchant": "Mr Bean",
+      "amount": 4.5,
+      "category": "Drinks",
+      "location": "Tampines Mall",
+      "tags": [
+        "drink_soy"
+      ],
+      "filename": "qr_mr_bean.png",
+      "imageUrl": "assets/demo-qr/qr_mr_bean.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_mr_bean\",\"merchant\":\"Mr Bean\",\"amount\":4.5,\"category\":\"Drinks\"}"
+    },
+    {
+      "id": "qr_boost",
+      "merchant": "Boost Juice",
+      "amount": 8.9,
+      "category": "Drinks",
+      "location": "VivoCity",
+      "tags": [
+        "drink_juice"
+      ],
+      "filename": "qr_boost.png",
+      "imageUrl": "assets/demo-qr/qr_boost.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_boost\",\"merchant\":\"Boost Juice\",\"amount\":8.9,\"category\":\"Drinks\"}"
+    },
+    {
+      "id": "qr_ichiban_sushi",
+      "merchant": "Ichiban Sushi",
+      "amount": 38.5,
+      "category": "Dining",
+      "location": "Orchard Road",
+      "tags": [
+        "food_casual"
+      ],
+      "filename": "qr_ichiban_sushi.png",
+      "imageUrl": "assets/demo-qr/qr_ichiban_sushi.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_ichiban_sushi\",\"merchant\":\"Ichiban Sushi\",\"amount\":38.5,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_pizza_hut",
+      "merchant": "Pizza Hut",
+      "amount": 26.4,
+      "category": "Dining",
+      "location": "Thomson Road",
+      "tags": [
+        "food_casual"
+      ],
+      "filename": "qr_pizza_hut.png",
+      "imageUrl": "assets/demo-qr/qr_pizza_hut.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_pizza_hut\",\"merchant\":\"Pizza Hut\",\"amount\":26.4,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_ya_kun",
+      "merchant": "Ya Kun Kaya Toast",
+      "amount": 7.2,
+      "category": "Dining",
+      "location": "Orchard Road",
+      "tags": [
+        "food_hawker",
+        "drink_milo"
+      ],
+      "filename": "qr_ya_kun.png",
+      "imageUrl": "assets/demo-qr/qr_ya_kun.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_ya_kun\",\"merchant\":\"Ya Kun Kaya Toast\",\"amount\":7.2,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_din_tai_fung",
+      "merchant": "Din Tai Fung",
+      "amount": 42.8,
+      "category": "Dining",
+      "location": "Orchard Road",
+      "tags": [
+        "food_casual"
+      ],
+      "filename": "qr_din_tai_fung.png",
+      "imageUrl": "assets/demo-qr/qr_din_tai_fung.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_din_tai_fung\",\"merchant\":\"Din Tai Fung\",\"amount\":42.8,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_killiney",
+      "merchant": "Killiney Kopitiam",
+      "amount": 6.5,
+      "category": "Dining",
+      "location": "Killiney Road",
+      "tags": [
+        "food_hawker",
+        "drink_milo"
+      ],
+      "filename": "qr_killiney.png",
+      "imageUrl": "assets/demo-qr/qr_killiney.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_killiney\",\"merchant\":\"Killiney Kopitiam\",\"amount\":6.5,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_marina_hawker",
+      "merchant": "Marina Bay Hawker",
+      "amount": 9.8,
+      "category": "Dining",
+      "location": "Marina Bay",
+      "tags": [
+        "food_hawker"
+      ],
+      "filename": "qr_marina_hawker.png",
+      "imageUrl": "assets/demo-qr/qr_marina_hawker.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_marina_hawker\",\"merchant\":\"Marina Bay Hawker\",\"amount\":9.8,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_toast_box",
+      "merchant": "Toast Box",
+      "amount": 6.5,
+      "category": "Dining",
+      "location": "ION Orchard",
+      "tags": [
+        "food_hawker",
+        "drink_coffee"
+      ],
+      "filename": "qr_toast_box.png",
+      "imageUrl": "assets/demo-qr/qr_toast_box.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_toast_box\",\"merchant\":\"Toast Box\",\"amount\":6.5,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_dough_culture",
+      "merchant": "Dough Culture",
+      "amount": 12.8,
+      "category": "Dining",
+      "location": "North Bridge Road",
+      "tags": [
+        "food_casual"
+      ],
+      "filename": "qr_dough_culture.png",
+      "imageUrl": "assets/demo-qr/qr_dough_culture.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_dough_culture\",\"merchant\":\"Dough Culture\",\"amount\":12.8,\"category\":\"Dining\"}"
+    },
+    {
+      "id": "qr_uniqlo_orchard",
+      "merchant": "Uniqlo Orchard",
+      "amount": 45.9,
+      "category": "Retail",
+      "location": "Orchard Road",
+      "tags": [
+        "retail_fashion"
+      ],
+      "filename": "qr_uniqlo_orchard.png",
+      "imageUrl": "assets/demo-qr/qr_uniqlo_orchard.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_uniqlo_orchard\",\"merchant\":\"Uniqlo Orchard\",\"amount\":45.9,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_hm_vivo",
+      "merchant": "H&M VivoCity",
+      "amount": 38.2,
+      "category": "Retail",
+      "location": "VivoCity",
+      "tags": [
+        "retail_fashion"
+      ],
+      "filename": "qr_hm_vivo.png",
+      "imageUrl": "assets/demo-qr/qr_hm_vivo.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_hm_vivo\",\"merchant\":\"H&M VivoCity\",\"amount\":38.2,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_muji",
+      "merchant": "Muji Orchard",
+      "amount": 34.5,
+      "category": "Retail",
+      "location": "Orchard Road",
+      "tags": [
+        "retail_fashion",
+        "retail_home"
+      ],
+      "filename": "qr_muji.png",
+      "imageUrl": "assets/demo-qr/qr_muji.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_muji\",\"merchant\":\"Muji Orchard\",\"amount\":34.5,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_cotton_on",
+      "merchant": "Cotton On",
+      "amount": 29.9,
+      "category": "Retail",
+      "location": "Bugis Junction",
+      "tags": [
+        "retail_fashion"
+      ],
+      "filename": "qr_cotton_on.png",
+      "imageUrl": "assets/demo-qr/qr_cotton_on.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_cotton_on\",\"merchant\":\"Cotton On\",\"amount\":29.9,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_decathlon",
+      "merchant": "Decathlon Singapore",
+      "amount": 59.9,
+      "category": "Retail",
+      "location": "Bedok",
+      "tags": [
+        "retail_sports"
+      ],
+      "filename": "qr_decathlon.png",
+      "imageUrl": "assets/demo-qr/qr_decathlon.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_decathlon\",\"merchant\":\"Decathlon Singapore\",\"amount\":59.9,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_guardian",
+      "merchant": "Guardian Pharmacy",
+      "amount": 18.5,
+      "category": "Retail",
+      "location": "Orchard Road",
+      "tags": [
+        "retail_pharmacy"
+      ],
+      "filename": "qr_guardian.png",
+      "imageUrl": "assets/demo-qr/qr_guardian.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_guardian\",\"merchant\":\"Guardian Pharmacy\",\"amount\":18.5,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_watsons",
+      "merchant": "Watsons",
+      "amount": 15.9,
+      "category": "Retail",
+      "location": "Tampines Mall",
+      "tags": [
+        "retail_pharmacy"
+      ],
+      "filename": "qr_watsons.png",
+      "imageUrl": "assets/demo-qr/qr_watsons.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_watsons\",\"merchant\":\"Watsons\",\"amount\":15.9,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_changi_dutyfree",
+      "merchant": "Changi Airport Duty Free",
+      "amount": 68,
+      "category": "Retail",
+      "location": "Changi Airport T1",
+      "tags": [
+        "retail_dutyfree"
+      ],
+      "filename": "qr_changi_dutyfree.png",
+      "imageUrl": "assets/demo-qr/qr_changi_dutyfree.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_changi_dutyfree\",\"merchant\":\"Changi Airport Duty Free\",\"amount\":68,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_cold_storage",
+      "merchant": "Cold Storage",
+      "amount": 34.8,
+      "category": "Groceries",
+      "location": "Orchard Road",
+      "tags": [
+        "groceries"
+      ],
+      "filename": "qr_cold_storage.png",
+      "imageUrl": "assets/demo-qr/qr_cold_storage.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_cold_storage\",\"merchant\":\"Cold Storage\",\"amount\":34.8,\"category\":\"Groceries\"}"
+    },
+    {
+      "id": "qr_ntuc_fairprice",
+      "merchant": "NTUC FairPrice",
+      "amount": 18.6,
+      "category": "Groceries",
+      "location": "Marina Bay",
+      "tags": [
+        "groceries"
+      ],
+      "filename": "qr_ntuc_fairprice.png",
+      "imageUrl": "assets/demo-qr/qr_ntuc_fairprice.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_ntuc_fairprice\",\"merchant\":\"NTUC FairPrice\",\"amount\":18.6,\"category\":\"Groceries\"}"
+    },
+    {
+      "id": "qr_finest",
+      "merchant": "FairPrice Finest",
+      "amount": 52.3,
+      "category": "Groceries",
+      "location": "Scotts Square",
+      "tags": [
+        "groceries"
+      ],
+      "filename": "qr_finest.png",
+      "imageUrl": "assets/demo-qr/qr_finest.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_finest\",\"merchant\":\"FairPrice Finest\",\"amount\":52.3,\"category\":\"Groceries\"}"
+    },
+    {
+      "id": "qr_bengawan_solo",
+      "merchant": "Bengawan Solo",
+      "amount": 22.5,
+      "category": "Retail",
+      "location": "Marina Square",
+      "tags": [
+        "retail_bakery"
+      ],
+      "filename": "qr_bengawan_solo.png",
+      "imageUrl": "assets/demo-qr/qr_bengawan_solo.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_bengawan_solo\",\"merchant\":\"Bengawan Solo\",\"amount\":22.5,\"category\":\"Retail\"}"
+    },
+    {
+      "id": "qr_scoot",
+      "merchant": "Scoot",
+      "amount": 165,
+      "category": "Travel",
+      "location": "Changi Airport",
+      "tags": [
+        "travel_flight"
+      ],
+      "filename": "qr_scoot.png",
+      "imageUrl": "assets/demo-qr/qr_scoot.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_scoot\",\"merchant\":\"Scoot\",\"amount\":165,\"category\":\"Travel\"}"
+    },
+    {
+      "id": "qr_airasia",
+      "merchant": "AirAsia",
+      "amount": 189,
+      "category": "Travel",
+      "location": "Changi Airport",
+      "tags": [
+        "travel_flight"
+      ],
+      "filename": "qr_airasia.png",
+      "imageUrl": "assets/demo-qr/qr_airasia.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_airasia\",\"merchant\":\"AirAsia\",\"amount\":189,\"category\":\"Travel\"}"
+    },
+    {
+      "id": "qr_agoda",
+      "merchant": "Agoda",
+      "amount": 145,
+      "category": "Travel",
+      "location": "Online",
+      "tags": [
+        "travel_hotel"
+      ],
+      "filename": "qr_agoda.png",
+      "imageUrl": "assets/demo-qr/qr_agoda.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_agoda\",\"merchant\":\"Agoda\",\"amount\":145,\"category\":\"Travel\"}"
+    },
+    {
+      "id": "qr_booking",
+      "merchant": "Booking.com",
+      "amount": 210,
+      "category": "Travel",
+      "location": "Online",
+      "tags": [
+        "travel_hotel"
+      ],
+      "filename": "qr_booking.png",
+      "imageUrl": "assets/demo-qr/qr_booking.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_booking\",\"merchant\":\"Booking.com\",\"amount\":210,\"category\":\"Travel\"}"
+    },
+    {
+      "id": "qr_klook",
+      "merchant": "Klook",
+      "amount": 56,
+      "category": "Travel",
+      "location": "Online",
+      "tags": [
+        "travel_activity"
+      ],
+      "filename": "qr_klook.png",
+      "imageUrl": "assets/demo-qr/qr_klook.png",
+      "payload": "{\"type\":\"nets_pay\",\"id\":\"qr_klook\",\"merchant\":\"Klook\",\"amount\":56,\"category\":\"Travel\"}"
+    }
+  ]
+}

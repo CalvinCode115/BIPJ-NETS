@@ -1,0 +1,74 @@
+<ion-content [fullscreen]="true" class="settings-content">
+  <div class="settings-screen">
+    <!-- Top bar -->
+    <header class="settings-topbar">
+      <button type="button" class="settings-back" (click)="back()" aria-label="Back">‹</button>
+      <h1 class="settings-title">Tapatchi Settings</h1>
+    </header>
+
+    <!-- Pet profile card -->
+    <section class="settings-profile">
+      <div class="settings-avatar">
+        <app-tapatchi [mood]="'happy'" [size]="90"></app-tapatchi>
+      </div>
+      <h2 class="settings-pet-name">{{ pet.name }}</h2>
+      <p class="settings-pet-sub">Level {{ pet.level }} • {{ pet.stage }} Tapatchi</p>
+
+      <div class="settings-stats">
+        <div class="settings-stat">
+          <span class="settings-stat-icon">📊</span>
+          <span class="settings-stat-value">{{ pet.xp }}</span>
+          <span class="settings-stat-label">XP</span>
+        </div>
+        <div class="settings-stat">
+          <span class="settings-stat-icon">🍔</span>
+          <span class="settings-stat-value">{{ pet.hunger }}%</span>
+          <span class="settings-stat-label">Hunger</span>
+        </div>
+        <div class="settings-stat">
+          <span class="settings-stat-icon">😊</span>
+          <span class="settings-stat-value">{{ pet.happiness }}%</span>
+          <span class="settings-stat-label">Joy</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Journey card -->
+    <section class="settings-journey">
+      <h3 class="settings-journey-title">📖 {{ pet.name }}'s Journey</h3>
+      <div class="settings-journey-list">
+        <div class="settings-journey-row" *ngFor="let stat of journeyStats">
+          <span class="settings-journey-left">
+            <span class="settings-journey-icon">{{ stat.icon }}</span>
+            <span class="settings-journey-label">{{ stat.label }}</span>
+          </span>
+          <span class="settings-journey-value">{{ stat.value }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grouped menu -->
+    <section class="settings-menu" *ngFor="let section of sections">
+      <p class="settings-section-heading">{{ section.heading }}</p>
+      <button
+        type="button"
+        class="settings-row"
+        *ngFor="let row of section.rows"
+        (click)="onRow(row)"
+      >
+        <span class="settings-row-icon">{{ row.icon }}</span>
+        <span class="settings-row-body">
+          <span class="settings-row-title">{{ row.title }}</span>
+          <span
+            *ngIf="row.subtitle"
+            class="settings-row-subtitle"
+            [class.danger]="row.danger"
+          >
+            {{ row.subtitle }}
+          </span>
+        </span>
+        <span class="settings-row-chevron">›</span>
+      </button>
+    </section>
+  </div>
+</ion-content>

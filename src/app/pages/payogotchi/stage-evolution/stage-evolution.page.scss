@@ -1,0 +1,233 @@
+.evo-content {
+  // Dramatic navy → charcoal gradient from the Figma frame (4782:4263).
+  --background: linear-gradient(180deg, #2d3436 0%, #1e3a8a 60%, #2d3436 100%);
+}
+
+.evo-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 100%;
+  padding: 44px 24px 40px;
+  overflow: hidden;
+}
+
+/* ---- Particles ---- */
+.evo-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.evo-particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: evo-twinkle 3s ease-in-out infinite;
+}
+
+/* ---- Title ---- */
+.evo-header {
+  text-align: center;
+  z-index: 1;
+}
+
+.evo-title {
+  margin: 0;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 54px;
+  line-height: 1;
+  // Gold → white gradient text with a glow.
+  background: linear-gradient(170deg, #ffd700 0%, #ffffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
+  animation: evo-title-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.evo-subtitle {
+  margin: 8px 0 0;
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* ---- Hero pet ---- */
+.evo-hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+  animation: evo-hero-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.evo-hero-glow {
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.35) 0%, rgba(255, 215, 0, 0) 65%);
+  animation: evo-glow-pulse 2.4s ease-in-out infinite;
+}
+
+.evo-crown {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 44px;
+  z-index: 2;
+  animation: evo-crown-bob 2.5s ease-in-out infinite;
+}
+
+/* ---- Bottom stack ---- */
+.evo-bottom {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 342px;
+}
+
+/* ---- Before → After ---- */
+.evo-compare {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  padding: 12px 24px;
+  border-radius: var(--radius-medium);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.evo-compare-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  &.is-before {
+    opacity: 0.5;
+  }
+}
+
+.evo-compare-crown {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+}
+
+.evo-compare-label {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+
+  &.is-active {
+    font-weight: 700;
+    color: #ffd700;
+  }
+}
+
+.evo-compare-arrow {
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-size: 28px;
+  color: #ffd700;
+  opacity: 0.8;
+}
+
+/* ---- New unlocks ---- */
+.evo-unlocks {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: var(--radius-medium);
+  background: #ffffff;
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.25);
+}
+
+.evo-unlocks-title {
+  margin: 0 0 8px;
+  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.evo-unlock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.evo-unlock-dot {
+  font-size: 14px;
+  color: var(--ion-color-primary);
+}
+
+.evo-unlock-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* ---- CTA ---- */
+.evo-btn {
+  width: 280px;
+  height: 56px;
+  border: none;
+  border-radius: 28px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-primary);
+  cursor: pointer;
+  background: linear-gradient(169deg, #ffd700 0%, #ffa500 100%);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: transform 0.12s ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* ============================================================= */
+/* Keyframes                                                      */
+/* ============================================================= */
+@keyframes evo-twinkle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.6); }
+}
+
+@keyframes evo-title-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes evo-hero-in {
+  0% { opacity: 0; transform: scale(0.3) translateY(20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes evo-glow-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+@keyframes evo-crown-bob {
+  0%, 100% { transform: translateX(-50%) translateY(0) rotate(-4deg); }
+  50% { transform: translateX(-50%) translateY(-5px) rotate(4deg); }
+}

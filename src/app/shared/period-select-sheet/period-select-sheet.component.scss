@@ -1,0 +1,106 @@
+:host {
+  display: contents;
+}
+
+.period-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0;
+}
+
+.period-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: min(520px, 82vh);
+  padding: 8px 20px calc(20px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: period-sheet-in 0.22s ease-out;
+}
+
+@keyframes period-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.period-sheet-grabber {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d1d1d6;
+  margin: 8px auto 16px;
+}
+
+.period-sheet-title {
+  margin: 0 0 16px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.period-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.period-sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  border: none;
+  border-radius: 14px;
+  background: #f2f2f7;
+  padding: 16px 18px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #1a1a2e;
+  cursor: pointer;
+  text-align: left;
+  flex-shrink: 0;
+
+  &.selected {
+    background: #eef3ff;
+  }
+}
+
+.period-sheet-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.period-sheet-check {
+  font-size: 22px;
+  color: #0052cc;
+  flex-shrink: 0;
+}
+
+.period-sheet-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  border: none;
+  border-radius: 14px;
+  background: #f2f2f7;
+  padding: 16px 18px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+  cursor: pointer;
+}

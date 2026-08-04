@@ -1,0 +1,47 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <app-nets-logo></app-nets-logo>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" class="nets-header-bell">
+        <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="nets-rewards-content">
+
+  <!-- NETS Points Balance -->
+  <div class="points-balance-card" (click)="goToPointsBalance()">
+    <span class="points-balance-icon">💰</span>
+    <span class="points-balance-label">NETS Points Balance</span>
+  </div>
+
+  <!-- Quest / Challenge row -->
+  <div class="quest-row">
+    <div class="quest-card quest-card--daily" (click)="goToDailyQuests()">
+      <span>Daily Quest</span>
+    </div>
+    <div class="quest-card quest-card--weekly" (click)="goToWeeklyQuests()">
+      <span>Weekly Quest</span>
+    </div>
+    <div class="quest-card quest-card--challenges" (click)="goToPartnerChallenges()">
+      <span>Challenges</span>
+    </div>
+  </div>
+
+  <!-- Rewards Marketplace -->
+  <div class="rewards-tile rewards-tile--marketplace" (click)="goToMarketplace()">
+    <span class="rewards-tile-icon">🎁</span>
+    <span class="rewards-tile-label">Rewards Marketplace</span>
+  </div>
+
+  <!-- My Vouchers -->
+  <div class="rewards-tile rewards-tile--vouchers" (click)="goToVouchers()">
+    <span class="rewards-tile-icon">💸</span>
+    <span class="rewards-tile-label">My Vouchers</span>
+  </div>
+
+</ion-content>

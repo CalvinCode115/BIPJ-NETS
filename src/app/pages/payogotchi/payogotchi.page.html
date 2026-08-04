@@ -1,0 +1,106 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <app-nets-logo></app-nets-logo>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" class="nets-header-bell">
+        <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="test-container">
+    <h2>Tapatchi Character Test</h2>
+
+    <!-- Demo scenario controls -->
+    <h3>Demo Scenarios:</h3>
+    <div class="mood-buttons">
+      <ion-button color="success" (click)="demoNewUser()">🥚 New user (intro flow)</ion-button>
+      <ion-button color="primary" (click)="demoReturningUser()">⭐ Returning user (Home)</ion-button>
+    </div>
+
+    <!-- The Tapatchi! -->
+    <div class="pet-display">
+      <app-tapatchi [variant]="currentVariant" [mood]="currentMood" [size]="250"></app-tapatchi>
+      <p class="pet-caption">
+        <strong>{{ variantNames[currentVariant] }}</strong>
+        &middot; {{ currentVariant }} &middot; {{ currentMood }}
+        <span class="pose-tag" [class.is-drawn]="isDrawnPose(currentVariant, currentMood)">
+          {{ isDrawnPose(currentVariant, currentMood) ? 'drawn pose' : 'derived pose' }}
+        </span>
+      </p>
+    </div>
+
+    <!-- Character selector -->
+    <h3>Pick a Character:</h3>
+    <div class="mood-buttons">
+      <ion-button
+        *ngFor="let variant of variants"
+        [color]="currentVariant === variant ? 'primary' : 'medium'"
+        (click)="setVariant(variant)"
+      >
+        {{ variant }}
+      </ion-button>
+    </div>
+
+    <!-- Mood selector buttons -->
+    <h3>Test Different Moods:</h3>
+    <div class="mood-buttons">
+      <ion-button
+        *ngFor="let mood of moods"
+        [color]="currentMood === mood ? 'primary' : 'medium'"
+        (click)="setMood(mood)"
+      >
+        {{ mood }}
+      </ion-button>
+    </div>
+
+    <!-- Every character in every mood, side by side -->
+    <h3>All 8 Characters &times; All Moods:</h3>
+    <div class="mood-buttons">
+      <ion-button [color]="gridAnimated ? 'primary' : 'medium'" (click)="gridAnimated = !gridAnimated">
+        {{ gridAnimated ? 'Animations ON' : 'Animations OFF' }}
+      </ion-button>
+    </div>
+    <p class="grid-legend">
+      A <span class="pose-tag is-drawn">green tag</span> marks a pose drawn in Figma.
+      The rest are derived — same artwork, different motion and tint.
+    </p>
+
+    <div class="char-grid-scroll">
+      <table class="char-grid">
+        <tr>
+          <th></th>
+          <th *ngFor="let mood of moods">{{ mood }}</th>
+        </tr>
+        <tr *ngFor="let variant of variants">
+          <td class="char-grid-name">
+            <strong>{{ variant }}</strong>
+            <small>{{ variantNames[variant] }}</small>
+          </td>
+          <td *ngFor="let mood of moods">
+            <div class="char-grid-cell" [class.is-drawn]="isDrawnPose(variant, mood)">
+              <app-tapatchi
+                [variant]="variant"
+                [mood]="mood"
+                [size]="86"
+                [animated]="gridAnimated"
+              ></app-tapatchi>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Size test -->
+    <h3>Different Sizes:</h3>
+    <div class="size-test">
+      <app-tapatchi [mood]="'happy'" [size]="100"></app-tapatchi>
+      <app-tapatchi [mood]="'happy'" [size]="150"></app-tapatchi>
+      <app-tapatchi [mood]="'happy'" [size]="200"></app-tapatchi>
+    </div>
+  </div>
+</ion-content>

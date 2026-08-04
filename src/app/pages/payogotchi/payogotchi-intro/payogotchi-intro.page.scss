@@ -1,0 +1,221 @@
+.intro-content {
+  --background: linear-gradient(
+    170deg,
+    var(--payogotchi-lavender) 0%,
+    var(--payogotchi-soft-pink) 45%,
+    var(--payogotchi-cream) 100%
+  );
+}
+
+.intro-screen {
+  position: relative;
+  min-height: 100%;
+  padding: 32px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  overflow: hidden;
+}
+
+/* ---- Floating sparkles ---- */
+.intro-spark {
+  position: absolute;
+  font-size: 22px;
+  opacity: 0.85;
+  animation: intro-float 4s ease-in-out infinite;
+  pointer-events: none;
+}
+.spark-1 { top: 14%; left: 12%; animation-delay: 0s; }
+.spark-2 { top: 22%; right: 14%; animation-delay: 0.8s; }
+.spark-3 { top: 46%; left: 8%; animation-delay: 1.6s; }
+.spark-4 { top: 40%; right: 10%; animation-delay: 2.2s; }
+
+/* ---- Drop-down banner ---- */
+.intro-banner {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(-120px);
+  transition: transform 0.7s cubic-bezier(0.18, 1.4, 0.4, 1), opacity 0.5s ease;
+
+  &.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.intro-banner-kicker {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--nets-red);
+  background: rgba(255, 255, 255, 0.75);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-soft);
+}
+
+.intro-banner-title {
+  margin: 4px 0 0;
+  // Same display face as the Egg Selection title (.egg-title).
+  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-accent);
+  text-shadow: 0 3px 0 rgba(255, 255, 255, 0.6);
+}
+
+.intro-banner-sub {
+  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* ---- Hero egg ---- */
+.intro-hero {
+  position: relative;
+  margin: 26px 0 18px;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: transform 0.6s cubic-bezier(0.18, 1.4, 0.4, 1) 0.3s, opacity 0.5s ease 0.3s;
+
+  &.show {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.intro-egg {
+  font-size: 96px;
+  animation: intro-bob 2.6s ease-in-out infinite;
+}
+
+.intro-egg-glow {
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--payogotchi-lemon) 0%, transparent 70%);
+  filter: blur(6px);
+  opacity: 0.7;
+  animation: intro-pulse 2.6s ease-in-out infinite;
+}
+
+/* ---- Story beats ---- */
+.intro-beats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 320px;
+  margin-bottom: auto;
+}
+
+.intro-beat {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--nets-dark);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 14px 18px;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.18, 1.2, 0.4, 1);
+
+  strong { color: var(--nets-red); }
+
+  &.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Call to action ---- */
+.intro-cta {
+  width: 100%;
+  max-width: 340px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+
+  &.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.intro-cta-line {
+  margin: 0;
+  // Friendly sub-line face, matching the speech bubbles / egg popup title.
+  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.intro-start {
+  width: 100%;
+  padding: 16px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ion-color-primary-contrast);
+  background: linear-gradient(120deg, var(--nets-red), var(--happiness-color));
+  border: none;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 8px 20px rgba(227, 6, 19, 0.35);
+  cursor: pointer;
+  animation: intro-cta-pulse 1.8s ease-in-out infinite;
+}
+
+/* ---- Skip ---- */
+.intro-skip {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  padding: 6px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.6);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+/* ---- Keyframes ---- */
+@keyframes intro-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.85; }
+  50% { transform: translateY(-14px) rotate(12deg); opacity: 1; }
+}
+
+@keyframes intro-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-12px) rotate(3deg); }
+}
+
+@keyframes intro-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+}
+
+@keyframes intro-cta-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}

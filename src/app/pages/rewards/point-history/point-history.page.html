@@ -1,0 +1,112 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Point History</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="point-history-content">
+
+  <!-- Search bar -->
+  <ion-searchbar
+    placeholder="Search transactions"
+    [value]="searchTerm"
+    (ionInput)="onSearchChange($event.detail.value)"
+    class="history-searchbar">
+  </ion-searchbar>
+
+  <!-- Date range filter -->
+  <div class="date-range-row">
+    <ion-button fill="outline" class="date-range-btn" (click)="showStartDatePicker = true">
+      <ion-icon name="calendar-outline" slot="start"></ion-icon>
+      {{ startDate ? (startDate | date:'d MMM y') : 'Start date' }}
+    </ion-button>
+    <span class="date-range-separator">to</span>
+    <ion-button fill="outline" class="date-range-btn" (click)="showEndDatePicker = true">
+      <ion-icon name="calendar-outline" slot="start"></ion-icon>
+      {{ endDate ? (endDate | date:'d MMM y') : 'End date' }}
+    </ion-button>
+    <ion-button fill="clear" class="date-range-clear" *ngIf="startDate || endDate" (click)="clearDateRange()">
+      <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+    </ion-button>
+  </div>
+
+  <ion-modal [isOpen]="showStartDatePicker" (didDismiss)="showStartDatePicker = false" class="date-picker-modal">
+    <ng-template>
+      <ion-datetime
+        presentation="date"
+        [value]="startDate ? startDate + 'T00:00:00' : null"
+        (ionChange)="onStartDateChange($event.detail.value)">
+      </ion-datetime>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal [isOpen]="showEndDatePicker" (didDismiss)="showEndDatePicker = false" class="date-picker-modal">
+    <ng-template>
+      <ion-datetime
+        presentation="date"
+        [value]="endDate ? endDate + 'T00:00:00' : null"
+        (ionChange)="onEndDateChange($event.detail.value)">
+      </ion-datetime>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Filter by -->
+  <div class="filter-label">
+    <ion-icon name="filter-outline"></ion-icon>
+    <span>Filter by:</span>
+  </div>
+
+  <ion-segment [(ngModel)]="activeFilter" (ionChange)="onFilterChange()" class="filter-segment">
+    <ion-segment-button value="all">
+      <ion-label>All ({{ counts.all }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="earned">
+      <ion-label>Earned ({{ counts.earned }})</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="spent">
+      <ion-label>Spent ({{ counts.spent }})</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Section heading -->
+  <div class="section-heading-row">
+    <span class="section-heading-title">{{ sectionTitle }}</span>
+    <span class="section-heading-count">
+      <ion-icon name="calendar-outline"></ion-icon>
+      {{ filteredTransactions.length }} items
+    </span>
+  </div>
+
+  <div *ngIf="loading" class="state-message">Loading...</div>
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
+  <!-- Transaction list -->
+  <div class="transaction-list" *ngIf="!loading && !error">
+    <div class="transaction-item" *ngFor="let item of filteredTransactions">
+      <div class="transaction-icon" [ngClass]="'transaction-icon--' + item.type">
+        <ion-icon [name]="item.icon"></ion-icon>
+      </div>
+      <div class="transaction-details">
+        <span class="transaction-title">{{ item.title }}</span>
+        <div class="transaction-meta">
+          <span class="transaction-timestamp">{{ item.timestamp | date:'MMM d, y, h:mm a' }}</span>
+          <span class="transaction-tag" [ngClass]="'transaction-tag--' + item.type">{{ item.tag }}</span>
+        </div>
+      </div>
+      <div class="transaction-amount" [ngClass]="item.amount > 0 ? 'transaction-amount--positive' : 'transaction-amount--negative'">
+        <span class="transaction-amount-value">{{ item.amount > 0 ? '+' : '' }}{{ item.amount }}</span>
+        <span class="transaction-amount-unit">Pts</span>
+      </div>
+    </div>
+
+    <div *ngIf="filteredTransactions.length === 0" class="state-message">
+      No transactions match your search/filter.
+    </div>
+  </div>
+
+</ion-content>

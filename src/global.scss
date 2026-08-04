@@ -2,46 +2,98 @@
  * App Global CSS
  * ----------------------------------------------------------------------------
  * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
+ * the entire app and not just one component.
  */
 
-/* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
-
-/* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
+@import "@ionic/angular/css/palettes/dark.system.css";
 
-/* Dark mode disabled — white background required for NETS template */
-/* @import "@ionic/angular/css/palettes/dark.system.css"; */
+/* Payogotchi typography: Fredoka (headings), Inter (body), Quicksand (pet names) */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
 
-/* NETS global styles */
-ion-header ion-toolbar {
-  --background: #ffffff;
-  --color: #1A1A1A;
-  --border-width: 0;
-  padding: 8px 4px;
+@media (min-width: 480px) {
+  body {
+    background: #d1d1d6;
+  }
+
+  ion-app {
+    max-width: 430px;
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.06),
+      0 16px 48px rgba(0, 0, 0, 0.12);
+  }
 }
 
-.nets-logo {
-  height: 28px;
-  width: auto;
-  margin-left: 8px;
+ion-modal.add-card-modal .ion-page,
+ion-modal.top-up-modal .ion-page {
+  position: relative;
+  height: auto;
 }
 
-ion-content {
+.scroll-area-visible {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+ion-content.scroll-content-visible::part(scroll) {
+  scrollbar-width: none;
+}
+
+ion-content.scroll-content-visible::part(scroll)::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.nets-page-header ion-toolbar.nets-page-toolbar {
   --background: #ffffff;
+  // Pin the text/icon colour to match the forced white background. Without
+  // this it inherits --ion-text-color, which the dark.system.css palette
+  // imported above flips to white when the device is in dark mode — giving
+  // an invisible white-on-white title and buttons.
+  --color: #1f2937;
+  --border-color: #ececf1;
+  --padding-start: 16px;
+  --padding-end: 8px;
+  --min-height: 52px;
+}
+
+// One title style for every tab, matching the Pay tab's "Pay & Transfer".
+// Colour is set here too, not inherited — see the --color note above.
+.nets-page-toolbar ion-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.nets-page-toolbar ion-buttons[slot='start'] {
+  margin-inline-start: 0;
+}
+
+.nets-header-bell {
+  --color: #4a4a4a;
+  --padding-start: 8px;
+  --padding-end: 8px;
+
+  ion-icon {
+    font-size: 22px;
+  }
 }

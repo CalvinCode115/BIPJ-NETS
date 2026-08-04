@@ -1,0 +1,43 @@
+<ion-content [fullscreen]="true" class="works-content">
+  <!-- Top bar -->
+  <header class="works-topbar">
+    <button type="button" class="works-back" (click)="back()" aria-label="Back">←</button>
+    <h1 class="works-title">How Payogotchi Works</h1>
+  </header>
+
+  <div class="works-screen">
+    <!-- Intro card -->
+    <section class="works-intro">
+      <div class="works-intro-pet">
+        <app-tapatchi [mood]="'happy'" [size]="60" [animated]="false"></app-tapatchi>
+      </div>
+      <div class="works-intro-text">
+        <p class="works-intro-heading">Learn how to take care of your Tapatchi!</p>
+        <p class="works-intro-subtitle">Tap any topic below to learn more</p>
+      </div>
+    </section>
+
+    <!-- Topic list -->
+    <section class="works-topics">
+      <button
+        type="button"
+        class="works-topic"
+        *ngFor="let topic of topics"
+        (click)="openTopic(topic)"
+      >
+        <span class="works-topic-icon">{{ topic.icon }}</span>
+        <span class="works-topic-body">
+          <span class="works-topic-title">{{ topic.title }}</span>
+          <span class="works-topic-subtitle">{{ topic.subtitle }}</span>
+        </span>
+        <span class="works-topic-chevron">›</span>
+      </button>
+    </section>
+
+    <!-- Help footer -->
+    <button type="button" class="works-help" (click)="contactSupport()">
+      <span class="works-help-title">Need more help? 💬</span>
+      <span class="works-help-subtitle">Contact NETS Support</span>
+    </button>
+  </div>
+</ion-content>

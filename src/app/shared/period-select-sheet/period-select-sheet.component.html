@@ -1,0 +1,32 @@
+@if (isOpen) {
+  <div class="period-overlay" (click)="onDismiss()" role="presentation">
+    <div
+      class="period-sheet"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="period-sheet-grabber" aria-hidden="true"></div>
+      <h2 class="period-sheet-title">{{ title }}</h2>
+
+      <div class="period-sheet-list">
+        @for (option of options; track option.id) {
+          <button
+            type="button"
+            class="period-sheet-row"
+            [class.selected]="option.id === selectedId"
+            (click)="onSelect(option.id)"
+          >
+            <span class="period-sheet-label">{{ option.label }}</span>
+            @if (option.id === selectedId) {
+              <ion-icon name="checkmark" class="period-sheet-check"></ion-icon>
+            }
+          </button>
+        }
+      </div>
+
+      <button type="button" class="period-sheet-cancel" (click)="onDismiss()">Cancel</button>
+    </div>
+  </div>
+}

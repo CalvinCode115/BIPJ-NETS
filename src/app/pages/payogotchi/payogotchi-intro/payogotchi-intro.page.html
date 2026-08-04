@@ -1,0 +1,55 @@
+<ion-content [fullscreen]="true" class="intro-content">
+  <div class="intro-screen" (click)="skip()">
+    <!-- Floating sparkles -->
+    <span class="intro-spark spark-1">✨</span>
+    <span class="intro-spark spark-2">⭐</span>
+    <span class="intro-spark spark-3">💫</span>
+    <span class="intro-spark spark-4">✨</span>
+
+    <!-- Drop-down announcement banner -->
+    <div class="intro-banner" [class.show]="reached('banner')">
+      <span class="intro-banner-kicker">✨ NEW ON NETS ✨</span>
+      <h1 class="intro-banner-title">PAYOGOTCHI</h1>
+      <span class="intro-banner-sub">A little something, just for you 🎁</span>
+    </div>
+
+    <!-- Hero egg -->
+    <div class="intro-hero" [class.show]="reached('banner')">
+      <div class="intro-egg-glow"></div>
+      <div class="intro-egg">🥚</div>
+    </div>
+
+    <!-- Story beats -->
+    <div class="intro-beats">
+      <p class="intro-beat" [class.show]="reached('story-one')">
+        Every NETS payment feeds a tiny creature that's <strong>uniquely yours</strong>. 🐣
+      </p>
+      <p class="intro-beat" [class.show]="reached('story-two')">
+        Watch it <strong>hatch</strong>, <strong>grow</strong> and <strong>level up</strong>
+        as you spend smart. 🌱
+      </p>
+    </div>
+
+    <!-- Call to action -->
+    <div class="intro-cta" [class.show]="isCta">
+      <p class="intro-cta-line">Ready to meet your Tapatchi?</p>
+      <button
+        type="button"
+        class="intro-start"
+        (click)="start(); $event.stopPropagation()"
+      >
+        Start your journey 🥚
+      </button>
+    </div>
+
+    <!-- Skip -->
+    <button
+      type="button"
+      class="intro-skip"
+      *ngIf="!isCta"
+      (click)="skip(); $event.stopPropagation()"
+    >
+      Skip ›
+    </button>
+  </div>
+</ion-content>

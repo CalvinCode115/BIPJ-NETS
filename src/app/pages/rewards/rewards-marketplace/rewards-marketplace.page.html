@@ -1,0 +1,215 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Rewards Marketplace</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="showFilterModal = true">
+        <ion-icon name="options-outline" slot="icon-only"></ion-icon>
+        <ion-badge *ngIf="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</ion-badge>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="marketplace-content">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="balance-banner">
+    <ion-icon name="wallet-outline"></ion-icon>
+    <span>You have <strong>{{ currentPoints | number }}</strong> points</span>
+  </div>
+
+  <div *ngIf="loading" class="state-message">Loading vouchers...</div>
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
+  <div *ngIf="!loading && !error && filteredVouchers.length === 0" class="state-message">
+    No vouchers match your filters.
+  </div>
+
+  <div class="marketplace-grid" *ngIf="!loading && !error">
+    <div
+      class="marketplace-card"
+      *ngFor="let voucher of filteredVouchers"
+      [class.marketplace-card--disabled]="!voucher.redeemable"
+      (click)="openDetails(voucher)">
+
+      <div class="marketplace-image" [style.background]="showLogo(voucher) ? '#ffffff' : brandColor(voucher.merchantName)">
+        <img
+          *ngIf="showLogo(voucher)"
+          [src]="voucher.logoUrl"
+          [alt]="voucher.merchantName"
+          class="marketplace-logo-img"
+          (error)="onLogoError(voucher.id)">
+        <ion-icon *ngIf="!showLogo(voucher)" [name]="voucher.icon"></ion-icon>
+      </div>
+
+      <div class="marketplace-badges">
+        <span class="badge" [ngClass]="'badge--type-' + voucher.type">{{ voucher.type | titlecase }}</span>
+        <span class="badge" [ngClass]="'badge--difficulty-' + voucher.difficulty">{{ voucher.difficulty | titlecase }}</span>
+      </div>
+
+      <span class="marketplace-name">{{ voucher.merchantName }}</span>
+      <span class="marketplace-description">{{ voucher.description }}</span>
+
+      <span class="marketplace-remaining" *ngIf="voucher.remaining !== null && !voucher.soldOut">
+        {{ voucher.remaining }} left {{ voucher.quantityLimitType === 'daily' ? 'today' : voucher.quantityLimitType === 'weekly' ? 'this week' : '' }}
+      </span>
+      <span class="marketplace-remaining marketplace-remaining--soldout" *ngIf="voucher.soldOut">Sold out</span>
+      <span class="marketplace-remaining marketplace-remaining--soldout" *ngIf="!voucher.eventLive && !voucher.soldOut">Event not active</span>
+
+      <div class="marketplace-cost">
+        <ion-icon name="wallet-outline"></ion-icon>
+        {{ voucher.pointsCost | number }} Pts
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter modal -->
+  <ion-modal [isOpen]="showFilterModal" (didDismiss)="showFilterModal = false" class="filter-modal">
+    <ng-template>
+      <div class="filter-sheet">
+        <div class="filter-sheet-header">
+          <span class="filter-sheet-title">Filter Vouchers</span>
+          <ion-button fill="clear" class="filter-sheet-close" (click)="showFilterModal = false">
+            <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <div class="filter-section">
+          <span class="filter-section-title">Points Range</span>
+          <ion-range
+            [dualKnobs]="true"
+            [min]="0"
+            [max]="maxPointsCost"
+            [step]="100"
+            [value]="pointsRange"
+            (ionChange)="onPointsRangeChange($event)">
+          </ion-range>
+          <div class="filter-range-labels">
+            <span>{{ pointsRange.lower | number }} pts</span>
+            <span>{{ pointsRange.upper | number }} pts</span>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <span class="filter-section-title">Availability</span>
+          <ion-segment [(ngModel)]="redeemableFilter" class="filter-segment">
+            <ion-segment-button value="all">
+              <ion-label>All</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="redeemable">
+              <ion-label>Redeemable</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="not-redeemable">
+              <ion-label>Not Redeemable</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div class="filter-section">
+          <span class="filter-section-title">Category</span>
+          <div class="filter-chip-row">
+            <button
+              type="button"
+              class="filter-chip"
+              [class.filter-chip--selected]="selectedCategory === null"
+              (click)="selectCategory(null)">
+              All
+            </button>
+            <button
+              type="button"
+              class="filter-chip"
+              *ngFor="let category of categories"
+              [class.filter-chip--selected]="selectedCategory === category"
+              (click)="selectCategory(category)">
+              {{ category }}
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-sheet-footer">
+          <ion-button fill="outline" shape="round" class="filter-reset-btn" (click)="resetFilters()">
+            Reset
+          </ion-button>
+          <ion-button shape="round" class="filter-apply-btn" (click)="applyFiltersAndClose()">
+            Show Results
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Voucher details / redeem modal -->
+  <ion-modal [isOpen]="showDetailsModal" (didDismiss)="closeDetails()" class="voucher-details-modal">
+    <ng-template>
+      <div class="voucher-details" *ngIf="selectedVoucher as voucher">
+        <div class="voucher-details-header">
+          <div class="voucher-details-icon" [style.background]="showLogo(voucher) ? '#ffffff' : brandColor(voucher.merchantName)">
+            <img
+              *ngIf="showLogo(voucher)"
+              [src]="voucher.logoUrl"
+              [alt]="voucher.merchantName"
+              class="voucher-details-logo-img"
+              (error)="onLogoError(voucher.id)">
+            <ion-icon *ngIf="!showLogo(voucher)" [name]="voucher.icon"></ion-icon>
+          </div>
+          <div class="voucher-details-title">
+            <span class="voucher-details-name">{{ voucher.merchantName }}</span>
+            <span class="voucher-details-desc">{{ voucher.description }}</span>
+          </div>
+          <ion-button fill="clear" class="voucher-details-close" (click)="closeDetails()">
+            <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <div class="voucher-details-badges">
+          <span class="badge" [ngClass]="'badge--type-' + voucher.type">{{ voucher.type | titlecase }}</span>
+          <span class="badge" [ngClass]="'badge--difficulty-' + voucher.difficulty">{{ voucher.difficulty | titlecase }}</span>
+        </div>
+
+        <div class="voucher-details-section">
+          <span class="voucher-details-section-title">Terms & Conditions</span>
+          <ul>
+            <li *ngFor="let line of voucher.termsAndConditions">{{ line }}</li>
+          </ul>
+        </div>
+
+        <div class="voucher-details-section">
+          <span class="voucher-details-section-title">How to Use</span>
+          <ol>
+            <li *ngFor="let step of voucher.usageSteps">{{ step }}</li>
+          </ol>
+        </div>
+
+        <div class="voucher-details-footer">
+          <div class="voucher-details-cost">
+            <ion-icon name="wallet-outline"></ion-icon>
+            {{ voucher.pointsCost | number }} Points
+          </div>
+
+          <span class="voucher-details-warning" *ngIf="!canAfford(voucher)">
+            You need {{ (voucher.pointsCost - currentPoints) | number }} more points.
+          </span>
+          <span class="voucher-details-warning" *ngIf="voucher.soldOut">This voucher is sold out.</span>
+          <span class="voucher-details-warning" *ngIf="!voucher.eventLive && !voucher.soldOut">This event isn't active right now.</span>
+
+          <ion-button
+            expand="block"
+            shape="round"
+            class="redeem-btn"
+            [disabled]="redeeming || !voucher.redeemable || !canAfford(voucher)"
+            (click)="redeem(voucher)">
+            {{ redeeming ? 'Redeeming...' : 'Redeem Voucher' }}
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+</ion-content>
