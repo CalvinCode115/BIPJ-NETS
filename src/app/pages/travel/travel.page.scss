@@ -4707,10 +4707,22 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   flex-direction: column;
   align-items: center;
   min-width: 50px;
-  
-  .start-time { font-size: 13px; font-weight: 600; color: #2f80ed; }
-  .time-separator { font-size: 10px; color: #ccc; }
-  .end-time { font-size: 11px; color: #888; }
+
+  .start-time {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2f80ed;
+  }
+
+  .time-separator {
+    font-size: 10px;
+    color: #ccc;
+  }
+
+  .end-time {
+    font-size: 11px;
+    color: #888;
+  }
 }
 
 .ai-suggested {
@@ -4734,9 +4746,12 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   padding: 6px 0 6px 40px;
   color: #888;
   font-size: 12px;
-  
-  ion-icon { font-size: 14px; }
+
+  ion-icon {
+    font-size: 14px;
+  }
 }
+
 .planner-section {
   padding: 16px;
   background: #f8f9fc;
@@ -4749,14 +4764,21 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-  
-  h3 { margin: 0; font-size: 18px; }
-  span { color: #6b7280; font-size: 13px; }
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  span {
+    color: #6b7280;
+    font-size: 13px;
+  }
 }
 
 .days-input {
   margin-bottom: 12px;
-  
+
   label {
     display: block;
     font-size: 13px;
@@ -4770,7 +4792,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   background: white;
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .day-header {
@@ -4780,9 +4802,17 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid #f0f0f0;
-  
-  h4 { margin: 0; font-size: 16px; color: #111827; }
-  span { font-size: 12px; color: #6b7280; }
+
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #111827;
+  }
+
+  span {
+    font-size: 12px;
+    color: #6b7280;
+  }
 }
 
 .day-venues {
@@ -4804,10 +4834,22 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   flex-direction: column;
   align-items: center;
   min-width: 50px;
-  
-  .start-time { font-size: 13px; font-weight: 600; color: #2f80ed; }
-  .time-separator { font-size: 10px; color: #ccc; }
-  .end-time { font-size: 11px; color: #888; }
+
+  .start-time {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2f80ed;
+  }
+
+  .time-separator {
+    font-size: 10px;
+    color: #ccc;
+  }
+
+  .end-time {
+    font-size: 11px;
+    color: #888;
+  }
 }
 
 .venue-order {
@@ -4822,7 +4864,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
-  
+
   &.ai-suggested {
     background: #9ca3af;
   }
@@ -4832,18 +4874,18 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   display: flex;
   flex-direction: column;
   flex: 1;
-  
+
   .venue-name {
     font-size: 14px;
     font-weight: 500;
     color: #111827;
-    
+
     &.ai-suggested {
       font-style: italic;
       color: #6b7280;
     }
   }
-  
+
   .venue-meta {
     font-size: 12px;
     color: #9ca3af;
@@ -4867,9 +4909,12 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   padding: 6px 0 6px 62px;
   color: #888;
   font-size: 12px;
-  
-  ion-icon { font-size: 14px; }
+
+  ion-icon {
+    font-size: 14px;
+  }
 }
+
 .venue-why {
   display: flex;
   align-items: center;
@@ -4878,7 +4923,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   margin-left: 62px; // Align with venue info
   font-size: 11px;
   color: #2f80ed;
-  
+
   ion-icon {
     font-size: 12px;
     flex-shrink: 0;
@@ -4897,7 +4942,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
 .lock-btn {
   --padding-start: 4px;
   --padding-end: 4px;
-  
+
   &.locked ion-icon {
     color: #f59e0b;
   }
@@ -4926,7 +4971,9 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
 .lock-btn {
   --padding-start: 4px;
   --padding-end: 4px;
-}// ═══════════════════════════════════════
+}
+
+// ═══════════════════════════════════════
 // DAY PLAN — TIMELINE DESIGN
 // ═══════════════════════════════════════
 
@@ -4957,7 +5004,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
     letter-spacing: 0.5px;
     margin-bottom: 4px;
   }
-  
+
   .day-theme {
     font-size: 20px;
     font-weight: 700;
@@ -4968,7 +5015,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
 .day-stats {
   display: flex;
   gap: 12px;
-  
+
   .day-stat {
     font-size: 12px;
     color: #6b7280;
@@ -4990,32 +5037,32 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   gap: 16px;
   position: relative;
   padding-bottom: 8px;
-  
+
   &.meal {
     .timeline-dot {
       background: #10b981;
       border-color: #10b981;
       color: white;
     }
-    
+
     .timeline-card {
       background: #f0fdf4;
       border-color: #bbf7d0;
     }
   }
-  
+
   &.locked {
     .timeline-dot {
       background: #f59e0b;
       border-color: #f59e0b;
       color: white;
     }
-    
+
     .timeline-card {
       background: #fffbeb;
       border-color: #fcd34d;
     }
-    
+
     .card-name {
       color: #92400e;
     }
@@ -5054,7 +5101,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   font-weight: 700;
   z-index: 2;
   position: relative;
-  
+
   ion-icon {
     font-size: 14px;
   }
@@ -5080,7 +5127,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   padding: 14px 16px;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:active {
     transform: scale(0.98);
   }
@@ -5111,28 +5158,28 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  
+
   .badge {
     font-size: 11px;
     padding: 3px 10px;
     border-radius: 10px;
     font-weight: 500;
-    
+
     &.type-badge {
       background: #dbeafe;
       color: #1e40af;
     }
-    
+
     &.duration-badge {
       background: #f3e8ff;
       color: #7c3aed;
     }
-    
+
     &.lock-badge {
       background: #fef3c7;
       color: #92400e;
     }
-    
+
     &.ai-badge {
       background: #ede9fe;
       color: #5b21b6;
@@ -5154,7 +5201,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   --padding-bottom: 6px;
   margin: 0;
   height: 32px;
-  
+
   ion-icon {
     font-size: 18px;
   }
@@ -5164,7 +5211,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   font-size: 18px;
   color: #9ca3af;
   transition: transform 0.2s ease;
-  
+
   &.expanded {
     transform: rotate(180deg);
   }
@@ -5186,14 +5233,14 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   padding: 12px;
   border-radius: 12px;
   margin-bottom: 12px;
-  
+
   ion-icon {
     font-size: 18px;
     color: #3b82f6;
     flex-shrink: 0;
     margin-top: 1px;
   }
-  
+
   p {
     margin: 0;
     font-size: 13px;
@@ -5206,14 +5253,14 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   display: flex;
   gap: 16px;
   margin-bottom: 12px;
-  
+
   span {
     font-size: 13px;
     color: #6b7280;
     display: flex;
     align-items: center;
     gap: 4px;
-    
+
     ion-icon {
       font-size: 14px;
       color: #9ca3af;
@@ -5228,7 +5275,7 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
     gap: 8px;
     color: #6b7280;
     font-size: 12px;
-    
+
     ion-icon {
       font-size: 16px;
       color: #9ca3af;
@@ -5243,11 +5290,11 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
-  
+
   ion-button {
     --color: #6b7280;
     font-size: 13px;
-    
+
     ion-icon {
       font-size: 16px;
     }
@@ -5260,11 +5307,13 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
     opacity: 0;
     transform: translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 .card-expanded {
   margin-top: 14px;
   padding-top: 14px;
@@ -5273,53 +5322,257 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .travel-segment {
+  display: flex;
+  align-items: center;
+  padding: 8px 0 8px 60px; // Align with timeline-left width
+  gap: 8px;
+
+  .travel-line {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, #e0e0e0, #34c759, #e0e0e0);
+    border-radius: 1px;
+  }
+
+  .travel-badge {
     display: flex;
     align-items: center;
-    padding: 8px 0 8px 60px; // Align with timeline-left width
-    gap: 8px;
-    
-    .travel-line {
-        flex: 1;
-        height: 2px;
-        background: linear-gradient(90deg, #e0e0e0, #34c759, #e0e0e0);
-        border-radius: 1px;
-    }
-    
-    .travel-badge {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 12px;
-        background: #f0fdf4;
-        border: 1px solid #86efac;
-        border-radius: 20px;
-        font-size: 12px;
-        color: #166534;
-        white-space: nowrap;
-        
-        ion-icon {
-            font-size: 14px;
-        }
-    }
-}
-.route-insight {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    margin: 0 16px 12px;
-    background: #f8fafc;
-    border-radius: 12px;
-    font-size: 13px;
-    color: #64748b;
-    
+    gap: 4px;
+    padding: 4px 12px;
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 20px;
+    font-size: 12px;
+    color: #166534;
+    white-space: nowrap;
+
     ion-icon {
-        color: #34c759;
-        font-size: 16px;
+      font-size: 14px;
     }
+  }
+}
+
+.route-insight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin: 0 16px 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #64748b;
+
+  ion-icon {
+    color: #34c759;
+    font-size: 16px;
+  }
+}
+
+.day-map-container {
+  position: relative;
+  margin: 0 16px 16px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #f1f5f9;
+
+  // Much taller for better visibility
+  height: 400px;
+
+  // Enable scroll when zoomed in
+  overflow: auto;
+
+  // Hide scrollbar but keep functionality
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .day-map {
+    min-width: 100%;
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 20px;
+    }
+  }
+
+  // Zoom controls - floating on top right
+  .map-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+
+    .map-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: none;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      transition: all 0.15s ease;
+
+      &:active {
+        transform: scale(0.92);
+      }
+
+      ion-icon {
+        font-size: 20px;
+        color: #334155;
+      }
+    }
+  }
+
+  // Open in Maps overlay - bottom
+  .map-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px 20px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    z-index: 10;
+
+    ion-icon {
+      font-size: 18px;
+    }
+
+    &:hover {
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    }
+  }
+}
+
+app-day-map {
+  display: block;
+  margin: 0 16px 16px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.day-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+
+  ion-button {
+    --color: #64748b;
+    font-size: 13px;
+  }
+}
+
+.map-container {
+  touch-action: pan-y; // Allow vertical scroll, let map handle horizontal/pinch
+}
+
+// day-map.component.scss
+:host {
+  display: block;
+}
+
+.map-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 20px;
+  overflow: hidden;
+  
+  // Critical: Let Google Maps handle all touch events
+  touch-action: none;
+  
+  // Disable Ionic's gesture interference
+  ion-content & {
+    --overflow: visible;
+  }
+}
+
+.timeline-item {
+  &.dna-suggestion {
+    opacity: 0.85;
+    .timeline-dot {
+      background: #dbeafe; // Light blue
+      border: 2px dashed #3b82f6;
+    }
+  }
+  
+  &.placeholder {
+    opacity: 0.7;
+    .timeline-dot {
+      background: #f3f4f6;
+      border: 2px dashed #9ca3af;
+    }
+    .card-name {
+      color: #6b7280;
+      font-style: italic;
+    }
+  }
+}
+
+.timeline-item {
+  &.dna-suggestion {
+    .timeline-dot {
+      background: #dbeafe;
+      border: 2px dashed #3b82f6;
+    }
+    .card {
+      border-left: 3px solid #3b82f6;
+    }
+    .card-name::before {
+      content: '💡 ';
+    }
+  }
+  
+  &.placeholder {
+    opacity: 0.75;
+    .timeline-dot {
+      background: #f3f4f6;
+      border: 2px dashed #9ca3af;
+    }
+    .card {
+      border-left: 3px dashed #9ca3af;
+      background: #f9fafb;
+    }
+    .card-name {
+      color: #6b7280;
+      font-style: italic;
+    }
+    .card-name::before {
+      content: '🔍 ';
+    }
+  }
 }

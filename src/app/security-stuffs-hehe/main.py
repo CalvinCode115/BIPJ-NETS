@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from fastapi.responses import StreamingResponse
-
+from typing import List, Optional
+import polyline
 # Load .env file
 load_dotenv()
 
@@ -60,6 +61,13 @@ class FxHistoryRequest(BaseModel):
 class FxNewsRequest(BaseModel):
     base: str = "SGD"
     target: str = "MYR"
+
+class DirectionsRequest(BaseModel):
+    origin: dict  # {"lat": 1.49, "lng": 103.74}
+    destination: dict
+    waypoints: List[dict] = []  # [{"lat": 1.50, "lng": 103.75}, ...]
+    mode: str = "walking"  # walking, driving, transit
+    optimize: bool = True  # Google optimizes waypoint order    
 
 # ═════════════════════════════════════════════════════════════════
 # PLACES API PROXY ENDPOINTS (unchanged)
@@ -588,3 +596,154 @@ def _get_exchange_rate(from_curr: str, to_curr: str) -> float:
         ("GBP", "SGD"): 1.72,
     }
     return fallback.get((from_curr, to_curr), 1.0)    
+
+@app.post("/api/directions")
+def get_directions(request: DirectionsRequest):
+    """
+    Get optimized route with Google Directions API.
+    Returns: route path, legs, duration, distance, and optimized waypoint order.
+    """
+    base_url = "https://maps.googleapis.com/maps/api/directions/json"
+    
+    # Build waypoints string
+    waypoints_str = ""
+    if request.waypoints:
+        waypoint_coords = [f"{w['lat']},{w['lng']}" for w in request.waypoints]
+        optimize_flag = "optimize:true|" if request.optimize else ""
+        waypoints_str = f"&waypoints={optimize_flag}{'|'.join(waypoint_coords)}"
+    
+    params = {
+        "origin": f"{request.origin['lat']},{request.origin['lng']}",
+        "destination": f"{request.destination['lat']},{request.destination['lng']}",
+        "mode": request.mode,
+        "key": GOOGLE_PLACES_API_KEY,
+    }
+    
+    url = f"{base_url}?{requests.compat.urlencode(params)}{waypoints_str}"
+    
+    try:
+        r = requests.get(url, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        
+        if data.get("status") != "OK":
+            return {
+                "error": data.get("status"),
+                "message": data.get("error_message", "Directions request failed")
+            }
+        
+        route = data["routes"][0]
+        leg = route["legs"][0] if len(route["legs"]) == 1 else None
+        
+        # Decode polyline for frontend mapping
+        encoded_polyline = route["overview_polyline"]["points"]
+        decoded_path = polyline.decode(encoded_polyline)  # [(lat, lng), ...]
+        
+        return {
+            "status": "OK",
+            "optimizedOrder": route.get("waypoint_order", []),
+            "totalDistance": leg["distance"]["value"] if leg else sum(l["distance"]["value"] for l in route["legs"]),
+            "totalDuration": leg["duration"]["value"] if leg else sum(l["duration"]["value"] for l in route["legs"]),
+            "polyline": encoded_polyline,
+            "decodedPath": [{"lat": lat, "lng": lng} for lat, lng in decoded_path],
+            "legs": [
+                {
+                    "start": {"lat": l["start_location"]["lat"], "lng": l["start_location"]["lng"]},
+                    "end": {"lat": l["end_location"]["lat"], "lng": l["end_location"]["lng"]},
+                    "distance": l["distance"]["text"],
+                    "duration": l["duration"]["text"],
+                    "steps": [
+                        {
+                            "instruction": s["html_instructions"],
+                            "distance": s["distance"]["text"],
+                            "duration": s["duration"]["text"],
+                        }
+                        for s in l["steps"]
+                    ]
+                }
+                for l in route["legs"]
+            ],
+            "bounds": route["bounds"],
+        }
+        
+    except requests.RequestException as e:
+        return {"error": str(e)}
+
+@app.get("/api/map/static")
+def get_static_map(
+    center_lat: float = Query(...),
+    center_lng: float = Query(...),
+    zoom: int = Query(14),
+    width: int = Query(600),
+    height: int = Query(300),
+    markers: str = Query(""),
+    path: str = Query(""),
+    polyline: str = Query("")  # Encoded polyline from Google Directions
+):
+    base_url = "https://maps.googleapis.com/maps/api/staticmap"
+    
+    url_parts = [
+        f"center={center_lat},{center_lng}",
+        f"zoom={zoom}",
+        f"size={width}x{height}",
+        "maptype=roadmap",
+        f"key={GOOGLE_PLACES_API_KEY}",
+    ]
+    
+    # Add numbered markers
+    if markers:
+        marker_list = markers.split("|")
+        for i, marker in enumerate(marker_list):
+            label = str(i + 1)
+            color = "red" if i == 0 else "green" if i == len(marker_list) - 1 else "blue"
+            url_parts.append(f"markers=color:{color}|label:{label}|{marker}")
+    
+    # Add route path - prefer encoded polyline if available
+    if polyline:
+        url_parts.append(f"path=color:0x34c759|weight:4|enc:{polyline}")
+    elif path:
+        url_parts.append(f"path=color:0x34c759|weight:4|{path}")
+    
+    url = base_url + "?" + "&".join(url_parts)
+    
+    try:
+        r = requests.get(url, timeout=15, stream=True)
+        r.raise_for_status()
+        return StreamingResponse(
+            r.iter_content(chunk_size=1024),
+            media_type="image/png"
+        )
+    except requests.RequestException as e:
+        return {"error": str(e)}
+    
+@app.get("/api/map/directions-url")
+def get_directions_url(
+    origin_lat: float = Query(...),
+    origin_lng: float = Query(...),
+    dest_lat: float = Query(...),
+    dest_lng: float = Query(...),
+    waypoints: str = Query("")  # "lat1,lng1|lat2,lng2"
+):
+    """
+    Generate a Google Maps directions URL for opening in native app.
+    """
+    base = "https://www.google.com/maps/dir/"
+    
+    origin = f"{origin_lat},{origin_lng}"
+    destination = f"{dest_lat},{dest_lng}"
+    
+    url = f"{base}{origin}/{destination}"
+    
+    if waypoints:
+        url += f"/{waypoints.replace('|', '/')}"
+    
+    return {"url": url}
+
+# main.py
+@app.get("/api/config/google-maps-key")
+def get_google_maps_key():
+    return {
+        "apiKey": GOOGLE_PLACES_API_KEY,
+        "mapId": "f93caa09259664b67c1df146",  
+        "libraries": "places,marker"
+    }

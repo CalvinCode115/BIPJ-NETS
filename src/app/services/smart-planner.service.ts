@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { DirectionsResponse } from './route.service';
 
 export interface PlannedVenue {
   id: string;
@@ -18,6 +19,8 @@ export interface PlannedVenue {
   endTime?: string;
   travelToNext?: number;
   isMeal?: boolean;
+  isDnaSuggestion?: boolean;
+  isPlaceholder?: boolean;
   whyThisTime?: string;
   expanded?: boolean;
   category?: string;
@@ -28,10 +31,15 @@ export interface DayPlan {
   theme: string;
   venues: PlannedVenue[];
   totalDurationMinutes: number;
+  totalTravelMinutes?: number;
   estimatedWalkingKm: number;
   startTime?: string;
   endTime?: string;
-  totalTravelMinutes?: number;
+  // Route visualization
+  routeImageUrl?: string;
+  routeOptimized?: boolean;
+  routeDetails?: DirectionsResponse;
+  mapZoom?: number;
 }
 
 export interface TimedVenue extends PlannedVenue {
@@ -62,41 +70,70 @@ export class SmartPlannerService {
     nightlife: 180,   // Bars, clubs
   };
 
-  clusterIntoDays(venues: PlannedVenue[], requestedDays: number, dnaRecommendations: any[] = []): DayPlan[] {
-    if (!venues.length) return [];
+clusterIntoDays(venues: PlannedVenue[], requestedDays: number, dnaRecommendations: any[] = []): DayPlan[] {
+  if (!venues.length) return [];
 
-    const validVenues = venues.filter(v => v.lat && v.lng && !isNaN(v.lat) && !isNaN(v.lng));
+  const validVenues = venues.filter(v => v.lat && v.lng && !isNaN(v.lat) && !isNaN(v.lng));
 
-    const optimalDays = this.calculateOptimalDays(validVenues.length > 0 ? validVenues : venues);
-    const numDays = requestedDays > 0
-      ? Math.min(requestedDays, validVenues.length || 1)
-      : optimalDays;
+  const optimalDays = this.calculateOptimalDays(validVenues.length > 0 ? validVenues : venues);
+  const numDays = requestedDays > 0
+    ? Math.min(requestedDays, validVenues.length || 1)
+    : optimalDays;
 
-    console.log(`Optimal days: ${optimalDays}, Requested: ${requestedDays}, Using: ${numDays}`);
+  // ═══ SPLIT BY TYPE FIRST ═══
+  const restaurants = validVenues.filter(v => v.type === 'restaurant');
+  const cafes = validVenues.filter(v => v.type === 'cafe');
+  const activities = validVenues.filter(v => 
+    v.type === 'attraction' || v.type === 'shopping' || v.type === 'activity' || v.type === 'nightlife'
+  );
 
-    if (validVenues.length === 0) {
-      const days = this.splitByCount(venues, numDays);
-      return days.map(day => this.assignTimeSlots(day, undefined, dnaRecommendations));
-    }
+  console.log(`Restaurants: ${restaurants.length}, Cafes: ${cafes.length}, Activities: ${activities.length}`);
 
-    // K-means clustering
-    let clusters = this.kMeans(validVenues, numDays);
-    clusters = clusters.filter(c => c.length > 0);
+  // ═══ CALCULATE DAYS NEEDED ═══
+  // Each day needs: 1 cafe, up to 2 restaurants, rest are activities
+  const minDaysForMeals = Math.max(
+    Math.ceil(restaurants.length / 2), // Max 2 restaurants/day
+    Math.ceil(cafes.length / 1),        // Max 1 cafe/day
+    1
+  );
+  
+  const totalActivitySlots = Math.max(numDays, minDaysForMeals) * 4; // ~4 activity slots/day
+  const finalDays = Math.max(numDays, minDaysForMeals, Math.ceil(activities.length / 4));
+  
+  console.log(`Minimum days needed for meals: ${minDaysForMeals}, Final days: ${finalDays}`);
 
-    // If K-means produced too many sparse clusters, merge small ones
-    clusters = this.mergeSparseClusters(clusters, 3); // Min 3 venues per day
+  // ═══ DISTRIBUTE ACROSS DAYS ═══
+  const dayPlans: DayPlan[] = [];
+  
+  for (let d = 0; d < finalDays; d++) {
+    const dayVenues: PlannedVenue[] = [];
+    
+    // 1 cafe per day (breakfast)
+    if (cafes.length > d) dayVenues.push(cafes[d]);
+    
+    // Up to 2 restaurants per day
+    const dayRestaurants = restaurants.slice(d * 2, d * 2 + 2);
+    dayVenues.push(...dayRestaurants);
+    
+    // Fill rest with activities (4-5 per day)
+    const activityStart = d * 4;
+    const dayActivities = activities.slice(activityStart, activityStart + 5);
+    dayVenues.push(...dayActivities);
+    
+    if (dayVenues.length === 0) break;
 
-    // Build day plans
-    const dayPlans = clusters.map((clusterVenues, index) => ({
-      day: index + 1,
-      theme: this.inferTheme(clusterVenues),
-      venues: this.optimizeRoute(clusterVenues),
+    dayPlans.push({
+      day: d + 1,
+      theme: this.inferTheme(dayVenues),
+      venues: this.optimizeRoute(dayVenues),
       totalDurationMinutes: 0,
-      estimatedWalkingKm: this.estimateWalkingDistance(clusterVenues),
-    }));
-
-    return dayPlans.map(day => this.assignTimeSlots(day, undefined, dnaRecommendations));
+      estimatedWalkingKm: this.estimateWalkingDistance(dayVenues),
+    });
   }
+
+  // Assign times to each day
+  return dayPlans.map(day => this.assignTimeSlots(day, undefined, dnaRecommendations));
+}
 
   // Merge clusters that are too small
   private mergeSparseClusters(clusters: PlannedVenue[][], minVenues: number): PlannedVenue[][] {
@@ -333,10 +370,14 @@ export class SmartPlannerService {
 
   private inferType(v: any): PlannedVenue['type'] {
     const category = (v.category || '').toLowerCase();
-    const types = v.types || [];
     const name = (v.venueName || v.name || '').toLowerCase();
+    const types = v.types || [];
 
-    // Use category from travel.service.ts FIRST (most reliable)
+    // ═══ PRIORITY 1: Check venue name for cafe keywords FIRST ═══
+    const cafeKeywords = ['cafe', 'coffee', 'toast', 'pastry', 'bagel', 'brunch', 'tea', 'bingsu', 'bread', 'cake', 'kopitiam'];
+    if (cafeKeywords.some(k => name.includes(k))) return 'cafe';
+
+    // ═══ PRIORITY 2: Use category from travel.service.ts ═══
     if (category === 'coffee') return 'cafe';
     if (category === 'food') return 'restaurant';
     if (category === 'culture' || category === 'attractions') return 'attraction';
@@ -344,22 +385,23 @@ export class SmartPlannerService {
     if (category === 'wellness') return 'activity';
     if (category === 'nightlife') return 'nightlife';
 
-    // Then check Google Place types
-    if (types.includes('cafe') || types.includes('bakery') || types.includes('coffee')) return 'cafe';
+    // ═══ PRIORITY 3: Check Google Place types ═══
+    if (types.includes('cafe') || types.includes('bakery')) return 'cafe';
     if (types.includes('restaurant') || types.includes('food')) return 'restaurant';
     if (types.includes('museum') || types.includes('tourist_attraction')) return 'attraction';
     if (types.includes('shopping_mall') || types.includes('store')) return 'shopping';
     if (types.includes('night_club') || types.includes('bar')) return 'nightlife';
     if (types.includes('spa') || types.includes('gym')) return 'activity';
 
-    // Fallback: check name keywords
-    if (name.includes('cafe') || name.includes('coffee') || name.includes('tea') || name.includes('kopitiam') || name.includes('toast') || name.includes('bingsu')) return 'cafe';
-    if (name.includes('restaurant') || name.includes('food') || name.includes('kitchen') || name.includes('noodle') || name.includes('hawker') || name.includes('dining') || name.includes('eats')) return 'restaurant';
-    if (name.includes('bar') || name.includes('club') || name.includes('pub') || name.includes('lounge') || name.includes('nightlife')) return 'nightlife';
+    // ═══ PRIORITY 4: Check name for other types ═══
+    const foodKeywords = ['restaurant', 'kitchen', 'noodle', 'hawker', 'dining', 'eats', 'bbq', 'grill', 'sushi', 'ramen', 'steak', 'chicken', 'rice', 'nasi', 'mee', 'kway', 'dim sum', 'hotpot', 'steamboat', 'bistro'];
+    if (foodKeywords.some(k => name.includes(k))) return 'restaurant';
+
+    const nightlifeKeywords = ['bar', 'club', 'pub', 'lounge', 'karaoke', 'rooftop'];
+    if (nightlifeKeywords.some(k => name.includes(k))) return 'nightlife';
 
     return 'attraction';
   }
-
   private splitByCount(venues: PlannedVenue[], numDays: number): DayPlan[] {
     const days: DayPlan[] = [];
     const sorted = [...venues].sort((a, b) => a.lng - b.lng);
@@ -401,244 +443,246 @@ export class SmartPlannerService {
     return Math.round(distanceKm * 3) + 10;
   }
 
-  assignTimeSlots(dayPlan: DayPlan, weather?: any, dnaRecommendations: any[] = []): DayPlan {
-    const venues = [...dayPlan.venues];
-    const locked = venues.filter(v => v.locked && v.lockedTime).sort((a, b) =>
-      this.timeToMinutes(a.lockedTime!) - this.timeToMinutes(b.lockedTime!)
-    );
-    const unlocked = venues.filter(v => !v.locked || !v.lockedTime);
-
-    // Categorize
-    const byType: Record<string, PlannedVenue[]> = {
-      cafe: unlocked.filter(v => v.type === 'cafe'),
-      restaurant: unlocked.filter(v => v.type === 'restaurant'),
-      attraction: unlocked.filter(v => v.type === 'attraction'),
-      shopping: unlocked.filter(v => v.type === 'shopping'),
-      activity: unlocked.filter(v => v.type === 'activity'),
-      nightlife: unlocked.filter(v => v.type === 'nightlife'),
-    };
-
-    const used = new Set<string>();
-    const getNext = (pool: PlannedVenue[]): PlannedVenue | null => {
-      const v = pool.find(x => !used.has(x.id));
-      if (v) used.add(v.id);
-      return v || null;
-    };
-
-    const timed: PlannedVenue[] = [];
-    let current = this.timeToMinutes('08:00');
-    const dayEnd = this.timeToMinutes('22:00');
-    let lockedIdx = 0;
-    let hasBreakfast = false;
-    let hasLunch = false;
-    let hasDinner = false;
-
-    // Helper: place a venue
-    const placeVenue = (venue: PlannedVenue, label: string): void => {
-      const end = current + venue.durationMinutes;
-      const nextPool = unlocked.filter(v => !used.has(v.id));
-      const nextV = nextPool[0];
-      const travel = nextV ? this.estimateTravelTime(venue, nextV) : 0;
-
-      timed.push({
-        ...venue,
-        startTime: this.minutesToTime(current),
-        endTime: this.minutesToTime(end),
-        travelToNext: travel,
-        whyThisTime: venue.whyThisTime || `${label} — ${venue.name}`,
-      });
-      current = end + travel;
-    };
-
-    // Helper: try to place a meal, skip if no venue available
-    const tryMeal = (type: 'cafe' | 'restaurant', duration: number, label: string): boolean => {
-      const venue = getNext(byType[type]) || this.findDnaFallback(type, current, timed, dnaRecommendations);
-      if (venue) {
-        placeVenue({ ...venue, durationMinutes: duration }, label);
-        return true;
-      }
-      return false;
-    };
-
-    // ===== SMART SCHEDULING =====
-
-    while (current < dayEnd && (lockedIdx < locked.length || unlocked.some(v => !used.has(v.id)))) {
-      const nextLock = locked[lockedIdx];
-
-      // Handle locked venue
-      if (nextLock && this.timeToMinutes(nextLock.lockedTime!) <= current + 30) {
-        const lockTime = Math.max(current, this.timeToMinutes(nextLock.lockedTime!));
-        const lockEnd = lockTime + nextLock.durationMinutes;
-
-        // Fill gap before lock with something
-        while (current < lockTime - 30 && !hasBreakfast && current < 570) {
-          if (tryMeal('cafe', 45, '☕ Breakfast')) {
-            hasBreakfast = true;
-          } else {
-            break;
-          }
-        }
-
-        timed.push({
-          ...nextLock,
-          startTime: this.minutesToTime(lockTime),
-          endTime: this.minutesToTime(lockEnd),
-          whyThisTime: '🔒 You locked this time',
-        });
-        current = lockEnd + 15;
-        lockedIdx++;
-        continue;
-      }
-
-      // Morning: 08:00–11:30 — Breakfast + attractions
-      if (current < 690) {
-        if (!hasBreakfast && current < 570) {
-          if (tryMeal('cafe', 45, '☕ Breakfast')) {
-            hasBreakfast = true;
-            continue;
-          }
-        }
-
-        const venue = getNext(byType['attraction']) || getNext(byType['shopping']) || getNext(byType['activity']);
-        if (venue) {
-          placeVenue(venue, '🌅 Morning');
-          continue;
-        }
-      }
-
-      // Mid-day: 11:30–14:00 — Lunch
-      if (current >= 690 && current < 840 && !hasLunch) {
-        if (tryMeal('restaurant', 75, '🍜 Lunch')) {
-          hasLunch = true;
-          continue;
-        }
-      }
-
-      // Afternoon: 14:00–17:00 — Activities
-      if (current >= 840 && current < 1020) {
-        const venue = getNext(byType['shopping']) || getNext(byType['activity']) || getNext(byType['attraction']);
-        if (venue) {
-          placeVenue(venue, '🌤️ Afternoon');
-          continue;
-        }
-      }
-
-      // Tea: 17:00–18:30 — Optional, only if cafe available
-      if (current >= 1020 && current < 1110) {
-        const cafe = getNext(byType['cafe']);
-        if (cafe) {
-          placeVenue(cafe, '🫖 Tea Break');
-          continue;
-        }
-      }
-
-      // Evening: 18:30–21:00 — Dinner
-      if (current >= 1110 && current < 1260 && !hasDinner) {
-        if (tryMeal('restaurant', 90, '🍽️ Dinner')) {
-          hasDinner = true;
-          continue;
-        }
-      }
-
-      // Night: 21:00+ — Nightlife
-      if (current >= 1260) {
-        const venue = getNext(byType['nightlife']);
-        if (venue) {
-          placeVenue(venue, '🌙 Nightlife');
-          continue;
-        }
-      }
-
-      // Nothing fits, try any remaining venue
-      const anyVenue = getNext(unlocked.filter(v => !used.has(v.id)));
-      if (anyVenue) {
-        placeVenue(anyVenue, '✨ Activity');
-        continue;
-      }
-
-      // Truly nothing left
-      break;
+assignTimeSlots(dayPlan: DayPlan, weather?: any, dnaRecommendations: any[] = []): DayPlan {
+  const venues = [...dayPlan.venues];
+  
+  // ═══ STRICT SEPARATION: Split meals vs activities ═══
+  const mealVenues = venues.filter(v => v.type === 'cafe' || v.type === 'restaurant');
+  const activityVenues = venues.filter(v => 
+    v.type === 'attraction' || v.type === 'shopping' || v.type === 'activity' || v.type === 'nightlife'
+  );
+  
+  // Track used IDs
+  const usedMeals = new Set<string>();
+  const usedActivities = new Set<string>();
+  
+  const getNextMeal = (type: 'cafe' | 'restaurant'): PlannedVenue | null => {
+    const pool = mealVenues.filter(v => v.type === type && !usedMeals.has(v.id));
+    if (pool.length === 0) return null;
+    const chosen = pool[0];
+    usedMeals.add(chosen.id);
+    return chosen;
+  };
+  
+  const getNextActivity = (): PlannedVenue | null => {
+    const pool = activityVenues.filter(v => !usedActivities.has(v.id));
+    if (pool.length === 0) return null;
+    const chosen = pool[0];
+    usedActivities.add(chosen.id);
+    return chosen;
+  };
+  
+  // ═══ PLACEHOLDERS & DNA FALLBACKS ═══
+  const createMealPlaceholder = (type: 'cafe' | 'restaurant', mealName: string): PlannedVenue => {
+    const ref = timed.length > 0 ? timed[timed.length - 1] : { lat: 0, lng: 0, name: '' };
+    const defaults = { cafe: { emoji: '☕', duration: 45 }, restaurant: { emoji: '🍽️', duration: 90 } };
+    const cfg = defaults[type];
+    
+    // Try DNA first
+    const dna = this.findDnaFallback(type, this.timeToMinutes('08:00'), timed, dnaRecommendations);
+    if (dna) {
+      usedMeals.add(dna.id); // Mark DNA as used so it doesn't repeat
+      return { ...dna, isDnaSuggestion: true, whyThisTime: `💡 From your DNA picks — ${dna.name}` };
     }
-
-    // Add remaining locked venues
-    while (lockedIdx < locked.length) {
-      const lock = locked[lockedIdx];
-      timed.push({
-        ...lock,
-        startTime: lock.lockedTime!,
-        endTime: this.minutesToTime(this.timeToMinutes(lock.lockedTime!) + lock.durationMinutes),
-        whyThisTime: '🔒 You locked this time',
-      });
-      lockedIdx++;
-    }
-
-    const totalTravel = timed.reduce((sum, v, i) =>
-      i < timed.length - 1 ? sum + (v.travelToNext || 0) : sum, 0
-    );
-
+    
     return {
-      ...dayPlan,
-      venues: timed,
-      startTime: '08:00',
-      endTime: this.minutesToTime(Math.min(current, dayEnd)),
-      totalTravelMinutes: totalTravel,
-      totalDurationMinutes: timed.reduce((s, v) => s + v.durationMinutes, 0) + totalTravel,
-    };
-  }
-
-  // Find nearest DNA fallback
-  private findDnaFallback(
-    type: 'cafe' | 'restaurant' | 'attraction' | 'shopping' | 'activity' | 'nightlife',
-    currentTime: number,
-    timedSoFar: PlannedVenue[],
-    dnaRecommendations: any[]
-  ): PlannedVenue | null {
-    if (!dnaRecommendations.length) return null;
-
-    const categoryMap: Record<string, string[]> = {
-      cafe: ['coffee'],
-      restaurant: ['food'],
-      attraction: ['attractions', 'culture'],
-      shopping: ['shopping'],
-      activity: ['wellness'],
-      nightlife: ['nightlife'],
-    };
-    const targetCats = categoryMap[type] || [];
-
-    // Get reference point (last placed venue or day center)
-    const ref = timedSoFar.length > 0
-      ? timedSoFar[timedSoFar.length - 1]
-      : { lat: 0, lng: 0 };
-
-    const matches = dnaRecommendations.filter(r => {
-      const cat = (r.category || '').toLowerCase();
-      return targetCats.includes(cat);
-    });
-
-    if (!matches.length) return null;
-
-    // Sort by distance to reference
-    matches.sort((a, b) => {
-      const distA = this.haversine(a.lat || ref.lat, a.lng || ref.lng, ref.lat, ref.lng);
-      const distB = this.haversine(b.lat || ref.lat, b.lng || ref.lng, ref.lat, ref.lng);
-      return distA - distB;
-    });
-
-    const rec = matches[0];
-    return {
-      id: `dna-${rec.venueName}-${Date.now()}`,
-      name: rec.venueName,
-      lat: rec.lat || ref.lat,
-      lng: rec.lng || ref.lng,
+      id: `placeholder-${type}-${Date.now()}`,
+      name: `${cfg.emoji} ${mealName} — Browse recommendations!`,
+      lat: ref.lat,
+      lng: ref.lng,
       type,
-      durationMinutes: this.defaultDurations[type] || 90,
+      durationMinutes: cfg.duration,
       userAdded: false,
-      isMeal: type === 'restaurant' || type === 'cafe',
-      photoUrl: rec.photoUrl,
-      rating: rec.rating,
-      whyThisTime: `From your DNA picks — ${rec.whyMatch?.[0] || 'Nearby pick'}`,
+      isMeal: true,
+      isPlaceholder: true,
+      whyThisTime: `No ${type} in your plan. Tap to browse nearby ${type}s!`,
     };
+  };
+  
+  const createActivityPlaceholder = (): PlannedVenue | null => {
+    const ref = timed.length > 0 ? timed[timed.length - 1] : { lat: 0, lng: 0, name: '' };
+    const dna = this.findDnaFallback('attraction', this.timeToMinutes('08:00'), timed, dnaRecommendations);
+    if (dna) {
+      usedActivities.add(dna.id);
+      return { ...dna, isDnaSuggestion: true, whyThisTime: `💡 From your DNA picks — ${dna.name}` };
+    }
+    return null; // Don't create generic activity placeholders, only DNA suggestions
+  };
+
+  const timed: PlannedVenue[] = [];
+  let current = this.timeToMinutes('08:00');
+  const dayEnd = this.timeToMinutes('22:00');
+  let hasBreakfast = false;
+  let hasLunch = false;
+  let hasDinner = false;
+  let mealCount = 0;
+
+  // Helper: place a venue
+  const placeVenue = (venue: PlannedVenue, label: string): void => {
+    const end = current + venue.durationMinutes;
+    const travel = 10; // Simplified travel estimate
+    
+    timed.push({
+      ...venue,
+      startTime: this.minutesToTime(current),
+      endTime: this.minutesToTime(end),
+      travelToNext: travel,
+      whyThisTime: venue.whyThisTime || `${label} — ${venue.name}`,
+    });
+    current = end + travel;
+  };
+
+  // ═══ MAIN SCHEDULING LOOP ═══
+  while (current < dayEnd && mealCount < 3) {
+    
+    // BREAKFAST: 08:00–09:30 (only cafe)
+    if (!hasBreakfast && current < 570) {
+      let cafe = getNextMeal('cafe');
+      if (!cafe) cafe = createMealPlaceholder('cafe', 'Breakfast');
+      placeVenue(cafe, '☕ Breakfast');
+      hasBreakfast = true;
+      mealCount++;
+      continue;
+    }
+
+    // LUNCH: 11:30–14:00 (only restaurant)
+    if (!hasLunch && current >= 690 && current < 840) {
+      let restaurant = getNextMeal('restaurant');
+      if (!restaurant) restaurant = createMealPlaceholder('restaurant', 'Lunch');
+      placeVenue(restaurant, '🍜 Lunch');
+      hasLunch = true;
+      mealCount++;
+      continue;
+    }
+
+    // DINNER: 18:00–21:00 (only restaurant)
+    if (!hasDinner && current >= 1080 && current < 1260) {
+      let restaurant = getNextMeal('restaurant');
+      if (!restaurant) restaurant = createMealPlaceholder('restaurant', 'Dinner');
+      placeVenue(restaurant, '🍽️ Dinner');
+      hasDinner = true;
+      mealCount++;
+      continue;
+    }
+
+    // MORNING ACTIVITIES: 09:30–11:30
+    if (current >= 570 && current < 690) {
+      const activity = getNextActivity() || createActivityPlaceholder();
+      if (activity) {
+        placeVenue(activity, '🌅 Morning');
+        continue;
+      }
+    }
+
+    // AFTERNOON ACTIVITIES: 14:00–18:00
+    if (current >= 840 && current < 1080) {
+      const activity = getNextActivity() || createActivityPlaceholder();
+      if (activity) {
+        placeVenue(activity, '🌤️ Afternoon');
+        continue;
+      }
+    }
+
+    // EVENING ACTIVITIES: 21:00+
+    if (current >= 1260) {
+      const activity = getNextActivity() || createActivityPlaceholder();
+      if (activity) {
+        placeVenue(activity, '🌙 Evening');
+        continue;
+      }
+    }
+
+    // Fill gaps with activities
+    const activity = getNextActivity() || createActivityPlaceholder();
+    if (activity) {
+      placeVenue(activity, '✨ Activity');
+      continue;
+    }
+
+    break; // Nothing left to schedule
   }
+
+  // Calculate totals
+  const totalTravel = timed.reduce((sum, v, i) => 
+    i < timed.length - 1 ? sum + (v.travelToNext || 0) : sum, 0
+  );
+
+  return {
+    ...dayPlan,
+    venues: timed,
+    startTime: '08:00',
+    endTime: this.minutesToTime(Math.min(current, dayEnd)),
+    totalTravelMinutes: totalTravel,
+    totalDurationMinutes: timed.reduce((s, v) => s + v.durationMinutes, 0) + totalTravel,
+  };
+}
+
+private findDnaFallback(
+  type: 'cafe' | 'restaurant' | 'attraction' | 'shopping' | 'activity' | 'nightlife',
+  currentTime: number,
+  timedSoFar: PlannedVenue[],
+  dnaRecommendations: any[]
+): PlannedVenue | null {
+  if (!dnaRecommendations.length) return null;
+
+  const categoryMap: Record<string, string[]> = {
+    cafe: ['coffee'],
+    restaurant: ['food'],
+    attraction: ['attractions', 'culture'],
+    shopping: ['shopping'],
+    activity: ['wellness'],
+    nightlife: ['nightlife'],
+  };
+  const targetCats = categoryMap[type] || [];
+
+  // Get reference point (last placed venue or center)
+  const ref = timedSoFar.length > 0
+    ? timedSoFar[timedSoFar.length - 1]
+    : { lat: 0, lng: 0 };
+
+  // STRICT: Only match exact category
+  const matches = dnaRecommendations.filter(r => {
+    const cat = (r.category || '').toLowerCase();
+    return targetCats.includes(cat);
+  });
+
+  if (!matches.length) return null;
+
+  // Sort by distance to reference
+  matches.sort((a, b) => {
+    const distA = this.haversine(a.lat || ref.lat, a.lng || ref.lng, ref.lat, ref.lng);
+    const distB = this.haversine(b.lat || ref.lat, b.lng || ref.lng, ref.lat, ref.lng);
+    return distA - distB;
+  });
+
+  // For cafes, double-check name doesn't have restaurant keywords
+  if (type === 'cafe') {
+    const validCafe = matches.find(r => {
+      const name = (r.venueName || '').toLowerCase();
+      return !['restaurant', 'kitchen', 'dining', 'steak', 'grill'].some(k => name.includes(k));
+    });
+    if (validCafe) return this.createDnaVenue(validCafe, type, ref);
+  }
+
+  return this.createDnaVenue(matches[0], type, ref);
+}
+
+private createDnaVenue(rec: any, type: PlannedVenue['type'], ref: { lat: number; lng: number }): PlannedVenue {
+  return {
+    id: `dna-${rec.venueName}-${Date.now()}`,
+    name: rec.venueName,
+    lat: rec.lat || ref.lat,
+    lng: rec.lng || ref.lng,
+    type,
+    durationMinutes: this.defaultDurations[type] || 90,
+    userAdded: false,
+    isMeal: type === 'restaurant' || type === 'cafe',
+    isDnaSuggestion: true,
+    photoUrl: rec.photoUrl,
+    rating: rec.rating,
+    whyThisTime: `💡 From your DNA picks — ${rec.whyMatch?.[0] || 'Highly rated nearby'}`,
+  };
+}
 
   // Helper to determine time slot
   private getTimeSlotLabel(current: number): string {
@@ -876,5 +920,36 @@ export class SmartPlannerService {
     const daysNeeded = Math.ceil(totalMinutes / (maxHoursPerDay * 60));
 
     return Math.max(1, Math.min(daysNeeded, 7)); // Cap at 7 days
+  }
+
+  private createMealPlaceholder(
+    type: 'cafe' | 'restaurant',
+    mealName: string,
+    currentTime: number,
+    timedSoFar: PlannedVenue[]
+  ): PlannedVenue {
+    const ref = timedSoFar.length > 0
+      ? timedSoFar[timedSoFar.length - 1]
+      : { lat: 0, lng: 0 };
+
+    const defaults: Record<string, { emoji: string; duration: number }> = {
+      cafe: { emoji: '☕', duration: 45 },
+      restaurant: { emoji: '🍽️', duration: 90 }
+    };
+
+    const config = defaults[type];
+
+    return {
+      id: `placeholder-${type}-${Date.now()}`,
+      name: `${config.emoji} ${mealName} — Add from recommendations!`,
+      lat: ref.lat,
+      lng: ref.lng,
+      type,
+      durationMinutes: config.duration,
+      userAdded: false,
+      isMeal: true,
+      isPlaceholder: true,
+      whyThisTime: `No ${type} in your plan. Browse recommendations to add one!`,
+    };
   }
 }

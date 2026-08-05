@@ -38,6 +38,7 @@ import {
 import { PackingItem, WeatherService, DailyForecast } from './weather.service';
 import { CardCurrencyBalance, CardLinkedExchangeService } from '../../services/card-linked-exchange.service';
 import { SmartPlannerService, PlannedVenue, DayPlan } from '../../services/smart-planner.service';
+import { RouteService, DirectionsResponse } from '../../services/route.service';
 @Component({
   selector: 'app-travel',
   templateUrl: './travel.page.html',
@@ -151,7 +152,8 @@ export class TravelPage implements OnInit {
     private modalCtrl: ModalController,
     private countryData: CountryDataService,
     public cardExchange: CardLinkedExchangeService,
-    private smartPlanner: SmartPlannerService
+    private smartPlanner: SmartPlannerService,
+    private routeService: RouteService
   ) { }
 
   ngOnInit() {
@@ -1570,35 +1572,38 @@ export class TravelPage implements OnInit {
     }
   }
 
-generateDayPlans() {
-  if (!this.plannedVenues.length) {
-    alert('Add some venues to your plan first!');
-    return;
+  async generateDayPlans() {
+    if (!this.plannedVenues.length) {
+      alert('Add some venues to your plan first!');
+      return;
+    }
+
+    const center = this.getDestinationCenter();
+    const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
+
+    const allRecommendations = [
+      ...this.recommendations,
+      ...this.categories.flatMap(c => c.cards)
+    ];
+
+    // If auto-optimize, pass 0 to let algorithm decide
+    const daysToUse = this.autoOptimizeDays ? 0 : this.numTripDays;
+
+    this.dayPlans = this.smartPlanner.clusterIntoDays(venues, daysToUse, allRecommendations);
+
+    // Update numTripDays to actual used
+    this.numTripDays = this.dayPlans.length;
+
+    console.log('Generated days:', this.dayPlans.length);
+    this.dayPlans.forEach(d => {
+      console.log(`Day ${d.day}:`, d.venues.map(v =>
+        `${v.startTime}-${v.endTime} ${v.name}`
+      ));
+    });
+    for (let i = 0; i < this.dayPlans.length; i++) {
+      await this.loadDayRoute(this.dayPlans[i], i);
+    }
   }
-  
-  const center = this.getDestinationCenter();
-  const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
-  
-  const allRecommendations = [
-    ...this.recommendations,
-    ...this.categories.flatMap(c => c.cards)
-  ];
-  
-  // If auto-optimize, pass 0 to let algorithm decide
-  const daysToUse = this.autoOptimizeDays ? 0 : this.numTripDays;
-  
-  this.dayPlans = this.smartPlanner.clusterIntoDays(venues, daysToUse, allRecommendations);
-  
-  // Update numTripDays to actual used
-  this.numTripDays = this.dayPlans.length;
-  
-  console.log('Generated days:', this.dayPlans.length);
-  this.dayPlans.forEach(d => {
-    console.log(`Day ${d.day}:`, d.venues.map(v => 
-      `${v.startTime}-${v.endTime} ${v.name}`
-    ));
-  });
-}
 
   getDestinationCenter(): { lat: number; lng: number } {
     const centers: Record<string, { lat: number; lng: number }> = {
@@ -1774,4 +1779,143 @@ generateDayPlans() {
     ).join('\n\n');
     alert(`🗺️ Day ${day.day}: ${day.theme}\n\n${stops}\n\n🚶 ${day.estimatedWalkingKm}km total`);
   }
+
+async loadDayRoute(day: DayPlan, index: number) {
+    if (day.venues.length < 2) return;
+
+    const venues = day.venues.filter(v => !v.isMeal);
+    if (venues.length < 2) return;
+
+    const origin = { lat: venues[0].lat, lng: venues[0].lng };
+    const destination = { 
+        lat: venues[venues.length - 1].lat, 
+        lng: venues[venues.length - 1].lng 
+    };
+    const waypoints = venues.slice(1, -1).map(v => ({ lat: v.lat, lng: v.lng }));
+
+    try {
+        const route = await this.routeService.getOptimizedRoute(
+            origin, destination, waypoints, 'walking'
+        ).toPromise();
+
+        if (route && route.status === 'OK') {
+            // Apply optimized order
+            if (route.optimizedOrder.length > 0) {
+                const reordered = this.applyOptimizedOrder(venues, route.optimizedOrder);
+                day.venues = this.mergeMealsBack(reordered, day.venues);
+                day.routeOptimized = true;
+                
+                // Re-assign time slots after reordering
+                const tempDayPlan: DayPlan = {
+                    day: day.day,
+                    theme: day.theme,
+                    venues: day.venues,
+                    totalDurationMinutes: 0,
+                    estimatedWalkingKm: day.estimatedWalkingKm
+                };
+                const reTimed = this.smartPlanner.assignTimeSlots(tempDayPlan, undefined, []);
+                day.venues = reTimed.venues;
+                day.startTime = reTimed.startTime;
+                day.endTime = reTimed.endTime;
+                day.totalTravelMinutes = reTimed.totalTravelMinutes;
+                day.totalDurationMinutes = reTimed.totalDurationMinutes;
+            }
+
+            // Generate static map
+            const allPoints = day.venues.filter(v => !v.isMeal).map(v => ({ lat: v.lat, lng: v.lng }));
+            const pathPoints = route.decodedPath && route.decodedPath.length > 0 
+                ? route.decodedPath 
+                : allPoints;
+            
+            day.routeImageUrl = this.routeService.getStaticMapUrl(
+                this.getCenter(allPoints),
+                allPoints,
+                pathPoints,
+                '14',   // ← String, not number
+                600,  // ← String, not number
+                180   // ← String, not number
+            );
+
+            day.routeDetails = route;
+            day.totalTravelMinutes = Math.round(route.totalDuration / 60);
+            day.estimatedWalkingKm = +(route.totalDistance / 1000).toFixed(1);
+        }
+    } catch (err) {
+        console.error('Route optimization failed:', err);
+    }
+}
+
+private applyOptimizedOrder(venues: PlannedVenue[], order: number[]): PlannedVenue[] {
+    if (venues.length <= 2 || order.length === 0) return venues;  // ← Fixed: order, not waypointOrder
+    
+    const origin = venues[0];
+    const waypoints = venues.slice(1, -1);
+    const destination = venues[venues.length - 1];
+
+    const reorderedWaypoints = order.map(idx => waypoints[idx]);  // ← Fixed: order, not waypointOrder
+    
+    return [origin, ...reorderedWaypoints, destination];
+}
+
+  private mergeMealsBack(optimized: PlannedVenue[], original: PlannedVenue[]): PlannedVenue[] {
+    // Re-insert meal venues in their original time slots
+    const meals = original.filter(v => v.isMeal);
+    const result: PlannedVenue[] = [];
+    let mealIdx = 0;
+
+    for (const venue of optimized) {
+      // Insert any meals that were before this venue in original
+      while (mealIdx < meals.length && original.indexOf(meals[mealIdx]) < original.indexOf(venue)) {
+        result.push(meals[mealIdx++]);
+      }
+      result.push(venue);
+    }
+
+    // Append remaining meals
+    while (mealIdx < meals.length) {
+      result.push(meals[mealIdx++]);
+    }
+
+    return result;
+  }
+
+  private getCenter(points: { lat: number; lng: number }[]): { lat: number; lng: number } {
+    const avgLat = points.reduce((s, p) => s + p.lat, 0) / points.length;
+    const avgLng = points.reduce((s, p) => s + p.lng, 0) / points.length;
+    return { lat: avgLat, lng: avgLng };
+  }
+
+  openRouteInMaps(day: DayPlan) {
+    if (!day.routeDetails) return;
+
+    const venues = day.venues.filter(v => !v.isMeal);
+    if (venues.length < 2) return;
+
+    const origin = { lat: venues[0].lat, lng: venues[0].lng };
+    const destination = {
+      lat: venues[venues.length - 1].lat,
+      lng: venues[venues.length - 1].lng
+    };
+    const waypoints = venues.slice(1, -1).map(v => ({ lat: v.lat, lng: v.lng }));
+
+    this.routeService.getDirectionsUrl(origin, destination, waypoints).subscribe(res => {
+      window.open(res.url, '_blank');
+    });
+  }
+
+  async optimizeDayRoute(day: DayPlan, index: number) {
+    // Force re-optimization
+    day.routeOptimized = false;
+    await this.loadDayRoute(day, index);
+  }
+
+  zoomMap(day: DayPlan, delta: number) {
+    const currentZoom = day.mapZoom || 1;
+    const newZoom = Math.max(0.5, Math.min(3, currentZoom + delta));
+    day.mapZoom = Math.round(newZoom * 10) / 10; // Round to 1 decimal
+}
+
+resetMapZoom(day: DayPlan) {
+    day.mapZoom = 1;
+}
 }

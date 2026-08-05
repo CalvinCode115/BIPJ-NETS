@@ -6,6 +6,9 @@ import { TravelPage } from './travel.page';
 import { TravelPageRoutingModule } from './travel-routing.module';
 import { SharedModule } from '../../shared/shared.module';
 import { CountryGlobeComponent } from '../../components/country-globe/country-globe.component';
+import { DayMapComponent } from '../../components/day-map/day-map.component';
+import { GoogleMapsLoaderService } from 'src/app/services/google-maps-loader.service';
+
 
 @NgModule({
   imports: [
@@ -15,6 +18,7 @@ import { CountryGlobeComponent } from '../../components/country-globe/country-gl
     TravelPageRoutingModule,
     SharedModule,
   ],
-  declarations: [TravelPage, CountryGlobeComponent],
+  declarations: [TravelPage, CountryGlobeComponent,DayMapComponent],
+  providers: [GoogleMapsLoaderService],
 })
 export class TravelPageModule {}
