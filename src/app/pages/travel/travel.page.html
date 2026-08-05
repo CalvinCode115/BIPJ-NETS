@@ -61,71 +61,138 @@
   </ion-card>
 
   <!-- SMART DAY PLANNER CONTROLS -->
-<div class="planner-section" *ngIf="plannedVenues.length > 0">
-  <div class="planner-header">
-    <h3>🗓️ Smart Day Planner</h3>
-    <span>{{ plannedVenues.length }} venues → {{ numTripDays }} days</span>
+  <div class="planner-section" *ngIf="plannedVenues.length > 0">
+    <div class="planner-header">
+      <h3>🗓️ Smart Day Planner</h3>
+      <span>{{ plannedVenues.length }} venues → {{ numTripDays }} days</span>
+    </div>
+
+    <div class="days-input">
+      <label>Trip duration:</label>
+      <ion-segment [value]="numTripDays" (ionChange)="onDaysChange($event)">
+        <ion-segment-button value="1">1 day</ion-segment-button>
+        <ion-segment-button value="2">2 days</ion-segment-button>
+        <ion-segment-button value="3">3 days</ion-segment-button>
+        <ion-segment-button value="4">4 days</ion-segment-button>
+        <ion-segment-button value="5">5 days</ion-segment-button>
+      </ion-segment>
+    </div>
+
+    <ion-button expand="block" (click)="generateDayPlans()">
+      <ion-icon name="sparkles-outline" slot="start"></ion-icon>
+      Generate My Itinerary
+    </ion-button>
   </div>
-  
-  <div class="days-input">
-    <label>Trip duration:</label>
-    <ion-segment [value]="numTripDays" (ionChange)="onDaysChange($event)">
-      <ion-segment-button value="1">1 day</ion-segment-button>
-      <ion-segment-button value="2">2 days</ion-segment-button>
-      <ion-segment-button value="3">3 days</ion-segment-button>
-      <ion-segment-button value="4">4 days</ion-segment-button>
-      <ion-segment-button value="5">5 days</ion-segment-button>
-    </ion-segment>
-  </div>
-  
-  <ion-button expand="block" (click)="generateDayPlans()">
-    <ion-icon name="sparkles-outline" slot="start"></ion-icon>
-    Generate My Itinerary
-  </ion-button>
-</div>
-  <!-- Generated day plans — CORRECTLY NESTED -->
+  <!-- Generated day plans — TIMELINE DESIGN -->
   <div class="day-plan" *ngFor="let day of dayPlans">
+
+    <!-- Day header -->
     <div class="day-header">
-      <h4>Day {{ day.day }}: {{ day.theme }}</h4>
-      <span>🚶 {{ day.estimatedWalkingKm }}km | ⏱️ {{ day.totalDurationMinutes / 60 | number:'1.0-0' }} hrs</span>
+      <div class="day-header-left">
+        <div class="day-number">Day {{ day.day }}</div>
+        <div class="day-theme">{{ day.theme }}</div>
+      </div>
+      <div class="day-stats">
+        <span class="day-stat">🚶 {{ day.estimatedWalkingKm }}km</span>
+        <span class="day-stat">⏱️ {{ day.totalDurationMinutes / 60 | number:'1.0-0' }}h</span>
+        <span class="day-stat" *ngIf="day.totalTravelMinutes">🚌 {{ day.totalTravelMinutes }}min</span>
+      </div>
     </div>
 
-    <div class="day-venues">
-      <!-- Loop through venues -->
-      <ng-container *ngFor="let venue of day.venues; let i = index">
-
-        <!-- Venue item -->
-        <div class="day-venue">
-          <div class="venue-time">
-            <span class="start-time">{{ venue.startTime }}</span>
-            <span class="time-separator">-</span>
-            <span class="end-time">{{ venue.endTime }}</span>
-          </div>
-
-          <span class="venue-order" [class.ai-suggested]="!venue.userAdded">
-            {{ venue.isMeal ? '🍽️' : (i + 1) }}
-          </span>
-
-          <div class="venue-info">
-            <span class="venue-name" [class.ai-suggested]="!venue.userAdded">
-              {{ venue.name }}
-              <span *ngIf="!venue.userAdded" class="ai-badge">AI</span>
-            </span>
-            <span class="venue-meta">
-              {{ venue.type }} • {{ venue.durationMinutes }} min
-            </span>
-          </div>
-        </div>
-
-        <!-- Travel time to NEXT venue — INSIDE the same ngFor -->
-        <div class="travel-segment" *ngIf="venue.travelToNext">
-          <ion-icon name="car-outline"></ion-icon>
-          <span>{{ venue.travelToNext }} min travel</span>
-        </div>
-
-      </ng-container>
+    <!-- ✅ Route logic summary — INSIDE the day-plan div -->
+    <div class="route-insight" *ngIf="day.venues.length > 1">
+      <ion-icon name="navigate-circle-outline"></ion-icon>
+      <span>
+        Ordered by shortest walking path ·
+        {{ day.estimatedWalkingKm }}km total ·
+        {{ day.totalTravelMinutes || 0 }}min travel
+      </span>
     </div>
+<!-- Timeline -->
+<div class="timeline">
+    <ng-container *ngFor="let venue of day.venues; let i = index; let last = last">
+        
+        <!-- Timeline item -->
+        <div class="timeline-item" [class.meal]="venue.isMeal" [class.locked]="venue.locked">
+            
+            <!-- LEFT: Time + dot + line -->
+            <div class="timeline-left">
+                <div class="timeline-time">{{ venue.startTime }}</div>
+                <div class="timeline-dot" [class.meal]="venue.isMeal" [class.locked]="venue.locked">
+                    <ion-icon *ngIf="venue.isMeal" name="restaurant-outline"></ion-icon>
+                    <ion-icon *ngIf="venue.locked" name="lock-closed"></ion-icon>
+                    <span *ngIf="!venue.isMeal && !venue.locked">{{ i + 1 }}</span>
+                </div>
+                <div class="timeline-line" *ngIf="!last"></div>
+            </div>
+            
+            <!-- RIGHT: Expandable card -->
+            <div class="timeline-card" (click)="venue.expanded = !venue.expanded">
+                
+                <!-- Card header (always visible) -->
+                <div class="card-header">
+                    <div class="card-main">
+                        <h4 class="card-name">{{ venue.name }}</h4>
+                        <div class="card-badges">
+                            <span class="badge type-badge">{{ venue.type }}</span>
+                            <span class="badge duration-badge">{{ venue.durationMinutes }} min</span>
+                            <span class="badge lock-badge" *ngIf="venue.locked">🔒 {{ venue.lockedTime }}</span>
+                            <span class="badge ai-badge" *ngIf="!venue.userAdded && !venue.isMeal">AI</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <ion-button fill="clear" size="small" class="lock-btn"
+                            *ngIf="!venue.isMeal && venue.userAdded !== false"
+                            (click)="toggleLock(venue); $event.stopPropagation()">
+                            <ion-icon [name]="venue.locked ? 'lock-closed' : 'lock-open-outline'"
+                                [color]="venue.locked ? 'warning' : 'medium'">
+                            </ion-icon>
+                        </ion-button>
+                        <ion-icon name="chevron-down" class="expand-icon" [class.expanded]="venue.expanded"></ion-icon>
+                    </div>
+                </div>
+                
+                <!-- Expanded content -->
+                <div class="card-expanded" *ngIf="venue.expanded">
+                    
+                    <!-- Why explanation -->
+                    <div class="why-section" *ngIf="venue.whyThisTime">
+                        <ion-icon name="bulb-outline"></ion-icon>
+                        <p>{{ venue.whyThisTime }}</p>
+                    </div>
+                    
+                    <!-- Time details -->
+                    <div class="time-details">
+                        <span><ion-icon name="time-outline"></ion-icon> {{ venue.startTime }} – {{ venue.endTime }}</span>
+                        <span *ngIf="venue.rating"><ion-icon name="star"></ion-icon> {{ venue.rating }}</span>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        
+        <!-- TRAVEL TO NEXT — Between items (outside timeline-item) -->
+        <div class="travel-segment" *ngIf="!last && venue.travelToNext">
+            <div class="travel-line"></div>
+            <div class="travel-badge">
+                <ion-icon name="walk-outline"></ion-icon>
+                <span>{{ venue.travelToNext }} min</span>
+            </div>
+            <div class="travel-line"></div>
+        </div>
+        
+    </ng-container>
+</div>
   </div>
+
+  <!-- Day actions -->
+  <div class="day-actions">
+
+  </div>
+  <ion-button fill="clear" size="small" (click)="generateDayPlans()">
+    <ion-icon name="refresh-outline" slot="start"></ion-icon>
+    Regenerate All
+  </ion-button>
   <!-- ── WEATHER-OPTIMIZED ITINERARY ── -->
   <ion-card class="itinerary-card" *ngIf="itinerary.length > 0">
     <ion-card-header>
@@ -144,6 +211,7 @@
             </span>
           </div>
         </div>
+
 
         <div class="day-activities">
           <div class="activity-chip" *ngFor="let place of plan.activities">

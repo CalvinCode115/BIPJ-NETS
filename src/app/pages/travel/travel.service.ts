@@ -37,25 +37,25 @@ export class TravelService {
     );
   }
 
-getTravelRecommendations(
-  userId: string,
-  destination: DestinationConfig,
-  month?: number,
-  year?: number
-): Observable<{
-  dnaPicks: RecommendationCard[],
-  categories: CategorySection[],
-  budget: BudgetTracker,
-  places: GooglePlace[]
-}> {
-  // Change this: add _v2 to bust old cache
-  const cacheKey = `nets_travel_recs_v2_${destination.id}_${userId}_${month}_${year}`;
-  
-  const cached = this.cache.get<any>(cacheKey);
-  if (cached) {
-    console.log('[Travel] Using cached recommendations for', destination.name);
-    return of(cached);
-  }
+  getTravelRecommendations(
+    userId: string,
+    destination: DestinationConfig,
+    month?: number,
+    year?: number
+  ): Observable<{
+    dnaPicks: RecommendationCard[],
+    categories: CategorySection[],
+    budget: BudgetTracker,
+    places: GooglePlace[]
+  }> {
+    // Change this: add _v2 to bust old cache
+    const cacheKey = `nets_travel_recs_v2_${destination.id}_${userId}_${month}_${year}`;
+
+    const cached = this.cache.get<any>(cacheKey);
+    if (cached) {
+      console.log('[Travel] Using cached recommendations for', destination.name);
+      return of(cached);
+    }
 
     return this.getDnaProfile(userId, month, year).pipe(
       switchMap(dna => {
@@ -375,7 +375,8 @@ getTravelRecommendations(
         distance: item.distance,
         openNow: item.whyMatch.includes('🕐 Open now'),
         dnaMatchScore: item.score,
-        whyMatch: item.whyMatch
+        whyMatch: item.whyMatch,
+        category: item.category, // ← ADD THIS
       };
     });
   }
@@ -437,7 +438,8 @@ getTravelRecommendations(
           distance: item.distance,
           openNow: item.whyMatch.includes('🕐 Open now'),
           dnaMatchScore: item.score,
-          whyMatch: item.whyMatch
+          whyMatch: item.whyMatch,
+          category: item.category, // ← ADD THIS
         };
       });
 

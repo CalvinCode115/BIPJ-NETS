@@ -135,7 +135,8 @@ export class TravelPage implements OnInit {
   selectedTripDuration = 4;
 
   dayPlans: DayPlan[] = [];
-  numTripDays: number = 3; // User can adjust this
+  numTripDays: number = 3;
+  autoOptimizeDays = true; // New flag
 
   constructor(
     private http: HttpClient,
@@ -489,48 +490,48 @@ export class TravelPage implements OnInit {
   }
 
   // ========== PLAN / TO-DO ==========
-addToPlan(card: RecommendationCard) {
-  if (!this.plannedVenues.find(v => v.venueName === card.venueName)) {
-    let lat = card.lat;
-    let lng = card.lng;
-    
-    // Active lookup from places
-    if (!lat || !lng) {
-      const match = this.places.find(p => {
-        const pName = p.name?.toLowerCase() || '';
-        const cName = card.venueName?.toLowerCase() || '';
-        return pName === cName || 
-               pName.includes(cName) || 
-               cName.includes(pName) ||
-               p.vicinity?.toLowerCase().includes(cName);
-      });
-      
-      if (match?.geometry?.location) {
-        lat = match.geometry.location.lat;
-        lng = match.geometry.location.lng;
-        console.log('Found place match for', card.venueName, ':', lat, lng);
+  addToPlan(card: RecommendationCard) {
+    if (!this.plannedVenues.find(v => v.venueName === card.venueName)) {
+      let lat = card.lat;
+      let lng = card.lng;
+
+      // Active lookup from places
+      if (!lat || !lng) {
+        const match = this.places.find(p => {
+          const pName = p.name?.toLowerCase() || '';
+          const cName = card.venueName?.toLowerCase() || '';
+          return pName === cName ||
+            pName.includes(cName) ||
+            cName.includes(pName) ||
+            p.vicinity?.toLowerCase().includes(cName);
+        });
+
+        if (match?.geometry?.location) {
+          lat = match.geometry.location.lat;
+          lng = match.geometry.location.lng;
+          console.log('Found place match for', card.venueName, ':', lat, lng);
+        }
       }
+
+      if ((!lat || !lng) && card.location) {
+        lat = card.location.latitude;
+        lng = card.location.longitude;
+      }
+
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+        const center = this.getDestinationCenter();
+        lat = center.lat + (Math.random() - 0.5) * 0.08;
+        lng = center.lng + (Math.random() - 0.5) * 0.08;
+        console.warn('Fallback for', card.venueName, ':', lat.toFixed(5), lng.toFixed(5));
+      }
+
+      const venueWithCoords = { ...card, lat, lng };
+      this.plannedVenues.push(venueWithCoords);
+      this.savePlan();
+
+      console.log('Added:', card.venueName, 'at', lat.toFixed(5), lng.toFixed(5));
     }
-    
-    if ((!lat || !lng) && card.location) {
-      lat = card.location.latitude;
-      lng = card.location.longitude;
-    }
-    
-    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      const center = this.getDestinationCenter();
-      lat = center.lat + (Math.random() - 0.5) * 0.08;
-      lng = center.lng + (Math.random() - 0.5) * 0.08;
-      console.warn('Fallback for', card.venueName, ':', lat.toFixed(5), lng.toFixed(5));
-    }
-    
-    const venueWithCoords = { ...card, lat, lng };
-    this.plannedVenues.push(venueWithCoords);
-    this.savePlan();
-    
-    console.log('Added:', card.venueName, 'at', lat.toFixed(5), lng.toFixed(5));
   }
-}
   removeFromPlan(card: RecommendationCard) {
     this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== card.venueName);
     this.savePlan();
@@ -1569,21 +1570,35 @@ addToPlan(card: RecommendationCard) {
     }
   }
 
-  generateDayPlans() {
-    if (!this.plannedVenues.length) {
-      alert('Add some venues to your plan first!');
-      return;
-    }
-
-    const center = this.getDestinationCenter();
-    const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
-    this.dayPlans = this.smartPlanner.clusterIntoDays(venues, this.numTripDays);
-
-    console.log('Generated days:', this.dayPlans.length);
-    this.dayPlans.forEach(d => {
-      console.log(`Day ${d.day} (${d.theme}):`, d.venues.map(v => v.name));
-    });
+generateDayPlans() {
+  if (!this.plannedVenues.length) {
+    alert('Add some venues to your plan first!');
+    return;
   }
+  
+  const center = this.getDestinationCenter();
+  const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
+  
+  const allRecommendations = [
+    ...this.recommendations,
+    ...this.categories.flatMap(c => c.cards)
+  ];
+  
+  // If auto-optimize, pass 0 to let algorithm decide
+  const daysToUse = this.autoOptimizeDays ? 0 : this.numTripDays;
+  
+  this.dayPlans = this.smartPlanner.clusterIntoDays(venues, daysToUse, allRecommendations);
+  
+  // Update numTripDays to actual used
+  this.numTripDays = this.dayPlans.length;
+  
+  console.log('Generated days:', this.dayPlans.length);
+  this.dayPlans.forEach(d => {
+    console.log(`Day ${d.day}:`, d.venues.map(v => 
+      `${v.startTime}-${v.endTime} ${v.name}`
+    ));
+  });
+}
 
   getDestinationCenter(): { lat: number; lng: number } {
     const centers: Record<string, { lat: number; lng: number }> = {
@@ -1673,5 +1688,90 @@ addToPlan(card: RecommendationCard) {
       this.recommendations.filter(r => r.lat).length, 'recommendations and',
       this.categories.reduce((sum, c) => sum + c.cards.filter(c => c.lat).length, 0), 'category cards'
     );
+  }
+
+  toggleLock(venue: any) {
+    if (venue.isMeal || venue.userAdded === false) {
+      console.log('Cannot lock AI-generated meal:', venue.name);
+      return;
+    }
+
+    const plannedVenue = this.plannedVenues.find((v: any) =>
+      v.venueName === venue.name || v.venueName === venue.venueName
+    );
+
+    if (!plannedVenue) {
+      console.warn('Venue not found:', venue.name);
+      return;
+    }
+
+    if (plannedVenue.locked) {
+      // Unlock
+      plannedVenue.locked = false;
+      plannedVenue.lockedTime = undefined;
+      console.log('Unlocked:', plannedVenue.venueName);
+    } else {
+      const time = prompt(`Lock "${plannedVenue.venueName}" at what time?\nFormat: HH:MM (e.g., 14:00)`);
+      if (!time) return;
+
+      if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+        alert('Invalid time format. Use HH:MM (e.g., 14:00)');
+        return;
+      }
+
+      // Check if another venue is already locked at this time
+      const alreadyLocked = this.plannedVenues.find((v: any) =>
+        v.venueName !== plannedVenue.venueName && v.locked && v.lockedTime === time
+      );
+      if (alreadyLocked) {
+        alert(`Another venue (${alreadyLocked.venueName}) is already locked at ${time}. Please choose a different time.`);
+        return;
+      }
+
+      plannedVenue.locked = true;
+      plannedVenue.lockedTime = time;
+      console.log('Locked:', plannedVenue.venueName, 'at', time);
+    }
+
+    this.savePlan();
+    if (this.dayPlans.length > 0) {
+      this.generateDayPlans();
+    }
+  }
+
+  async showLockTimePicker(venue: PlannedVenue) {
+    // Simple prompt for demo — replace with proper time picker later
+    const time = prompt(`Lock "${venue.name}" at what time? (HH:MM, e.g., 14:00)`);
+    if (time && /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
+      venue.locked = true;
+      venue.lockedTime = time;
+      this.savePlan();
+
+      // Regenerate to respect lock
+      if (this.dayPlans.length > 0) {
+        this.generateDayPlans();
+      }
+    }
+  }
+
+  // Check if venue is locked
+  isLocked(venue: PlannedVenue): boolean {
+    return !!venue.locked;
+  }
+
+  // Add these methods to travel.page.ts
+
+  regenerateDay(day: DayPlan) {
+    console.log('Regenerating day', day.day);
+    // Just re-run generateDayPlans for now
+    this.generateDayPlans();
+  }
+
+  async openDayMap(day: DayPlan) {
+    console.log('Map for day', day.day);
+    const stops = day.venues.map((v, i) =>
+      `${i + 1}. ${v.name}\n   ${v.startTime || '??:??'} - ${v.endTime || '??:??'}${v.locked ? ' 🔒' : ''}`
+    ).join('\n\n');
+    alert(`🗺️ Day ${day.day}: ${day.theme}\n\n${stops}\n\n🚶 ${day.estimatedWalkingKm}km total`);
   }
 }

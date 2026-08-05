@@ -43,16 +43,19 @@ export interface RecommendationCard {
   types?: string[];
   photoUrl?: string;
   isHero?: boolean;
-  distance?: number; // meters from center
+  distance?: number;
   openNow?: boolean;
   dnaMatchScore?: number;
-  whyMatch: string[]; // badges like ["💰 Fits budget", "☕ Coffee DNA", "🕐 Open now"]
+  whyMatch: string[];
   lat?: number;
   lng?: number;
   location?: {
     latitude: number;
     longitude: number;
   };
+  category?: string;
+  locked?: boolean;
+  lockedTime?: string;
 }
 
 export interface CategorySection {
