@@ -601,13 +601,12 @@ def _get_exchange_rate(from_curr: str, to_curr: str) -> float:
 def get_directions(request: DirectionsRequest):
     """
     Get optimized route with Google Directions API.
-    Returns: route path, legs, duration, distance, and optimized waypoint order.
     """
     base_url = "https://maps.googleapis.com/maps/api/directions/json"
     
     # Build waypoints string
     waypoints_str = ""
-    if request.waypoints:
+    if request.waypoints and len(request.waypoints) > 0:
         waypoint_coords = [f"{w['lat']},{w['lng']}" for w in request.waypoints]
         optimize_flag = "optimize:true|" if request.optimize else ""
         waypoints_str = f"&waypoints={optimize_flag}{'|'.join(waypoint_coords)}"
@@ -621,29 +620,52 @@ def get_directions(request: DirectionsRequest):
     
     url = f"{base_url}?{requests.compat.urlencode(params)}{waypoints_str}"
     
+    # DEBUG
+    print(f"[directions] origin={params['origin']}, dest={params['destination']}, waypoints={len(request.waypoints or [])}, mode={request.mode}")
+    
     try:
         r = requests.get(url, timeout=15)
         r.raise_for_status()
         data = r.json()
         
-        if data.get("status") != "OK":
+        status = data.get("status", "UNKNOWN_ERROR")
+        print(f"[directions] Google status: {status}")
+        
+        if status == "ZERO_RESULTS":
             return {
-                "error": data.get("status"),
+                "status": "ZERO_RESULTS",
+                "error": "No route found between these points",
+                "message": "The origin and destination may be too close or unreachable by this travel mode",
+                "optimizedOrder": [],
+                "totalDistance": 0,
+                "totalDuration": 0,
+                "polyline": "",
+                "decodedPath": [],
+                "legs": [],
+                "bounds": {"northeast": {"lat": 0, "lng": 0}, "southwest": {"lat": 0, "lng": 0}}
+            }
+        
+        if status != "OK":
+            return {
+                "status": status,
+                "error": status,
                 "message": data.get("error_message", "Directions request failed")
             }
         
         route = data["routes"][0]
-        leg = route["legs"][0] if len(route["legs"]) == 1 else None
         
-        # Decode polyline for frontend mapping
+        # Handle multiple legs properly
+        legs = route.get("legs", [])
+        
+        # Decode polyline
         encoded_polyline = route["overview_polyline"]["points"]
-        decoded_path = polyline.decode(encoded_polyline)  # [(lat, lng), ...]
+        decoded_path = polyline.decode(encoded_polyline)
         
         return {
             "status": "OK",
             "optimizedOrder": route.get("waypoint_order", []),
-            "totalDistance": leg["distance"]["value"] if leg else sum(l["distance"]["value"] for l in route["legs"]),
-            "totalDuration": leg["duration"]["value"] if leg else sum(l["duration"]["value"] for l in route["legs"]),
+            "totalDistance": sum(l["distance"]["value"] for l in legs),
+            "totalDuration": sum(l["duration"]["value"] for l in legs),
             "polyline": encoded_polyline,
             "decodedPath": [{"lat": lat, "lng": lng} for lat, lng in decoded_path],
             "legs": [
@@ -661,14 +683,15 @@ def get_directions(request: DirectionsRequest):
                         for s in l["steps"]
                     ]
                 }
-                for l in route["legs"]
+                for l in legs
             ],
             "bounds": route["bounds"],
         }
         
     except requests.RequestException as e:
-        return {"error": str(e)}
-
+        print(f"[directions] Request error: {str(e)}")
+        return {"status": "ERROR", "error": str(e), "message": str(e)}
+    
 @app.get("/api/map/static")
 def get_static_map(
     center_lat: float = Query(...),
@@ -747,3 +770,93 @@ def get_google_maps_key():
         "mapId": "f93caa09259664b67c1df146",  
         "libraries": "places,marker"
     }
+
+@app.get("/api/places/nearby-point")
+def get_places_nearby_point(
+    lat: float = Query(..., description="Center latitude"),
+    lng: float = Query(..., description="Center longitude"),
+    keyword: str = Query(..., description="Search keyword"),
+    radius: int = Query(2000, description="Search radius in meters"),
+    max_results: int = Query(5, description="Max results to return")
+):
+    """
+    Search for places near a specific point using Google Places API (New).
+    """
+    url = "https://places.googleapis.com/v1/places:searchNearby"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,  # ← FIXED: actual key from .env
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.photos,places.types,places.regularOpeningHours"
+    }
+    
+    # Valid Google Places API (New) types only
+    # Reference: https://developers.google.com/maps/documentation/places/web-service/place-types
+    type_mapping = {
+        'cafe': ['cafe'],
+        'restaurant': ['restaurant'],
+        'attraction': ['tourist_attraction'],
+        'shopping': ['shopping_mall'],
+        'nightlife': ['night_club', 'bar'],
+        'activity': ['amusement_park', 'park'],
+        'coffee_shop': ['coffee_shop'],
+        'bakery': ['bakery'],
+        'food': ['food'],
+        'bar': ['bar'],
+    }
+    
+    included_types = type_mapping.get(keyword.lower(), [keyword.lower()])
+    
+    body = {
+        "locationRestriction": {
+            "circle": {
+                "center": {"latitude": lat, "longitude": lng},
+                "radius": radius
+            }
+        },
+        "includedTypes": included_types,
+        "maxResultCount": min(max_results, 20),  # API limit is 20
+        "rankPreference": "DISTANCE"
+    }
+    
+    try:
+        r = requests.post(url, headers=headers, json=body, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        
+        # Debug: log what Google returned
+        print(f"[nearby-point] keyword={keyword}, lat={lat}, lng={lng}, status={r.status_code}, places_found={len(data.get('places', []))}")
+        
+        places = data.get("places", [])
+        
+        if not places:
+            return {"places": [], "count": 0, "message": f"No {keyword} found within {radius}m"}
+        
+        formatted = []
+        for p in places:
+            loc = p.get("location", {})
+            formatted.append({
+                "id": p.get("id"),
+                "displayName": p.get("displayName", {}).get("text", "Unknown"),
+                "formattedAddress": p.get("formattedAddress", ""),
+                "location": {
+                    "latitude": loc.get("latitude", 0),
+                    "longitude": loc.get("longitude", 0)
+                },
+                "rating": p.get("rating", 0),
+                "userRatingCount": p.get("userRatingCount", 0),
+                "priceLevel": p.get("priceLevel", ""),
+                "photos": p.get("photos", []),
+                "types": p.get("types", []),
+                "regularOpeningHours": p.get("regularOpeningHours", {})
+            })
+        
+        return {"places": formatted, "count": len(formatted)}
+        
+    except requests.RequestException as e:
+        print(f"[nearby-point] ERROR: {str(e)}")
+        return {"error": str(e), "places": [], "count": 0}
+    
+    except Exception as e:
+        print(f"[nearby-point] UNEXPECTED ERROR: {str(e)}")
+        return {"error": str(e), "places": [], "count": 0}

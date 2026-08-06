@@ -137,7 +137,8 @@ export class TravelPage implements OnInit {
 
   dayPlans: DayPlan[] = [];
   numTripDays: number = 3;
-  autoOptimizeDays = true; // New flag
+  autoOptimizeDays = true;
+  isGeneratingPlans = false;
 
   constructor(
     private http: HttpClient,
@@ -179,6 +180,7 @@ export class TravelPage implements OnInit {
         }
       }
     }
+
 
     this.loadTripMode();
     this.migrateOldPlans();
@@ -1578,30 +1580,30 @@ export class TravelPage implements OnInit {
       return;
     }
 
-    const center = this.getDestinationCenter();
-    const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
+    this.isGeneratingPlans = true;
 
-    const allRecommendations = [
-      ...this.recommendations,
-      ...this.categories.flatMap(c => c.cards)
-    ];
+    try {
+      const center = this.getDestinationCenter();
+      const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
 
-    // If auto-optimize, pass 0 to let algorithm decide
-    const daysToUse = this.autoOptimizeDays ? 0 : this.numTripDays;
+      this.dayPlans = await this.smartPlanner.buildItinerary(
+        venues,
+        this.searchNearbyPoint.bind(this),
+        this.numTripDays,
+        this.recommendations  // ← Pass DNA picks
+      );
 
-    this.dayPlans = this.smartPlanner.clusterIntoDays(venues, daysToUse, allRecommendations);
+      // DON'T overwrite numTripDays — keep the original estimate
+      // If buildItinerary returned fewer days, that's fine, we just show fewer
+      // If it tried to return more, it was capped by numTripDays
 
-    // Update numTripDays to actual used
-    this.numTripDays = this.dayPlans.length;
+      // Load routes for each day
+      for (let i = 0; i < this.dayPlans.length; i++) {
+        await this.loadDayRoute(this.dayPlans[i], i);
+      }
 
-    console.log('Generated days:', this.dayPlans.length);
-    this.dayPlans.forEach(d => {
-      console.log(`Day ${d.day}:`, d.venues.map(v =>
-        `${v.startTime}-${v.endTime} ${v.name}`
-      ));
-    });
-    for (let i = 0; i < this.dayPlans.length; i++) {
-      await this.loadDayRoute(this.dayPlans[i], i);
+    } finally {
+      this.isGeneratingPlans = false;
     }
   }
 
@@ -1695,55 +1697,6 @@ export class TravelPage implements OnInit {
     );
   }
 
-  toggleLock(venue: any) {
-    if (venue.isMeal || venue.userAdded === false) {
-      console.log('Cannot lock AI-generated meal:', venue.name);
-      return;
-    }
-
-    const plannedVenue = this.plannedVenues.find((v: any) =>
-      v.venueName === venue.name || v.venueName === venue.venueName
-    );
-
-    if (!plannedVenue) {
-      console.warn('Venue not found:', venue.name);
-      return;
-    }
-
-    if (plannedVenue.locked) {
-      // Unlock
-      plannedVenue.locked = false;
-      plannedVenue.lockedTime = undefined;
-      console.log('Unlocked:', plannedVenue.venueName);
-    } else {
-      const time = prompt(`Lock "${plannedVenue.venueName}" at what time?\nFormat: HH:MM (e.g., 14:00)`);
-      if (!time) return;
-
-      if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
-        alert('Invalid time format. Use HH:MM (e.g., 14:00)');
-        return;
-      }
-
-      // Check if another venue is already locked at this time
-      const alreadyLocked = this.plannedVenues.find((v: any) =>
-        v.venueName !== plannedVenue.venueName && v.locked && v.lockedTime === time
-      );
-      if (alreadyLocked) {
-        alert(`Another venue (${alreadyLocked.venueName}) is already locked at ${time}. Please choose a different time.`);
-        return;
-      }
-
-      plannedVenue.locked = true;
-      plannedVenue.lockedTime = time;
-      console.log('Locked:', plannedVenue.venueName, 'at', time);
-    }
-
-    this.savePlan();
-    if (this.dayPlans.length > 0) {
-      this.generateDayPlans();
-    }
-  }
-
   async showLockTimePicker(venue: PlannedVenue) {
     // Simple prompt for demo — replace with proper time picker later
     const time = prompt(`Lock "${venue.name}" at what time? (HH:MM, e.g., 14:00)`);
@@ -1772,111 +1725,209 @@ export class TravelPage implements OnInit {
     this.generateDayPlans();
   }
 
-  async openDayMap(day: DayPlan) {
-    console.log('Map for day', day.day);
-    const stops = day.venues.map((v, i) =>
-      `${i + 1}. ${v.name}\n   ${v.startTime || '??:??'} - ${v.endTime || '??:??'}${v.locked ? ' 🔒' : ''}`
-    ).join('\n\n');
-    alert(`🗺️ Day ${day.day}: ${day.theme}\n\n${stops}\n\n🚶 ${day.estimatedWalkingKm}km total`);
+  openDayMap(day: DayPlan) {
+    if (!day.venues.length) return;
+
+    const origin = `${day.venues[0].lat},${day.venues[0].lng}`;
+    const destination = `${day.venues[day.venues.length - 1].lat},${day.venues[day.venues.length - 1].lng}`;
+
+    const waypoints = day.venues.slice(1, -1)
+      .map(v => `${v.lat},${v.lng}`)
+      .join('|');
+
+    let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+
+    if (waypoints) {
+      url += `&waypoints=${encodeURIComponent(waypoints)}`;
+    }
+
+    window.open(url, '_blank');
   }
+  async loadDayRoute(day: DayPlan, index: number) {
+    if (day.venues.length === 0) return;
 
-async loadDayRoute(day: DayPlan, index: number) {
-    if (day.venues.length < 2) return;
-
-    const venues = day.venues.filter(v => !v.isMeal);
-    if (venues.length < 2) return;
-
-    const origin = { lat: venues[0].lat, lng: venues[0].lng };
-    const destination = { 
-        lat: venues[venues.length - 1].lat, 
-        lng: venues[venues.length - 1].lng 
-    };
-    const waypoints = venues.slice(1, -1).map(v => ({ lat: v.lat, lng: v.lng }));
+    console.log(`=== loadDayRoute Day ${day.day} ===`);
+    console.log(`Venues: ${day.venues.length}`);
+    console.log(`First: ${day.venues[0]?.name}, Last: ${day.venues[day.venues.length - 1]?.name}`);
 
     try {
-        const route = await this.routeService.getOptimizedRoute(
-            origin, destination, waypoints, 'walking'
-        ).toPromise();
+      const updatedDay = await this.smartPlanner.assignTimeSlotsWithDirections(
+        day,
+        async (origin, destination, waypoints) => {
+          console.log(`Calling Directions API: origin=${JSON.stringify(origin)}, dest=${JSON.stringify(destination)}, waypoints=${waypoints.length}`);
 
-        if (route && route.status === 'OK') {
-            // Apply optimized order
-            if (route.optimizedOrder.length > 0) {
-                const reordered = this.applyOptimizedOrder(venues, route.optimizedOrder);
-                day.venues = this.mergeMealsBack(reordered, day.venues);
-                day.routeOptimized = true;
-                
-                // Re-assign time slots after reordering
-                const tempDayPlan: DayPlan = {
-                    day: day.day,
-                    theme: day.theme,
-                    venues: day.venues,
-                    totalDurationMinutes: 0,
-                    estimatedWalkingKm: day.estimatedWalkingKm
-                };
-                const reTimed = this.smartPlanner.assignTimeSlots(tempDayPlan, undefined, []);
-                day.venues = reTimed.venues;
-                day.startTime = reTimed.startTime;
-                day.endTime = reTimed.endTime;
-                day.totalTravelMinutes = reTimed.totalTravelMinutes;
-                day.totalDurationMinutes = reTimed.totalDurationMinutes;
-            }
+          try {
+            const route = await this.routeService.getOptimizedRoute(
+              origin, destination, waypoints, 'driving'
+            ).toPromise() as any;
 
-            // Generate static map
-            const allPoints = day.venues.filter(v => !v.isMeal).map(v => ({ lat: v.lat, lng: v.lng }));
-            const pathPoints = route.decodedPath && route.decodedPath.length > 0 
-                ? route.decodedPath 
-                : allPoints;
-            
-            day.routeImageUrl = this.routeService.getStaticMapUrl(
-                this.getCenter(allPoints),
-                allPoints,
-                pathPoints,
-                '14',   // ← String, not number
-                600,  // ← String, not number
-                180   // ← String, not number
-            );
+            console.log(`Directions response status:`, route?.status);
+            console.log(`Directions legs count:`, route?.legs?.length);
 
-            day.routeDetails = route;
-            day.totalTravelMinutes = Math.round(route.totalDuration / 60);
-            day.estimatedWalkingKm = +(route.totalDistance / 1000).toFixed(1);
+            return route;
+          } catch (err) {
+            console.error(`Directions API call failed:`, err);
+            return null;
+          }
         }
-    } catch (err) {
-        console.error('Route optimization failed:', err);
-    }
-}
+      );
 
-private applyOptimizedOrder(venues: PlannedVenue[], order: number[]): PlannedVenue[] {
+      // Copy updated properties back
+      day.venues = updatedDay.venues;
+      day.startTime = updatedDay.startTime;
+      day.endTime = updatedDay.endTime;
+      day.totalTravelMinutes = updatedDay.totalTravelMinutes;
+      day.totalDurationMinutes = updatedDay.totalDurationMinutes;
+      day.routeDetails = updatedDay.routeDetails;
+
+      console.log(`Day ${day.day} routeDetails set:`, day.routeDetails ? 'YES' : 'NO');
+      console.log(`Day ${day.day} routeDetails status:`, day.routeDetails?.status);
+
+    } catch (err) {
+      console.error(`loadDayRoute Day ${day.day} FAILED:`, err);
+    }
+
+    // Generate static map URL (moved outside try so it always runs)
+    const allPoints = day.venues.map(v => ({ lat: v.lat, lng: v.lng }));
+    const routePolyline = day.routeDetails?.polyline;
+
+    day.routeImageUrl = this.routeService.getStaticMapUrl(
+      this.getCenter(allPoints),
+      allPoints,
+      undefined,
+      routePolyline,
+      14, 600, 180
+    ) + `&_cb=${Date.now()}`;
+
+    // ENSURE routeDetails always exists for map rendering
+    if (!day.routeDetails) {
+      const allPoints = day.venues.map(v => ({ lat: v.lat, lng: v.lng }));
+      day.routeDetails = {
+        status: 'FALLBACK',
+        optimizedOrder: [],
+        totalDistance: 0,
+        totalDuration: 0,
+        polyline: '',
+        decodedPath: allPoints,  // ← ALL venues, not just non-meal
+        legs: [],
+        bounds: this.calculateBounds(allPoints)
+      } as DirectionsResponse;
+    } else if (day.routeDetails.status === 'OK') {
+      // If API succeeded, ensure decodedPath includes ALL venues (meals + activities)
+      // The API only returns path for waypoints, but we need pins for meals too
+      const allPoints = day.venues.map(v => ({ lat: v.lat, lng: v.lng }));
+      day.routeDetails.decodedPath = allPoints;
+    }
+
+    console.log(`Day ${day.day} complete:`, day.venues.map(v =>
+      `${v.startTime}-${v.endTime} ${v.name} (${v.type})`
+    ));
+  }
+
+
+  private async searchNearbyPoint(lat: number, lng: number, keyword: string): Promise<import('../../services/smart-planner.service').PlannedVenue | null> {
+    try {
+      const result: any = await this.routeService.searchNearbyPoint(lat, lng, keyword).toPromise();
+
+      // DEFENSIVE: Handle undefined/null result
+      if (!result) {
+        console.log(`Nearby search returned null for ${keyword} at ${lat},${lng}`);
+        return null;
+      }
+
+      const places = result.places || result || [];
+
+      if (!Array.isArray(places) || places.length === 0) {
+        console.log(`No nearby ${keyword} found at ${lat},${lng}`);
+        return null;
+      }
+
+      // Pick the first result
+      const best = places[0];
+
+      // DEFENSIVE: Ensure best has required fields
+      if (!best || !best.location) {
+        console.log(`Nearby result missing location for ${keyword}`);
+        return null;
+      }
+
+      const type = this.mapKeywordToType(keyword);
+
+      return {
+        id: `nearby-${keyword}-${best.id || Date.now()}`,
+        name: best.displayName || best.name || `Nearby ${keyword}`,
+        lat: best.location.latitude ?? lat,
+        lng: best.location.longitude ?? lng,
+        type,
+        durationMinutes: this.getDefaultDuration(type),
+        userAdded: false,
+        isDnaSuggestion: true,
+        photoUrl: undefined, // Skip photos for now to avoid API key issues
+        rating: best.rating,
+        priceLevel: this.mapPriceLevel(best.priceLevel),
+        whyThisTime: `📍 Found nearby — ${best.formattedAddress || keyword}`,
+      };
+    } catch (err) {
+      console.error(`Nearby search failed for ${keyword}:`, err);
+      return null;
+    }
+  }
+
+  private mapKeywordToType(keyword: string): import('../../services/smart-planner.service').PlannedVenue['type'] {
+    const map: Record<string, any> = {
+      'cafe': 'cafe',
+      'restaurant': 'restaurant',
+      'attraction': 'attraction',
+      'shopping': 'shopping',
+      'nightlife': 'nightlife',
+      'activity': 'activity',
+    };
+    return map[keyword] || 'attraction';
+  }
+
+  private mapPriceLevel(level: string): number | undefined {
+    const map: Record<string, number> = {
+      'PRICE_LEVEL_FREE': 0,
+      'PRICE_LEVEL_INEXPENSIVE': 1,
+      'PRICE_LEVEL_MODERATE': 2,
+      'PRICE_LEVEL_EXPENSIVE': 3,
+      'PRICE_LEVEL_VERY_EXPENSIVE': 4,
+    };
+    return map[level];
+  }
+
+  private getDefaultDuration(type: string): number {
+    const durations: Record<string, number> = {
+      cafe: 45,
+      restaurant: 90,
+      attraction: 150,
+      shopping: 120,
+      activity: 90,
+      nightlife: 180,
+    };
+    return durations[type] || 90;
+  }
+
+  // Add this helper method to travel.page.ts
+  private parseDurationText(durationText: string): number {
+    let totalSeconds = 0;
+    const hourMatch = durationText.match(/(\d+)\s*hour/);
+    const minMatch = durationText.match(/(\d+)\s*min/);
+    if (hourMatch) totalSeconds += parseInt(hourMatch[1]) * 3600;
+    if (minMatch) totalSeconds += parseInt(minMatch[1]) * 60;
+    return totalSeconds || 600; // fallback 10 min = 600s
+  }
+
+  private applyOptimizedOrder(venues: PlannedVenue[], order: number[]): PlannedVenue[] {
     if (venues.length <= 2 || order.length === 0) return venues;  // ← Fixed: order, not waypointOrder
-    
+
     const origin = venues[0];
     const waypoints = venues.slice(1, -1);
     const destination = venues[venues.length - 1];
 
     const reorderedWaypoints = order.map(idx => waypoints[idx]);  // ← Fixed: order, not waypointOrder
-    
+
     return [origin, ...reorderedWaypoints, destination];
-}
-
-  private mergeMealsBack(optimized: PlannedVenue[], original: PlannedVenue[]): PlannedVenue[] {
-    // Re-insert meal venues in their original time slots
-    const meals = original.filter(v => v.isMeal);
-    const result: PlannedVenue[] = [];
-    let mealIdx = 0;
-
-    for (const venue of optimized) {
-      // Insert any meals that were before this venue in original
-      while (mealIdx < meals.length && original.indexOf(meals[mealIdx]) < original.indexOf(venue)) {
-        result.push(meals[mealIdx++]);
-      }
-      result.push(venue);
-    }
-
-    // Append remaining meals
-    while (mealIdx < meals.length) {
-      result.push(meals[mealIdx++]);
-    }
-
-    return result;
   }
 
   private getCenter(points: { lat: number; lng: number }[]): { lat: number; lng: number } {
@@ -1913,9 +1964,187 @@ private applyOptimizedOrder(venues: PlannedVenue[], order: number[]): PlannedVen
     const currentZoom = day.mapZoom || 1;
     const newZoom = Math.max(0.5, Math.min(3, currentZoom + delta));
     day.mapZoom = Math.round(newZoom * 10) / 10; // Round to 1 decimal
-}
+  }
 
-resetMapZoom(day: DayPlan) {
+  resetMapZoom(day: DayPlan) {
     day.mapZoom = 1;
-}
+  }
+
+  // Add these methods to your TravelPage class
+
+  toggleExpand(venue: PlannedVenue) {
+    venue.expanded = !venue.expanded;
+  }
+
+  toggleLock(venue: PlannedVenue) {
+    if (venue.isMeal || venue.userAdded === false) {
+      console.log('Cannot lock AI-generated meal:', venue.name);
+      return;
+    }
+
+    venue.locked = !venue.locked;
+    if (venue.locked) {
+      venue.lockedTime = venue.startTime;
+    } else {
+      delete venue.lockedTime;
+    }
+
+    // Find and update in plannedVenues (use name, not venueName)
+    const planned = this.plannedVenues.find((v: any) =>
+      v.venueName === venue.name
+    );
+    if (planned) {
+      planned.locked = venue.locked;
+      planned.lockedTime = venue.lockedTime;
+    }
+
+    this.savePlan();
+  }
+  openInMapsForVenue(venue: PlannedVenue) {
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name)}&query_place_id=${venue.id}`;
+    window.open(url, '_blank');
+  }
+
+  openDetailForVenue(venue: PlannedVenue) {
+    // Find matching recommendation card
+    const card = this.recommendations.find(r => r.venueName === venue.name) ||
+      this.categories.flatMap(c => c.cards).find(c => c.venueName === venue.name);
+    if (card) {
+      this.openDetailModal(card);
+    }
+  }
+
+  onRunningLate() {
+    // Simple: shift all remaining venues by +30 min
+    const currentDay = this.dayPlans[this.activeDayIndex];
+    if (!currentDay) return;
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Find first venue that hasn't started yet
+    for (const venue of currentDay.venues) {
+      if (!venue.startTime) continue;
+      const [h, m] = venue.startTime.split(':').map(Number);
+      const venueMinutes = h * 60 + m;
+      if (venueMinutes > currentMinutes && !venue.locked) {
+        // Shift this and all subsequent venues by 30 min
+        const shift = 30;
+        const idx = currentDay.venues.indexOf(venue);
+        for (let i = idx; i < currentDay.venues.length; i++) {
+          const v = currentDay.venues[i];
+          if (v.startTime && v.endTime && !v.locked) {
+            const [sh, sm] = v.startTime.split(':').map(Number);
+            const [eh, em] = v.endTime.split(':').map(Number);
+            v.startTime = this.smartPlanner['minutesToTime'](sh * 60 + sm + shift);
+            v.endTime = this.smartPlanner['minutesToTime'](eh * 60 + em + shift);
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  findNearbyNow() {
+    // Open maps at current location
+    window.open('https://www.google.com/maps/search/nearby', '_blank');
+  }
+
+  navigateTo(venue: PlannedVenue) {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.lat},${venue.lng}`;
+    window.open(url, '_blank');
+  }
+
+  showMenu(venue: PlannedVenue) {
+    // Open Google Maps place details
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name)}&query_place_id=${venue.id}`;
+    window.open(url, '_blank');
+  }
+
+  reserveOrCall(venue: PlannedVenue) {
+    // No phone on PlannedVenue, just open Google Maps
+    this.showMenu(venue);
+  }
+
+
+  scrollToMap() {
+    document.getElementById('day-map')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  openSwapModal(venue: PlannedVenue) {
+    // Simple alert for now — replace with proper modal later
+    alert(`Replace "${venue.name}" — feature coming soon!`);
+  }
+
+  // ═══ MAP & NEARBY METHODS ═══
+
+  scrollToDayMap() {
+    const day = this.dayPlans[this.activeDayIndex];
+    if (!day) return;
+    const el = document.getElementById('day-map-' + day.day);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  browseNearby(day: DayPlan) {
+    // Get center of current day's venues and open Google Maps explore
+    const venues = day.venues.filter(v => !v.isMeal);
+    if (venues.length === 0) return;
+
+    const center = this.getCenter(venues.map(v => ({ lat: v.lat, lng: v.lng })));
+    const url = `https://www.google.com/maps/search/nearby/@${center.lat},${center.lng},15z`;
+    window.open(url, '_blank');
+  }
+
+  switchDay(index: number) {
+    this.activeDayIndex = index;
+    // Don't clear routeDetails — it causes the map to show "Generating"
+    console.log(`Switched to day ${index}, routeDetails:`, this.dayPlans[index]?.routeDetails ? 'present' : 'missing');
+  }
+
+  private estimateTravelTimeMinutes(from: { lat: number, lng: number }, to: { lat: number, lng: number }): number {
+    const R = 6371000;
+    const dLat = (to.lat - from.lat) * Math.PI / 180;
+    const dLng = (to.lng - from.lng) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(from.lat * Math.PI / 180) * Math.cos(to.lat * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distanceMeters = R * c;
+    const distanceKm = distanceMeters / 1000;
+
+    // GRAB/CAR timing in city traffic (Johor Bahru / Singapore context)
+    // Base formula: ~2-3 min per km in light city traffic, plus pickup/wait time
+    let minutes: number;
+
+    if (distanceKm < 0.5) {
+      // Very short: 3-5 min (pickup + short ride)
+      minutes = 3 + distanceKm * 4;
+    } else if (distanceKm < 2) {
+      // Short: ~4 min per km + 2 min pickup
+      minutes = 2 + distanceKm * 4;
+    } else if (distanceKm < 5) {
+      // Medium: ~3 min per km + 2 min pickup
+      minutes = 2 + distanceKm * 3;
+    } else if (distanceKm < 10) {
+      // Longer: ~2.5 min per km + 2 min pickup
+      minutes = 2 + distanceKm * 2.5;
+    } else {
+      // Far: highway speed ~2 min per km 
+      minutes = 2 + distanceKm * 2;
+    }
+
+    // Round to nearest minute, minimum 2 min
+    return Math.max(2, Math.round(minutes));
+  }
+
+  private calculateBounds(points: { lat: number; lng: number }[]): { northeast: { lat: number; lng: number }; southwest: { lat: number; lng: number } } {
+    const lats = points.map(p => p.lat);
+    const lngs = points.map(p => p.lng);
+    return {
+      northeast: { lat: Math.max(...lats), lng: Math.max(...lngs) },
+      southwest: { lat: Math.min(...lats), lng: Math.min(...lngs) }
+    };
+  }
 }
