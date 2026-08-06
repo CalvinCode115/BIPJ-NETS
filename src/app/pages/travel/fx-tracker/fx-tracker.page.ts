@@ -8,7 +8,7 @@ import { DestinationConfig } from '../../../services/destination.config';
 import { CardLinkedExchangeService, ExchangeRequest } from '../../../services/card-linked-exchange.service';
 import { CardsService, MultiCurrencyWallet, ExchangeCurrencyResponse } from '../../../services/cards.service';
 import { catchError, map, Observable, of } from 'rxjs';
-import {AuthService} from '../../../services/auth.service';
+import { AuthService } from '../../../services/auth.service';
 import { currentSgdBalanceStorageKey, selectedCardStorageKey } from '../../../utils/card-storage';
 Chart.register(...registerables);
 
@@ -77,7 +77,6 @@ export class FxTrackerPage implements OnInit {
   ) { }
 
   ngOnInit() {
-    // Load selected destination from localStorage
     const savedDest = localStorage.getItem('nets_selected_destination');
     if (savedDest) {
       if (DESTINATIONS[savedDest]) {
@@ -88,7 +87,9 @@ export class FxTrackerPage implements OnInit {
           if (parsed && parsed.id) {
             this.currentDestination = {
               ...parsed,
+              // Ensure these are always set
               homeCurrencyCode: parsed.homeCurrencyCode || 'SGD',
+              currencyCode: parsed.currencyCode || parsed.fxPair?.[1] || 'USD',
               fxPair: Array.isArray(parsed.fxPair) ? parsed.fxPair : ['SGD', parsed.currencyCode || 'USD']
             };
           }
@@ -110,7 +111,7 @@ export class FxTrackerPage implements OnInit {
     const savedCardId = localStorage.getItem(
       selectedCardStorageKey(userId)
     );
-    
+
     if (savedCardId) {
       this.cardId = savedCardId;
     }
@@ -181,7 +182,7 @@ export class FxTrackerPage implements OnInit {
           selectedCardStorageKey(userId),
           exchangeCard.id
         );
-        
+
         const realSgdBalance = exchangeCard.balance;
 
         // Sync SGD to localStorage
@@ -255,9 +256,18 @@ export class FxTrackerPage implements OnInit {
 
   doExchange() {
     if (!this.canExchange()) return;
+
+    if (this.baseCurrency === this.targetCurrency) {
+      this.isExchanging = false;
+      this.exchangeResult = {
+        success: false,
+        message: `Cannot exchange ${this.baseCurrency} to ${this.targetCurrency}. Please select different currencies.`,
+      };
+      return;
+    }
     this.isExchanging = true;
     this.exchangeResult = null;
-    
+
     const userId = this.auth.userId;
 
     if (!userId) {
@@ -577,17 +587,17 @@ export class FxTrackerPage implements OnInit {
     }
     return rate;  // SGD → MYR: 3.14
   }
-  
+
   private syncSgdFromFirestore(): void {
     const userId = this.auth.userId;
-  
+
     if (!userId) {
       return;
     }
-  
+
     const key = currentSgdBalanceStorageKey(userId);
     const saved = localStorage.getItem(key);
-  
+
     if (!saved) {
       localStorage.setItem(key, '500');
     }

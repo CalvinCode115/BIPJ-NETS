@@ -6212,3 +6212,194 @@ app-day-map {
     opacity: 0.7;
   }
 }
+
+// Add to travel.page.scss
+
+.time-picker-modal {
+  --height: auto;
+  --border-radius: 20px 20px 0 0;
+}
+
+.time-picker-sheet {
+  padding: 20px;
+  background: white;
+
+  .time-picker-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    ion-icon {
+      color: var(--nets-red);
+    }
+  }
+
+  .time-picker-subtitle {
+    color: #666;
+    margin: 0 0 16px;
+    font-size: 14px;
+
+    .time-picker-duration {
+      color: #999;
+    }
+  }
+
+  .time-picker {
+    margin: 16px 0;
+    border-radius: 12px;
+    background: #f8f9fa;
+  }
+
+  .time-picker-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+}
+
+// ← .time-picker-sheet closes HERE
+
+.locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 8px;
+
+  ion-icon {
+    font-size: 12px;
+  }
+}
+
+.rest-gap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 8px 40px;
+  color: #8d6e63;
+  font-size: 12px;
+
+  ion-icon {
+    font-size: 14px;
+  }
+
+  .rest-text {
+    font-style: italic;
+  }
+}
+
+.alternatives-modal {
+  --height: auto;
+  --border-radius: 20px 20px 0 0;
+}
+
+.alternatives-sheet {
+  padding: 20px;
+  background: white;
+  max-height: 70vh;
+  overflow-y: auto;
+
+  .alternatives-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    ion-icon {
+      color: var(--nets-red);
+    }
+  }
+
+  .alternatives-subtitle {
+    color: #666;
+    margin: 0 0 16px;
+    font-size: 14px;
+  }
+
+  .alternatives-loading {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+  }
+
+  .alternative-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #f8f9fa;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:active {
+      background: #e9ecef;
+    }
+
+    .alt-image {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background-size: cover;
+      background-position: center;
+      flex-shrink: 0;
+
+      &.placeholder {
+        background: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        ion-icon {
+          color: #adb5bd;
+          font-size: 20px;
+        }
+      }
+    }
+
+    .alt-info {
+      flex: 1;
+
+      h4 {
+        color: #3a3a3c;
+        margin: 0 0 4px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .alt-meta {
+        display: flex;
+        gap: 8px;
+        font-size: 12px;
+        color: #666;
+      }
+    }
+
+    .alt-arrow {
+      color: #adb5bd;
+    }
+  }
+
+  .alternatives-empty {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+
+    ion-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+  }
+}

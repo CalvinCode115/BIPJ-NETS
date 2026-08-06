@@ -25,6 +25,7 @@ import { CardLinkedExchangeService, CardCurrencyBalance } from '../../../service
 import { MultiCurrencyService } from 'src/app/services/multi-currency.service';
 import { selectedCardStorageKey, currentSgdBalanceStorageKey } from '../../../utils/card-storage';
 import { PointsService } from 'src/app/services/points.service';
+import { PetBridgeService } from 'src/app/services/pet-bridge.service';
 
 interface AccountTab {
   id: CardType;
@@ -150,6 +151,7 @@ export class HomePage {
     private fxTrackerService: FxTrackerService,
     private cardExchange: CardLinkedExchangeService,
     private pointsService: PointsService,
+    private petBridge: PetBridgeService, 
   ) { }
 
   quickActions: QuickAction[] = [
@@ -223,7 +225,7 @@ export class HomePage {
   secondaryActions: SecondaryAction[] = [
     { label: 'Payogotchi', icon: 'gift', color: '#f2994a', route: '/tabs/payogotchi/payogotchi-home' },
     { label: 'Tx History', icon: 'card', color: '#2f80ed', route: '/tabs/home/home-all-transactions' },
-    { label: 'Rewards', icon: 'ribbon', color: '#f2c94c', route: '/tabs/rewards'},
+    { label: 'Rewards', icon: 'ribbon', color: '#f2c94c', route: '/tabs/rewards' },
     { label: 'Exchange', icon: 'swap-horizontal', color: '#9b51e0', route: '/tabs/fx-tracker' },
   ];
 
@@ -259,11 +261,11 @@ export class HomePage {
   }
 
   private refreshPointsBalance(userId: string): void {
-  this.pointsService.getBalance(userId).subscribe({
-    next: (res) => (this.rewards.currentPoints = res.totalPoints),
-    error: (err) => console.error('Failed to refresh points balance', err),
-  });
-}
+    this.pointsService.getBalance(userId).subscribe({
+      next: (res) => (this.rewards.currentPoints = res.totalPoints),
+      error: (err) => console.error('Failed to refresh points balance', err),
+    });
+  }
 
   ionViewWillLeave(): void {
     this.clearLoginAlertTimer();
@@ -1064,10 +1066,10 @@ export class HomePage {
   onCardholderNameInput(event: CustomEvent): void {
     const value = String(event.detail.value ?? '');
     const cleaned = value
-    .replace(/[^a-zA-Z\s]/g, '')
-    .replace(/\s+/g, ' ')
-    .slice(0, 26);
-    
+      .replace(/[^a-zA-Z\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .slice(0, 26);
+
     this.newCardForm.cardholderName = cleaned.toUpperCase();
     applySanitizedIonInput(event, this.newCardForm.cardholderName);
   }
@@ -1521,19 +1523,19 @@ export class HomePage {
   loadMultiCurrencyBalances(): void {
     const userId = this.auth.userId;
     const card = this.currentCard;
-  
+
     if (!userId || !card?.id) {
       this.cardCurrencyBalances = [];
       return;
     }
-  
+
     const realSgdBalance = this.cardFundsAmount;
-  
+
     localStorage.setItem(
       currentSgdBalanceStorageKey(userId),
       String(realSgdBalance)
     );
-  
+
     this.cardsService.getCardWallet(userId, card.id).subscribe({
       next: (wallet: MultiCurrencyWallet) => {
         this.cardCurrencyBalances = Object.entries(wallet.balances).map(
@@ -1564,9 +1566,60 @@ export class HomePage {
       this.loadCardsForUser(this.auth.userId ?? 'user_1');
     });
 
-    window.addEventListener('nets:travelPaymentCompleted', () => {
+    window.addEventListener('nets:travelPaymentCompleted', (event: any) => {
+      const detail = event.detail;
+      if (!detail) return;
+
+      // 1. Reload balances
       this.loadMultiCurrencyBalances();
       this.loadCardsForUser(this.auth.userId ?? 'user_1');
+
+      // 2. Award rewards using SGD equivalent (NOT foreign currency amount)
+      if (detail.sgdEquivalent && detail.category) {
+        const pet = this.petBridge.record(
+          detail.sgdEquivalent,
+          detail.category,
+          detail.venue || 'Travel Payment'
+        );
+        // Optional: Show a toast or update points display
+        if (pet?.pointsEarned) {
+          this.rewards.currentPoints += pet.pointsEarned;
+        }
+      }
+
+      // 3. Inject into recent transactions
+      const newTxn: Transaction = {
+        merchant: detail.venue || 'Travel Payment',
+        subtitle: `${detail.currency} ${detail.amount.toLocaleString()} · ${detail.category}`,
+        displayAmount: `-$${detail.sgdEquivalent.toFixed(2)}`,
+        amount: -detail.sgdEquivalent,
+        date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }),
+        time: new Date().toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' }),
+        icon: 'airplane',
+        iconColor: '#d71920',
+        type: 'debit'
+      };
+
+      // Prepend and keep max 5
+      this.recentTransactions = [newTxn, ...this.recentTransactions].slice(0, 5);
+
+      // 4. Also store in sessionStorage so it persists across refreshes
+      this.saveLocalTransaction(newTxn);
     });
+  }
+
+  // Optional helper to persist local transactions
+  private saveLocalTransaction(txn: Transaction): void {
+    const userId = this.auth.userId;
+    if (!userId) return;
+
+    const key = `nets_local_txns_${userId}`;
+    const existing = JSON.parse(sessionStorage.getItem(key) ?? '[]');
+    existing.unshift({
+      ...txn,
+      id: `travel_${Date.now()}`,
+      cardId: this.currentCard?.id
+    });
+    sessionStorage.setItem(key, JSON.stringify(existing.slice(0, 20)));
   }
 }

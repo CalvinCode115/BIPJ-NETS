@@ -434,6 +434,136 @@ export class SmartPlannerService {
     routeDetails: DirectionsResponse | null
   ): DayPlan {
     const venues = [...dayPlan.venues];
+
+    const locked = venues.filter(v => v.locked && v.lockedTime);
+    const unlocked = venues.filter(v => !v.locked || !v.lockedTime);
+
+    if (locked.length === 0) {
+      return this.assignSequentialSlots(dayPlan, venues, legDurations, routeDetails);
+    }
+
+    for (const venue of locked) {
+      const start = this.timeToMinutes(venue.lockedTime!);
+      venue.startTime = this.minutesToTime(start);
+      venue.endTime = this.minutesToTime(start + venue.durationMinutes);
+    }
+
+    locked.sort((a, b) => this.timeToMinutes(a.startTime!) - this.timeToMinutes(b.startTime!));
+
+    const placed: PlannedVenue[] = [];
+    let allUnlocked = [...unlocked];
+
+    for (let i = 0; i <= locked.length; i++) {
+      const nextLocked = i < locked.length ? locked[i] : null;
+      const prevLocked = i > 0 ? locked[i - 1] : null;
+
+      // FIX 1: Add travel from prevLocked to first candidate in this segment
+      const travelFromPrevLocked = (prevLocked && allUnlocked.length > 0)
+        ? this.estimateTravelMinutes(prevLocked, allUnlocked[0])
+        : 0;
+
+      const segmentStart = prevLocked
+        ? this.timeToMinutes(prevLocked.endTime!) + travelFromPrevLocked
+        : this.timeToMinutes('08:00');
+      const segmentEnd = nextLocked
+        ? this.timeToMinutes(nextLocked.startTime!)
+        : this.timeToMinutes('23:00');
+
+      const segmentVenues: PlannedVenue[] = [];
+      let segmentUsed = 0;
+      let lastInSegment: PlannedVenue | null = null;
+
+      while (allUnlocked.length > 0) {
+        const venue = allUnlocked[0];
+        const travel = lastInSegment
+          ? this.estimateTravelMinutes(lastInSegment, venue)
+          : 0;
+        const needed = venue.durationMinutes + travel;
+
+        const travelToLock = (nextLocked && segmentVenues.length === 0)
+          ? this.estimateTravelMinutes(venue, nextLocked)
+          : 0;
+
+        const totalNeeded = needed + travelToLock;
+
+        if (segmentUsed + totalNeeded > segmentEnd - segmentStart) break;
+
+        segmentVenues.push(venue);
+        segmentUsed += needed;
+        lastInSegment = venue;
+        allUnlocked.shift();
+      }
+
+      if (nextLocked && segmentVenues.length > 0) {
+        segmentUsed += this.estimateTravelMinutes(segmentVenues[segmentVenues.length - 1], nextLocked);
+      }
+
+      const extraSpace = (segmentEnd - segmentStart) - segmentUsed;
+      let current = nextLocked ? segmentStart + extraSpace : segmentStart;
+
+      for (let j = 0; j < segmentVenues.length; j++) {
+        const venue = segmentVenues[j];
+        const travel = j > 0 ? this.estimateTravelMinutes(segmentVenues[j - 1], venue) : 0;
+
+        const start = current + travel;
+        const end = start + venue.durationMinutes;
+
+        venue.startTime = this.minutesToTime(start);
+        venue.endTime = this.minutesToTime(end);
+        venue.travelToNext = travel;
+        placed.push(venue);
+        current = end;
+      }
+
+      // FIX 3: Store travel on locked venue
+      if (nextLocked) {
+        if (placed.length > 0 && placed[placed.length - 1] !== nextLocked) {
+          const travel = this.estimateTravelMinutes(placed[placed.length - 1], nextLocked);
+          placed[placed.length - 1].travelToNext = travel;
+        }
+        placed.push(nextLocked);
+        nextLocked.travelToNext = 0;
+      }
+    }
+
+    // FIX 2: Use stored travelToNext instead of recalculating
+    while (allUnlocked.length > 0) {
+      const venue = allUnlocked.shift()!;
+      const start = placed.length > 0
+        ? this.timeToMinutes(placed[placed.length - 1].endTime!) + (placed[placed.length - 1].travelToNext || 0)
+        : this.timeToMinutes('08:00');
+      const end = start + venue.durationMinutes;
+
+      venue.startTime = this.minutesToTime(start);
+      venue.endTime = this.minutesToTime(end);
+      placed.push(venue);
+    }
+
+    // Final recalculation
+    for (let i = 0; i < placed.length - 1; i++) {
+      placed[i].travelToNext = this.estimateTravelMinutes(placed[i], placed[i + 1]);
+    }
+
+    const totalTravel = placed.slice(0, -1).reduce((sum, v) => sum + (v.travelToNext || 0), 0);
+    const totalDuration = this.timeToMinutes(placed[placed.length - 1].endTime!) - this.timeToMinutes('08:00');
+
+    return {
+      ...dayPlan,
+      venues: placed,
+      startTime: placed[0]?.startTime || '08:00',
+      endTime: placed[placed.length - 1]?.endTime || '22:00',
+      totalTravelMinutes: totalTravel,
+      totalDurationMinutes: totalDuration,
+      routeDetails: routeDetails || undefined,
+    };
+  }
+  // Simple sequential assignment (no locks)
+  private assignSequentialSlots(
+    dayPlan: DayPlan,
+    venues: PlannedVenue[],
+    legDurations: number[],
+    routeDetails: DirectionsResponse | null
+  ): DayPlan {
     const timed: PlannedVenue[] = [];
     let current = this.timeToMinutes('08:00');
 
@@ -694,5 +824,13 @@ export class SmartPlannerService {
     const avgLat = points.reduce((s, p) => s + p.lat, 0) / points.length;
     const avgLng = points.reduce((s, p) => s + p.lng, 0) / points.length;
     return { lat: avgLat, lng: avgLng };
+  }
+
+  private estimateTravelMinutes(from: PlannedVenue, to: PlannedVenue): number {
+    const distKm = this.haversine(from.lat, from.lng, to.lat, to.lng);
+    if (distKm < 0.5) return 3;
+    if (distKm < 2) return Math.round(2 + distKm * 4);
+    if (distKm < 5) return Math.round(2 + distKm * 3);
+    return Math.round(2 + distKm * 2);
   }
 }

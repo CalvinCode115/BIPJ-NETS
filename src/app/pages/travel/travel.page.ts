@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -140,6 +140,15 @@ export class TravelPage implements OnInit {
   autoOptimizeDays = true;
   isGeneratingPlans = false;
 
+  isTimePickerOpen = false;
+  selectedVenueForTime: PlannedVenue | null = null;
+  selectedTime: string = '08:00';
+
+  isAlternativesModalOpen = false;
+  alternativesForVenue: PlannedVenue | null = null;
+  alternativeOptions: PlannedVenue[] = [];
+  isLoadingAlternatives = false;
+
   constructor(
     private http: HttpClient,
     private travelService: TravelService,
@@ -154,7 +163,8 @@ export class TravelPage implements OnInit {
     private countryData: CountryDataService,
     public cardExchange: CardLinkedExchangeService,
     private smartPlanner: SmartPlannerService,
-    private routeService: RouteService
+    private routeService: RouteService,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit() {
@@ -1373,23 +1383,42 @@ export class TravelPage implements OnInit {
   }
 
   // ========== MULTI-CURRENCY PAYMENT ==========
-
   loadMultiCurrencyBalances() {
     if (!this.activeCard?.id) {
       this.multiCurrencyBalances = [];
       return;
     }
-    const sgdBalance = getCardFundsAmount(this.activeCard);
 
-    // ← FIX: subscribe to Observable
-    this.cardExchange.getAllCurrencies(this.activeCard.id, sgdBalance).subscribe({
-      next: (balances: CardCurrencyBalance[]) => {
-        this.multiCurrencyBalances = balances;
+    const userId = this.auth.userId ?? this.userId;
+
+    // FIX: Read from the same Firestore endpoint that fx-tracker writes to
+    this.cardsService.getCardWallet(userId, this.activeCard.id).subscribe({
+      next: (multiWallet: MultiCurrencyWallet) => {
+        this.multiCurrencyBalances = multiWallet.currencies.map(currency => ({
+          currency,
+          amount: multiWallet.balances[currency] || 0,
+          flag: this.getCurrencyFlag(currency) // ← ADD THIS
+        }));
       },
       error: () => {
-        this.multiCurrencyBalances = [];
+        // Fallback: just SGD from the card itself
+        const sgdBalance = getCardFundsAmount(this.activeCard);
+        this.multiCurrencyBalances = [{
+          currency: 'SGD',
+          amount: sgdBalance,
+          flag: this.getCurrencyFlag('SGD') // ← ADD THIS
+        }];
       }
     });
+  }
+  private getCurrencyFlag(currency: string): string {
+    const flags: Record<string, string> = {
+      SGD: '🇸🇬', MYR: '🇲🇾', THB: '🇹🇭', JPY: '🇯🇵', KRW: '🇰🇷',
+      AUD: '🇦🇺', USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', CNY: '🇨🇳',
+      HKD: '🇭🇰', CAD: '🇨🇦', CHF: '🇨🇭', INR: '🇮🇳', IDR: '🇮🇩',
+      PHP: '🇵🇭', VND: '🇻🇳', NZD: '🇳🇿'
+    };
+    return flags[currency] || '💱';
   }
 
   getCurrencyBalance(currency: string): number {
@@ -1491,14 +1520,15 @@ export class TravelPage implements OnInit {
         this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== this.selectedVenue?.venueName);
         this.savePlan();
 
-        // Update home page via event
         window.dispatchEvent(new CustomEvent('nets:travelPaymentCompleted', {
           detail: {
             cardId: cardId,
             currency: this.paymentCurrency,
             amount: this.paymentAmount,
-            sgdEquivalent: sgdEquivalent,
+            sgdEquivalent: sgdEquivalent,        // ← Rewards use this
             venue: this.selectedVenue?.venueName,
+            category: category,                  // ← 'food', 'shopping', etc.
+            timestamp: new Date().toISOString(),
             newBalances: result.newBalances
           }
         }));
@@ -1885,17 +1915,6 @@ export class TravelPage implements OnInit {
     return map[keyword] || 'attraction';
   }
 
-  private mapPriceLevel(level: string): number | undefined {
-    const map: Record<string, number> = {
-      'PRICE_LEVEL_FREE': 0,
-      'PRICE_LEVEL_INEXPENSIVE': 1,
-      'PRICE_LEVEL_MODERATE': 2,
-      'PRICE_LEVEL_EXPENSIVE': 3,
-      'PRICE_LEVEL_VERY_EXPENSIVE': 4,
-    };
-    return map[level];
-  }
-
   private getDefaultDuration(type: string): number {
     const durations: Record<string, number> = {
       cafe: 45,
@@ -1976,29 +1995,104 @@ export class TravelPage implements OnInit {
     venue.expanded = !venue.expanded;
   }
 
-  toggleLock(venue: PlannedVenue) {
-    if (venue.isMeal || venue.userAdded === false) {
-      console.log('Cannot lock AI-generated meal:', venue.name);
+  async openTimePicker(venue: PlannedVenue) {
+    this.selectedVenueForTime = venue;
+    this.selectedTime = venue.startTime || '08:00';
+    this.isTimePickerOpen = true;
+  }
+
+  confirmTimeLock() {
+    if (!this.selectedVenueForTime) return;
+
+    const venue = this.selectedVenueForTime;
+    const newStartMinutes = this.timeToMinutes(this.selectedTime);
+    const newEndMinutes = newStartMinutes + venue.durationMinutes;
+
+    // Validate time range
+    if (newStartMinutes < this.timeToMinutes('06:00') || newEndMinutes > this.timeToMinutes('23:00')) {
+      alert('Please choose a time between 06:00 and 23:00');
       return;
     }
 
-    venue.locked = !venue.locked;
-    if (venue.locked) {
-      venue.lockedTime = venue.startTime;
-    } else {
-      delete venue.lockedTime;
+    // Validate: check for overlapping locks in same day (NEW)
+    const day = this.dayPlans[this.activeDayIndex];
+    const overlap = day.venues.find(v =>
+      v.id !== venue.id &&
+      v.locked &&
+      v.lockedTime &&
+      this.timesOverlap(newStartMinutes, newEndMinutes,
+        this.timeToMinutes(v.lockedTime!),
+        this.timeToMinutes(v.lockedTime!) + v.durationMinutes)
+    );
+
+    if (overlap) {
+      alert(`Time conflict! "${overlap.name}" is already locked from ${overlap.startTime} to ${overlap.endTime}. Please choose a different time.`);
+      return;
     }
 
-    // Find and update in plannedVenues (use name, not venueName)
-    const planned = this.plannedVenues.find((v: any) =>
-      v.venueName === venue.name
-    );
+    // Validate: check if travel time is impossible (NEW)
+    const venueIndex = day.venues.findIndex(v => v.id === venue.id);
+    const prevVenue = venueIndex > 0 ? day.venues[venueIndex - 1] : null;
+    const nextVenue = venueIndex < day.venues.length - 1 ? day.venues[venueIndex + 1] : null;
+
+    if (prevVenue && prevVenue.locked && prevVenue.lockedTime) {
+      const prevEnd = this.timeToMinutes(prevVenue.lockedTime!) + prevVenue.durationMinutes;
+      const travelFromPrev = this.estimateTravelMinutes(prevVenue, venue);
+      const minStart = prevEnd + travelFromPrev;
+
+      if (newStartMinutes < minStart) {
+        alert(`Cannot start at ${this.selectedTime} — "${prevVenue.name}" ends at ${prevVenue.endTime} with ${travelFromPrev} min travel. Earliest start: ${this.minutesToTime(minStart)}`);
+        return;
+      }
+    }
+
+    if (nextVenue && nextVenue.locked && nextVenue.lockedTime) {
+      const nextStart = this.timeToMinutes(nextVenue.lockedTime!);
+      const travelToNext = this.estimateTravelMinutes(venue, nextVenue);
+      const maxEnd = nextStart - travelToNext;
+
+      if (newEndMinutes > maxEnd) {
+        alert(`Cannot end at ${this.minutesToTime(newEndMinutes)} — "${nextVenue.name}" starts at ${nextVenue.startTime} with ${travelToNext} min travel. Latest end: ${this.minutesToTime(maxEnd)}`);
+        return;
+      }
+    }
+
+    venue.locked = true;
+    venue.lockedTime = this.selectedTime;
+
+    // Don't manually set start/end here — let assignTimeSlotsWithLegs handle it
+    // Just mark as locked, then regenerate the day's schedule
+
+    // Update in plannedVenues too
+    const planned = this.plannedVenues.find((v: any) => v.venueName === venue.name);
     if (planned) {
-      planned.locked = venue.locked;
-      planned.lockedTime = venue.lockedTime;
+      planned.locked = true;
+      planned.lockedTime = this.selectedTime;
     }
 
     this.savePlan();
+    this.isTimePickerOpen = false;
+    this.selectedVenueForTime = null;
+
+    // Re-run loadDayRoute which calls assignTimeSlotsWithDirections → assignTimeSlotsWithLegs
+    // This will now RESPECT the lock and build around it
+    this.loadDayRoute(this.dayPlans[this.activeDayIndex], this.activeDayIndex);
+  }
+
+  cancelTimeLock() {
+    this.isTimePickerOpen = false;
+    this.selectedVenueForTime = null;
+  }
+  // Helper methods (add if not present)
+  private timeToMinutes(time: string): number {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  private minutesToTime(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   }
   openInMapsForVenue(venue: PlannedVenue) {
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.name)}&query_place_id=${venue.id}`;
@@ -2146,5 +2240,146 @@ export class TravelPage implements OnInit {
       northeast: { lat: Math.max(...lats), lng: Math.max(...lngs) },
       southwest: { lat: Math.min(...lats), lng: Math.min(...lngs) }
     };
+  }
+
+  unlockVenue(venue: PlannedVenue) {
+    venue.locked = false;
+    delete venue.lockedTime;
+
+    // Update in plannedVenues too
+    const planned = this.plannedVenues.find((v: any) => v.venueName === venue.name);
+    if (planned) {
+      planned.locked = false;
+      delete planned.lockedTime;
+    }
+
+    this.savePlan();
+
+    // Regenerate this day's schedule
+    this.loadDayRoute(this.dayPlans[this.activeDayIndex], this.activeDayIndex);
+  }
+
+  getRestMinutes(current: PlannedVenue, next: PlannedVenue): number {
+    const currentEnd = this.timeToMinutes(current.endTime || '00:00');
+    const nextStart = this.timeToMinutes(next.startTime || '00:00');
+    const travel = current.travelToNext || 0;
+    const gap = nextStart - currentEnd - travel;
+    return Math.max(0, gap);
+  }
+
+  private timesOverlap(start1: number, end1: number, start2: number, end2: number): boolean {
+    return start1 < end2 && end1 > start2;
+  }
+
+  private estimateTravelMinutes(from: PlannedVenue, to: PlannedVenue): number {
+    const distKm = this.haversine(from.lat, from.lng, to.lat, to.lng);
+    if (distKm < 0.5) return 3;
+    if (distKm < 2) return Math.round(2 + distKm * 4);
+    if (distKm < 5) return Math.round(2 + distKm * 3);
+    return Math.round(2 + distKm * 2);
+  }
+
+  private haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  async findAlternatives(venue: PlannedVenue) {
+    if (!venue.isDnaSuggestion && !venue.isPlaceholder) {
+      console.log('Only DNA recommendations and placeholders can have alternatives');
+      return;
+    }
+
+    this.alternativesForVenue = venue;
+    this.isAlternativesModalOpen = true;
+    this.isLoadingAlternatives = true;
+    this.alternativeOptions = [];
+
+    try {
+      const keyword = venue.type === 'cafe' ? 'cafe' :
+        venue.type === 'restaurant' ? 'restaurant' :
+          venue.type === 'nightlife' ? 'nightlife' : 'attraction';
+
+      // Call the HTTP method directly, not your wrapper
+      const result: any = await this.routeService.searchNearbyPoint(
+        venue.lat,
+        venue.lng,
+        keyword,
+        3000  // radius
+      ).toPromise();
+
+      // Handle the response shape from your backend
+      const places = result?.places || [];
+
+      this.alternativeOptions = places
+        .filter((p: any) => p.id !== venue.id && p.displayName !== venue.name)
+        .slice(0, 5)
+        .map((p: any) => ({
+          id: `alt-${venue.type}-${p.id || Date.now()}`,
+          name: p.displayName,
+          lat: p.location?.latitude ?? venue.lat,
+          lng: p.location?.longitude ?? venue.lng,
+          type: venue.type,
+          durationMinutes: venue.durationMinutes,
+          userAdded: false,
+          isDnaSuggestion: true,
+          // Don't construct photo URL with API key — your backend handles it
+          // Or if you have a backend endpoint for photos, use that
+          photoUrl: undefined,
+          rating: p.rating,
+          priceLevel: this.mapPriceLevel(p.priceLevel),
+          whyThisTime: `📍 Alternative near ${venue.name}`,
+        }));
+
+    } catch (err) {
+      console.error('Failed to load alternatives:', err);
+    } finally {
+      this.isLoadingAlternatives = false;
+    }
+  }
+
+  selectAlternative(alt: PlannedVenue) {
+    if (!this.alternativesForVenue) return;
+
+    const day = this.dayPlans[this.activeDayIndex];
+    const index = day.venues.findIndex(v => v.id === this.alternativesForVenue!.id);
+
+    if (index >= 0) {
+      // Preserve locked status and time if exists
+      alt.locked = this.alternativesForVenue.locked;
+      alt.lockedTime = this.alternativesForVenue.lockedTime;
+      alt.startTime = this.alternativesForVenue.startTime;
+      alt.endTime = this.alternativesForVenue.endTime;
+      alt.travelToNext = this.alternativesForVenue.travelToNext;
+
+      // Replace in day
+      day.venues[index] = alt;
+
+      // Re-calculate route for this day
+      this.loadDayRoute(day, this.activeDayIndex);
+    }
+
+    this.isAlternativesModalOpen = false;
+    this.alternativesForVenue = null;
+  }
+
+  closeAlternatives() {
+    this.isAlternativesModalOpen = false;
+    this.alternativesForVenue = null;
+  }
+
+  // Helper if not already present
+  private mapPriceLevel(level: string): number {
+    const map: Record<string, number> = {
+      'PRICE_LEVEL_FREE': 0,
+      'PRICE_LEVEL_INEXPENSIVE': 1,
+      'PRICE_LEVEL_MODERATE': 2,
+      'PRICE_LEVEL_EXPENSIVE': 3,
+      'PRICE_LEVEL_VERY_EXPENSIVE': 4,
+    };
+    return map[level] ?? 2;
   }
 }

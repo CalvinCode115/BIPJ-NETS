@@ -164,10 +164,25 @@
             <div class="venue-header">
               <h3 class="venue-name">{{ venue.whyThisTime || venue.name }}</h3>
               <div class="venue-actions">
-                <button class="icon-btn" (click)="$event.stopPropagation(); toggleLock(venue)" title="Lock time">
-                  <ion-icon [name]="venue.locked ? 'lock-closed' : 'lock-open-outline'"></ion-icon>
+                <!-- Time picker button -->
+                <button class="icon-btn" (click)="$event.stopPropagation(); openTimePicker(venue)"
+                  [title]="venue.locked ? 'Change time (' + venue.lockedTime + ')' : 'Lock time'">
+                  <ion-icon [name]="venue.locked ? 'time' : 'time-outline'"
+                    [style.color]="venue.locked ? '#34c759' : '#999'"></ion-icon>
+                </button>
+
+                <!-- Unlock button (NEW) -->
+                <button class="icon-btn" *ngIf="venue.locked" (click)="$event.stopPropagation(); unlockVenue(venue)"
+                  title="Unlock">
+                  <ion-icon name="lock-open" style="color: #ff9500;"></ion-icon>
                 </button>
               </div>
+            </div>
+
+            <!-- Show locked time badge -->
+            <div class="locked-badge" *ngIf="venue.locked && venue.lockedTime">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              Locked at {{ venue.lockedTime }}
             </div>
 
             <div class="venue-meta">
@@ -195,15 +210,26 @@
                   <ion-icon name="map-outline"></ion-icon>
                   Full Route
                 </button>
+                <button class="detail-btn" *ngIf="venue.isDnaSuggestion || venue.isPlaceholder"
+                  (click)="$event.stopPropagation(); findAlternatives(venue)">
+                  <ion-icon name="swap-horizontal-outline"></ion-icon>
+                  Find Alternatives
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Travel Leg -->
         <div class="travel-leg" *ngIf="i < currentDay.venues.length - 1 && venue.travelToNext">
           <ion-icon name="car-outline"></ion-icon>
           <span class="travel-text">{{ venue.travelToNext }} min drive</span>
+        </div>
+
+        <!-- Rest Time Gap (NEW) -->
+        <div class="rest-gap"
+          *ngIf="i < currentDay.venues.length - 1 && getRestMinutes(venue, currentDay.venues[i + 1]) > 5">
+          <ion-icon name="cafe-outline"></ion-icon>
+          <span class="rest-text">{{ getRestMinutes(venue, currentDay.venues[i + 1]) }} min rest</span>
         </div>
 
       </ng-container>
@@ -232,19 +258,8 @@
           Open in Google Maps
         </ion-button>
       </div>
-
     </div>
-
   </div>
-
-  <!-- Day actions -->
-  <div class="day-actions">
-
-  </div>
-  <ion-button fill="clear" size="small" (click)="generateDayPlans()">
-    <ion-icon name="refresh-outline" slot="start"></ion-icon>
-    Regenerate All
-  </ion-button>
   <!-- ── WEATHER-OPTIMIZED ITINERARY ── -->
   <ion-card class="itinerary-card" *ngIf="itinerary.length > 0">
     <ion-card-header>
@@ -593,7 +608,83 @@
   </div>
 
   <div style="height: 100px;"></div>
+  <!-- Time Picker Modal -->
+  <ion-modal [isOpen]="isTimePickerOpen" (didDismiss)="cancelTimeLock()" class="time-picker-modal">
+    <ng-template>
+      <div class="time-picker-sheet">
+        <div class="detail-drag-handle"></div>
+        <h3 class="time-picker-title">
+          <ion-icon name="time-outline"></ion-icon>
+          Choose Start Time
+        </h3>
+        <p class="time-picker-subtitle" *ngIf="selectedVenueForTime">
+          {{ selectedVenueForTime.name }}
+          <span class="time-picker-duration">({{ selectedVenueForTime.durationMinutes }} min)</span>
+        </p>
 
+        <ion-datetime presentation="time" [(ngModel)]="selectedTime" [hourCycle]="'h23'" class="time-picker">
+        </ion-datetime>
+
+        <div class="time-picker-actions">
+          <ion-button expand="block" (click)="confirmTimeLock()" color="primary">
+            <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+            Lock This Time
+          </ion-button>
+          <ion-button expand="block" fill="clear" (click)="cancelTimeLock()">
+            Cancel
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+  <!-- Alternatives Modal -->
+  <ion-modal [isOpen]="isAlternativesModalOpen" (didDismiss)="closeAlternatives()" class="alternatives-modal">
+    <ng-template>
+      <div class="alternatives-sheet">
+        <div class="detail-drag-handle"></div>
+        <h3 class="alternatives-title">
+          <ion-icon name="swap-horizontal-outline"></ion-icon>
+          Find Alternatives
+        </h3>
+        <p class="alternatives-subtitle" *ngIf="alternativesForVenue">
+          Instead of <strong>{{ alternativesForVenue.name }}</strong>
+        </p>
+
+        <!-- Loading -->
+        <div class="alternatives-loading" *ngIf="isLoadingAlternatives">
+          <ion-spinner name="crescent" color="primary"></ion-spinner>
+          <p>Finding nearby options...</p>
+        </div>
+
+        <!-- Options -->
+        <div class="alternatives-list" *ngIf="!isLoadingAlternatives">
+          <div class="alternative-card" *ngFor="let alt of alternativeOptions" (click)="selectAlternative(alt)">
+            <div class="alt-image" *ngIf="alt.photoUrl" [style.backgroundImage]="'url(' + alt.photoUrl + ')'"></div>
+            <div class="alt-image placeholder" *ngIf="!alt.photoUrl">
+              <ion-icon name="compass-outline"></ion-icon>
+            </div>
+            <div class="alt-info">
+              <h4>{{ alt.name }}</h4>
+              <div class="alt-meta">
+                <span *ngIf="alt.rating">★ {{ alt.rating }}</span>
+                <span *ngIf="alt.priceLevel">{{ getPriceLevel(alt.priceLevel) }}</span>
+              </div>
+            </div>
+            <ion-icon name="chevron-forward-outline" class="alt-arrow"></ion-icon>
+          </div>
+
+          <div class="alternatives-empty" *ngIf="alternativeOptions.length === 0 && !isLoadingAlternatives">
+            <ion-icon name="sad-outline"></ion-icon>
+            <p>No alternatives found nearby</p>
+          </div>
+        </div>
+
+        <ion-button expand="block" fill="clear" (click)="closeAlternatives()">
+          Keep Current
+        </ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>
 
 <!-- Detail Bottom Sheet -->
@@ -889,6 +980,7 @@
     </div>
   </ng-template>
 </ion-modal>
+
 
 <!-- Budget Picker Modal — WITH DURATION SELECTOR -->
 <ion-modal [isOpen]="isBudgetPickerOpen" (didDismiss)="closeBudgetPicker()" class="budget-picker-modal"
