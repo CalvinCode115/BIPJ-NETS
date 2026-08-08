@@ -1,0 +1,126 @@
+:host {
+  display: block;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--nets-text, #1a1a2e);
+  }
+}
+
+.link-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6c63ff;
+  cursor: pointer;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.transaction-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #f0f0f2;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.tx-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+.tx-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-merchant {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--nets-text, #1a1a2e);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tx-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--nets-muted, #8a8a8a);
+}
+
+.tx-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 4px;
+  padding-left: 10px;
+}
+
+.tx-rewards {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: #c9a227;
+  white-space: nowrap;
+}
+
+.tx-rewards-sep {
+  opacity: 0.45;
+  font-weight: 400;
+}
+
+.tx-amount {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+
+  &.credit {
+    color: #27ae60;
+  }
+
+  &.debit {
+    color: #eb5757;
+  }
+
+  &.exchange {
+    color: #9b51e0;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+}

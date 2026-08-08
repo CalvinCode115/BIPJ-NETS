@@ -6,7 +6,8 @@ function formatBalanceLeft(card) {
     return '';
   }
 
-  const amount = Math.round(Number(normalized.balance) * 100) / 100;
+  // Use multi_currency.SGD (via getAvailableFunds); bare `balance` was removed.
+  const amount = Math.round(cardUtils.getAvailableFunds(normalized) * 100) / 100;
   if (cardUtils.isCreditCard(normalized)) {
     return `Available credit left: $${amount.toFixed(2)}.`;
   }

@@ -114,11 +114,26 @@
             </div>
             <div class="tx-details">
               <p class="tx-merchant">{{ item.merchant }}</p>
-              <p class="tx-meta">{{ item.metaLine }} · {{ item.time }}</p>
+              <p class="tx-meta">{{ item.metaLine }} <br> {{ item.time }}</p>
             </div>
-            <span class="tx-amount" [class.income]="item.amount > 0" [class.expenditure]="item.amount < 0">
-              {{ item.displayAmount || formatAmount(item.amount) }}
-            </span>
+            <div class="tx-side">
+              <span class="tx-amount" [class.income]="item.amount > 0" [class.expenditure]="item.amount < 0">
+                {{ item.displayAmount || formatAmount(item.amount) }}
+              </span>
+              @if ((item.displayPoints ?? 0) > 0 || (item.displayXp ?? 0) > 0) {
+              <span class="tx-rewards">
+                @if ((item.displayPoints ?? 0) > 0) {
+                <span>+{{ item.displayPoints }} pts</span>
+                }
+                @if ((item.displayPoints ?? 0) > 0 && (item.displayXp ?? 0) > 0) {
+                <span class="tx-rewards-sep">|</span>
+                }
+                @if ((item.displayXp ?? 0) > 0) {
+                <span>+{{ item.displayXp }} XP</span>
+                }
+              </span>
+              }
+            </div>
           </div>
         }
       </div>

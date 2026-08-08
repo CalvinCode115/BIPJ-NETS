@@ -41,7 +41,7 @@ async function awardTransactionRewards(userId, transaction) {
       return { pointsAwarded: 0 };
     }
 
-    // ---- 10 points per $1 spent ----
+    // ---- 1 point per $1 spent ----
     const pointsAwarded = Math.round(spendAmount * POINTS_PER_DOLLAR);
     const firestoreDb = getFirestore();
     const userRef = firestoreDb.collection('users').doc(userId);

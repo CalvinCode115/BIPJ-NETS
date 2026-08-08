@@ -1,0 +1,40 @@
+<div class="section-header">
+  <h3>Recent on this card</h3>
+  <button type="button" class="link-btn" (click)="onSeeAll()">See all &rarr;</button>
+</div>
+
+<div class="transactions-list">
+  @for (tx of transactions; track tx.merchant + tx.date + tx.time) {
+  <div class="transaction-card">
+    <div class="tx-icon" [style.background]="tx.iconColor + '18'" [style.color]="tx.iconColor">
+      <ion-icon [name]="tx.icon"></ion-icon>
+    </div>
+    <div class="tx-details">
+      <p class="tx-merchant">{{ tx.merchant }}</p>
+      <p class="tx-subtitle">{{ tx.subtitle }} <br> {{ tx.date }}, {{ tx.time }}</p>
+    </div>
+    <div class="tx-meta">
+      <span
+        class="tx-amount"
+        [class.credit]="tx.type === 'credit'"
+        [class.debit]="tx.type === 'debit'"
+        [class.exchange]="tx.type === 'exchange'">
+        {{ tx.displayAmount || formatAmount(tx.amount) }}
+      </span>
+      @if ((tx.displayPoints ?? 0) > 0 || (tx.displayXp ?? 0) > 0) {
+      <span class="tx-rewards">
+        @if ((tx.displayPoints ?? 0) > 0) {
+        <span>+{{ tx.displayPoints }} pts</span>
+        }
+        @if ((tx.displayPoints ?? 0) > 0 && (tx.displayXp ?? 0) > 0) {
+        <span class="tx-rewards-sep">|</span>
+        }
+        @if ((tx.displayXp ?? 0) > 0) {
+        <span>+{{ tx.displayXp }} XP</span>
+        }
+      </span>
+      }
+    </div>
+  </div>
+  }
+</div>

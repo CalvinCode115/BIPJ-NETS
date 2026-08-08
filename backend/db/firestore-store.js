@@ -70,6 +70,12 @@ function notificationFromDoc(doc) {
 }
 
 function cardToDoc(card) {
+  const balance = roundMoney(card.balance);
+  const multi =
+    card.multi_currency && typeof card.multi_currency === 'object'
+      ? { ...card.multi_currency, SGD: roundMoney(card.multi_currency.SGD ?? balance) }
+      : { SGD: balance };
+
   return {
     user_id: card.user_id,
     card_type: card.card_type,
@@ -78,7 +84,7 @@ function cardToDoc(card) {
     masked_number: card.masked_number ?? null,
     cardholder_name: card.cardholder_name ?? null,
     expiry_date: card.expiry_date ?? null,
-    balance: card.balance,
+    multi_currency: multi,
     credit_limit: card.credit_limit ?? null,
     top_up_enabled: Boolean(card.top_up_enabled),
     bank_name: card.bank_name ?? null,
@@ -309,7 +315,8 @@ async function syncAutoTopUpPreference(cardRow) {
     return cardRow;
   }
 
-  const enabled = cardRow.balance < LOW_BALANCE_THRESHOLD ? 1 : 0;
+  const sgd = getSgdBalance(cardRow);
+  const enabled = sgd < LOW_BALANCE_THRESHOLD ? 1 : 0;
   if (Number(cardRow.top_up_enabled) !== enabled) {
     const db = getFirestore();
     const ref = userCardsRef(db, cardRow.user_id).doc(cardRow.id);
@@ -327,11 +334,12 @@ async function updateCardBalance(cardId, delta) {
     return null;
   }
 
-  const card = cardFromDoc(cardDoc);
-  const balance = Math.round(Math.max(0, card.balance + delta) * 100) / 100;
+  const data = cardDoc.data();
+  const current = getSgdBalance(data);
+  const patch = sgdBalancePatch(current + delta, data);
   const db = getFirestore();
-  const ref = userCardsRef(db, card.user_id).doc(cardId);
-  await ref.update({ balance });
+  const ref = userCardsRef(db, data.user_id).doc(cardId);
+  await ref.update(patch);
   const updated = await ref.get();
   return syncAutoTopUpPreference(cardFromDoc(updated));
 }
@@ -342,11 +350,11 @@ async function setCardBalance(cardId, balance) {
     return null;
   }
 
-  const card = cardFromDoc(cardDoc);
-  const nextBalance = Math.round(Math.max(0, balance) * 100) / 100;
+  const data = cardDoc.data();
+  const patch = sgdBalancePatch(balance, data);
   const db = getFirestore();
-  const ref = userCardsRef(db, card.user_id).doc(cardId);
-  await ref.update({ balance: nextBalance });
+  const ref = userCardsRef(db, data.user_id).doc(cardId);
+  await ref.update(patch);
   const updated = await ref.get();
   return syncAutoTopUpPreference(cardFromDoc(updated));
 }
@@ -364,7 +372,7 @@ async function applyWalletTopUp(userId, targetCardId, sourceCardId, amount, limi
       }
 
       const target = targetSnap.data();
-      const targetBalance = Number(target.balance) || 0;
+      const targetBalance = getSgdBalance(target);
       if (targetBalance + amount > limits.maxWalletBalance) {
         throw new Error(
           `This top-up would exceed the $${limits.maxWalletBalance.toLocaleString('en-SG')} wallet limit.`
@@ -379,7 +387,7 @@ async function applyWalletTopUp(userId, targetCardId, sourceCardId, amount, limi
         }
 
         const source = sourceSnap.data();
-        const sourceBalance = Number(source.balance) || 0;
+        const sourceBalance = getSgdBalance(source);
         if (
           source.card_type !== 'others' ||
           (source.account_kind !== 'debit' && source.account_kind !== 'credit')
@@ -392,10 +400,16 @@ async function applyWalletTopUp(userId, targetCardId, sourceCardId, amount, limi
           );
         }
 
-        transaction.update(sourceRef, { balance: sourceBalance - amount });
+        transaction.update(
+          sourceRef,
+          sgdBalancePatch(sourceBalance - amount, source)
+        );
       }
 
-      transaction.update(targetRef, { balance: targetBalance + amount });
+      transaction.update(
+        targetRef,
+        sgdBalancePatch(targetBalance + amount, target)
+      );
     });
 
     const [targetSnap, sourceSnap] = await Promise.all([
@@ -653,6 +667,38 @@ module.exports = {
   deductCurrency,
 };
 
+/** Round money to 2dp, never negative. */
+function roundMoney(n) {
+  return Math.round(Math.max(0, Number(n) || 0) * 100) / 100;
+}
+
+/**
+ * Build a multi_currency map from Firestore card data.
+ * If SGD is missing, seed it from balance (SGD-only users).
+ */
+function ensureMultiCurrency(data) {
+  const balance = roundMoney(data.balance);
+  const multi = { ...(data.multi_currency || {}) };
+  if (multi.SGD == null) {
+    multi.SGD = balance;
+  } else {
+    multi.SGD = roundMoney(multi.SGD);
+  }
+  return multi;
+}
+
+/**
+ * Patch when SGD changes: keep balance === multi_currency.SGD.
+ * Preserves MYR/JPY/etc.
+ */
+function sgdBalancePatch(nextSgd, data) {
+  const multi = ensureMultiCurrency(data);
+  multi.SGD = roundMoney(nextSgd);
+  return {
+    multi_currency: multi
+  };
+}
+
 // ═════════════════════════════════════════════════════════════════
 // MULTI-CURRENCY WALLET HELPERS-- By Eron
 // ═════════════════════════════════════════════════════════════════
@@ -664,14 +710,37 @@ async function getMultiCurrencyWallet(cardId) {
   }
 
   const card = cardFromDoc(cardDoc);
+  const data = cardDoc.data();
+  const multi = ensureMultiCurrency(data);
+  
+  // Repair drift: trust card.balance as SGD (Home card number)
+  const cardBalance = roundMoney(data.balance);
+  const needsWrite =
+    !data.multi_currency ||
+    data.multi_currency.SGD == null ;
+  if (needsWrite) {
+    multi.SGD = cardBalance;
+    const ref = userCardsRef(getFirestore(), card.user_id).doc(cardId);
+    await ref.set( { multi_currency: multi },
+      { merge: true }
+    );
+  }
+
+  // old codes
+  //const card = cardFromDoc(cardDoc);
   // Migrate: if no multiCurrency, initialize from balance
-  const multiCurrency = card.multi_currency || { SGD: card.balance };
+  //const multiCurrency = card.multi_currency || { SGD: card.balance };
 
   return {
     cardId: card.id,
-    balances: multiCurrency,
-    currencies: Object.keys(multiCurrency),
+    balances: multi,
+    currencies: Object.keys(multi),
   };
+}
+
+function getSgdBalance(data) {
+  const multi = ensureMultiCurrency(data);
+  return roundMoney(multi.SGD);
 }
 
 async function updateMultiCurrencyBalance(cardId, currency, amount) {
@@ -696,7 +765,6 @@ async function updateMultiCurrencyBalance(cardId, currency, amount) {
         const nextBalance = Math.round(Math.max(0, amount) * 100) / 100;
         nextMulti.SGD = nextBalance;
         transaction.update(ref, {
-          balance: nextBalance,
           multi_currency: nextMulti
         });
       } else {
@@ -787,9 +855,6 @@ async function exchangeCurrency(cardId, fromCurrency, toCurrency, amount, rate) 
 
       // Update Firestore atomically
       const updateData = { multi_currency: nextMulti };
-      if (fromCurrency === 'SGD' || toCurrency === 'SGD') {
-        updateData.balance = nextMulti.SGD;
-      }
 
       console.log('TX updateData:', updateData);
 

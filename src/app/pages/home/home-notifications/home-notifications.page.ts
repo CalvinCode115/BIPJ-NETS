@@ -2,6 +2,12 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import { AppNotification, NotificationsService } from '../../../services/notifications.service';
+import {
+  formatNotificationAmount,
+  formatNotificationSender,
+  formatNotificationWhen,
+} from '../../../utils/notification-display';
+import { NOTIF_PREFS_KEY } from '../../../utils/notification-preferences';
 
 interface NotificationPreference {
   id: string;
@@ -9,8 +15,6 @@ interface NotificationPreference {
   detail: string;
   enabled: boolean;
 }
-
-import { NOTIF_PREFS_KEY } from '../../../utils/notification-preferences';
 
 @Component({
   selector: 'app-home-notifications',
@@ -28,6 +32,12 @@ export class HomeNotificationsPage implements OnInit {
       id: 'paynow_received',
       label: 'PayNow received',
       detail: 'Alert when someone sends you money',
+      enabled: true,
+    },
+    {
+      id: 'points_received',
+      label: 'NETS Points received',
+      detail: 'Alert when a friend sends you points',
       enabled: true,
     },
     {
@@ -79,34 +89,15 @@ export class HomeNotificationsPage implements OnInit {
   }
 
   notificationAmount(entry: AppNotification): string | null {
-    const amount = Number(entry.meta?.['amount']);
-    if (Number.isFinite(amount)) {
-      return `$${amount.toFixed(2)}`;
-    }
-    const match = entry.message.match(/\$([\d,]+\.\d{2})/);
-    return match ? `$${match[1]}` : null;
+    return formatNotificationAmount(entry);
   }
 
   notificationSender(entry: AppNotification): string {
-    const fromMeta = entry.meta?.['fromName'];
-    if (typeof fromMeta === 'string' && fromMeta.trim()) {
-      return fromMeta.trim();
-    }
-    const match = entry.message.match(/^(.+?)\s+sent you/i);
-    return match ? match[1].trim() : 'Someone';
+    return formatNotificationSender(entry);
   }
 
   formatWhen(iso: string): string {
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) {
-      return '';
-    }
-    return date.toLocaleString('en-SG', {
-      day: 'numeric',
-      month: 'short',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+    return formatNotificationWhen(iso);
   }
 
   private loadNotifications(): void {

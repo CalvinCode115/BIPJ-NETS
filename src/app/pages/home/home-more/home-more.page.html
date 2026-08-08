@@ -16,7 +16,15 @@
       <div class="profile-info">
         <p class="profile-name">{{ profile.name }}</p>
         <p class="profile-phone">{{ profile.phone }}</p>
-        <p class="profile-tier">{{ profile.tier }} &bull; {{ profile.points | number }} points</p>
+        <p class="profile-rewards">
+          <span>{{ pointsBalance | number }} pts</span>
+          <span class="profile-rewards-sep">|</span>
+          @if (petOnboarded) {
+          <span>{{ petXp | number }} XP</span>
+          } @else {
+          <span class="profile-rewards-muted">— XP</span>
+          }
+        </p>
       </div>
     </div>
 

@@ -1,0 +1,62 @@
+<div class="card-carousel">
+  <button type="button" class="carousel-nav prev" (click)="onPrev()" aria-label="Previous card">
+    <ion-icon name="chevron-back"></ion-icon>
+  </button>
+
+  <div class="carousel-viewport">
+    @if (card) {
+    <div class="balance-card" [ngClass]="cardThemeClass">
+      <div class="card-face-header">
+        <p class="balance-label">{{ cardFundsLabel }}</p>
+        <div class="card-header-actions">
+          <span class="card-currency-badge">SGD</span>
+          @if (cardBrandBadge) {
+          <span class="card-brand-badge">{{ cardBrandBadge }}</span>
+          }
+          <button type="button" class="card-visibility-toggle" (click)="onToggleSensitive()"
+            [attr.aria-label]="showSensitiveDetails ? 'Hide balance and card number' : 'Show balance and card number'">
+            <ion-icon [name]="showSensitiveDetails ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+          </button>
+        </div>
+      </div>
+      <h1 class="balance-amount">{{ displayedCardBalance }}</h1>
+      @if (showCardFundsSubtext) {
+      <p class="balance-subtext">{{ cardFundsSubtext }}</p>
+      }
+      <div class="card-footer">
+        <span class="card-number">{{ displayedCardNumber }}</span>
+        @if (card.cardType === 'prepaid' || card.cardType === 'cashcard') {
+        <div class="top-up-toggle" title="Turns on automatically when balance is below $50">
+          <span>TOP UP</span>
+          <ion-toggle [checked]="autoTopUpActive" [disabled]="true" mode="ios"></ion-toggle>
+        </div>
+        } @else {
+        <div class="card-expiry">
+          <span>EXP {{ displayedCardExpiry }}</span>
+        </div>
+        }
+      </div>
+    </div>
+
+    } @else {
+    <button type="button" class="add-card-slide" (click)="onAddCard()">
+      <div class="add-card-icon">
+        <ion-icon name="add"></ion-icon>
+      </div>
+      <h3>Add New Card</h3>
+      <p>{{ addSlideSubtitle }}</p>
+    </button>
+    }
+  </div>
+
+  <button type="button" class="carousel-nav next" (click)="onNext()" aria-label="Next card">
+    <ion-icon name="chevron-forward"></ion-icon>
+  </button>
+</div>
+
+<div class="carousel-dots">
+  @for (slide of cardSlides; track slide) {
+  <button type="button" class="dot" [class.active]="activeSlide === slide" (click)="onGoToSlide(slide)"
+    [attr.aria-label]="'Go to card ' + (slide + 1)"></button>
+  }
+</div>

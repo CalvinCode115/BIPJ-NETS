@@ -1,0 +1,9 @@
+<div class="secondary-grid">
+  @for (action of actions; track action.label) {
+  <button type="button" class="secondary-action" [style.border-color]="action.color"
+    (click)="onAction(action)">
+    <ion-icon [name]="action.icon" [style.color]="action.color"></ion-icon>
+    <span>{{ action.label }}</span>
+  </button>
+  }
+</div>

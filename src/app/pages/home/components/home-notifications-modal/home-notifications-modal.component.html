@@ -1,0 +1,46 @@
+@if (isOpen) {
+<ion-modal [isOpen]="true" (didDismiss)="close()" class="notifications-modal">
+  <ng-template>
+    <div class="notifications-panel">
+      <div class="notifications-panel-header">
+        <h2>Notifications</h2>
+        <ion-button fill="clear" (click)="close()">
+          <ion-icon slot="icon-only" name="close"></ion-icon>
+        </ion-button>
+      </div>
+      <div class="notifications-panel-body scroll-area-visible">
+        @if (!notifications.length) {
+        <p class="notifications-empty">No notifications yet.</p>
+        }
+        @for (item of notifications; track item.id) {
+        <article class="notification-item" [class.unread]="!item.read"
+          [class.points-item]="item.type === 'points_received'">
+          <div class="notification-item-icon">
+            <ion-icon [name]="item.type === 'points_received' ? 'ribbon' : 'arrow-down-circle'"></ion-icon>
+          </div>
+
+          <div class="notification-item-body">
+            <div class="notification-item-header">
+              <h3>{{ item.title }}</h3>
+              <span class="notification-item-time">
+                {{ formatNotificationWhen(item.createdAt) }}
+              </span>
+            </div>
+            @if (notificationAmount(item); as amount) {
+            <p class="notification-item-amount">{{ amount }}</p>
+            }
+            <p class="notification-item-detail">
+              @if (item.type === 'transfer_received' || item.type === 'points_received') {
+              from {{ notificationSender(item) }}
+              } @else {
+              {{ item.message }}
+              }
+            </p>
+          </div>
+        </article>
+        }
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+}

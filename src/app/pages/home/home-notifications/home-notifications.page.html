@@ -41,9 +41,10 @@
         <p class="empty-text">No notifications yet. PayNow transfers and wallet activity will show here.</p>
       } @else {
         @for (item of notifications; track item.id) {
-          <article class="alert-row" [class.unread]="!item.read">
+          <article class="alert-row" [class.unread]="!item.read"
+            [class.points-item]="item.type === 'points_received'">
             <div class="alert-icon">
-              <ion-icon name="notifications"></ion-icon>
+              <ion-icon [name]="item.type === 'points_received' ? 'ribbon' : 'notifications'"></ion-icon>
             </div>
             <div class="alert-body">
               <div class="alert-head">
@@ -54,7 +55,7 @@
                 <p class="alert-amount">{{ amount }}</p>
               }
               <p class="alert-detail">
-                @if (item.type === 'transfer_received') {
+                @if (item.type === 'transfer_received' || item.type === 'points_received') {
                   from {{ notificationSender(item) }}
                 } @else {
                   {{ item.message }}

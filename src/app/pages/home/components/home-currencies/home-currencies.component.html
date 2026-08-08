@@ -1,0 +1,25 @@
+@if (balances.length > 1) {
+<section class="multi-currency-wallet">
+  <div class="wallet-header">
+    <h3>Your Currencies</h3>
+    <span class="wallet-count">{{ balances.length }} currencies</span>
+  </div>
+  <div class="wallet-list">
+    @for (curr of balances; track curr.currency) {
+    <div class="wallet-item" [class.primary]="curr.currency === 'SGD'">
+      <div class="wallet-item-left">
+        <span class="wallet-flag">{{ curr.flag }}</span>
+        <div class="wallet-info">
+          <span class="wallet-currency">{{ curr.currency }}</span>
+          <span class="wallet-label">{{ curr.currency === 'SGD' ? 'Primary' : 'Exchanged' }}</span>
+        </div>
+      </div>
+      <span class="wallet-amount">{{ formatAmount(curr) }}</span>
+    </div>
+    }
+  </div>
+  <button type="button" class="wallet-exchange-btn" (click)="exchange.emit()">
+    <ion-icon name="swap-horizontal"></ion-icon> Exchange Currency
+  </button>
+</section>
+}

@@ -1,0 +1,26 @@
+<div class="insight-card">
+  <p class="insight-eyebrow">Overall insight · all your cards</p>
+
+  @if (traits.length) {
+  <div class="dna-trait-chips">
+    @for (trait of traits; track trait) {
+    <span class="dna-trait-chip">{{ trait }}</span>
+    }
+  </div>
+  }
+
+  <div class="insight-row">
+    <div class="insight-icon" [style.background]="style.bg">
+      <ion-icon [name]="style.icon" [style.color]="style.color"></ion-icon>
+    </div>
+    <div class="insight-content">
+      <h3>{{ title }}</h3>
+      <p>{{ message }}</p>
+      @if (error) {
+      <p class="insight-error">{{ error }}</p>
+      }
+      <button type="button" class="link-btn insight-link" (click)="onViewAll()">View all insights
+        &rarr;</button>
+    </div>
+  </div>
+</div>

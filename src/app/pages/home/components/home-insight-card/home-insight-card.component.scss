@@ -1,0 +1,89 @@
+.insight-card {
+  background: #fff8e1;
+  border: 1px solid #ffe0b2;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.insight-eyebrow {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #a1887f;
+}
+
+.dna-trait-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.dna-trait-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e8d5b7;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6c63ff;
+}
+
+.insight-row {
+  display: flex;
+  gap: 12px;
+}
+
+.insight-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+
+  ion-icon {
+    font-size: 20px;
+  }
+}
+
+.insight-content {
+  h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #5d4037;
+  }
+
+  p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #795548;
+  }
+}
+
+.insight-error {
+  margin: 0 0 8px !important;
+  font-size: 12px !important;
+  color: #eb5757 !important;
+}
+
+.insight-link {
+  font-size: 13px;
+}
+
+.link-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6c63ff;
+  cursor: pointer;
+}

@@ -1,0 +1,12 @@
+<div class="quick-actions">
+  @for (action of actions; track action.label) {
+  <button type="button" class="quick-action" [class.is-disabled]="isDisabled(action)"
+    [attr.aria-disabled]="isDisabled(action)" [title]="titleFor(action)"
+    (click)="onAction(action)">
+    <div class="quick-action-icon" [style.background]="action.color">
+      <ion-icon [name]="action.icon"></ion-icon>
+    </div>
+    <span>{{ action.label }}</span>
+  </button>
+  }
+</div>

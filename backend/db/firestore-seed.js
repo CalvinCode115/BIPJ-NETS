@@ -55,6 +55,12 @@ function userDoc(user) {
 }
 
 function cardDoc(card) {
+  const sgd = Number(card.balance) || 0;
+  const multi =
+    card.multi_currency && typeof card.multi_currency === 'object'
+      ? { ...card.multi_currency, SGD: card.multi_currency.SGD ?? sgd }
+      : { SGD: sgd };
+
   return {
     user_id: card.user_id,
     card_type: card.card_type,
@@ -63,7 +69,7 @@ function cardDoc(card) {
     masked_number: card.masked_number ?? null,
     cardholder_name: card.cardholder_name ?? null,
     expiry_date: card.expiry_date ?? null,
-    balance: card.balance,
+    multi_currency: multi,
     credit_limit: card.credit_limit ?? null,
     top_up_enabled: Boolean(card.top_up_enabled),
     bank_name: card.bank_name ?? null,

@@ -20,6 +20,25 @@ async function createTransferReceivedNotification(toUserId, { fromName, amount, 
   });
 }
 
+async function createPointsReceivedNotification(toUserId, { fromName, amount }) {
+  const maskedName = nameMask.maskDisplayName(fromName);
+  const pts = Math.round(Number(amount) || 0);
+  return db.addNotification({
+    id: `notif_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    user_id: toUserId,
+    type: 'points_received',
+    title: 'NETS Points received',
+    message: `${maskedName} sent you ${pts} pts.`,
+    read: false,
+    created_at: period.nowSingaporeIso(),
+    meta: {
+      amount: pts,
+      fromName: maskedName,
+      unit: 'pts',
+    },
+  });
+}
+
 function formatNotification(row) {
   return {
     id: row.id,
@@ -50,6 +69,7 @@ async function markAllRead(userId) {
 
 module.exports = {
   createTransferReceivedNotification,
+  createPointsReceivedNotification,
   listForUser,
   unreadCount,
   markRead,

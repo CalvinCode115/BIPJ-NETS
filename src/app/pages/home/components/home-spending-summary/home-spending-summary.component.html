@@ -1,0 +1,71 @@
+<div class="section-header">
+  <h3>{{ monthlySummary.month }}</h3>
+  <button type="button" class="link-btn" (click)="openFullReport.emit()">Full report &rarr;</button>
+</div>
+
+<div class="summary-cards">
+  <div class="summary-card">
+    <div class="summary-icon-box expense">
+      <ion-icon name="trending-down"></ion-icon>
+    </div>
+    <p class="summary-amount">${{ monthlySummary.totalSpent }}</p>
+    <p class="summary-label">Total Spent</p>
+    <span class="summary-badge negative">&darr; {{ Math.abs(monthlySummary.totalSpentChange) }}% vs May</span>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-icon-box income">
+      <ion-icon name="trending-up"></ion-icon>
+    </div>
+    <p class="summary-amount">${{ monthlySummary.totalIn }}</p>
+    <p class="summary-label">Total In</p>
+    <span class="summary-badge positive">&uarr; {{ monthlySummary.totalInChange }}% vs May</span>
+  </div>
+</div>
+
+<div class="chart-card">
+  <div class="chart-header">
+    <h3>Spending breakdown</h3>
+    <div class="period-dropdown">
+      <button type="button" class="period-select" (click)="openPeriodSheet.emit()">
+        {{ periodButtonLabel }} &#9662;
+      </button>
+    </div>
+  </div>
+
+  @if (spendingCategories.length) {
+  <div
+    class="bar-chart"
+    [class.weekly-chart]="spendingPeriod === 'Weekly'"
+    [attr.data-count]="spendingCategories.length">
+    @for (category of spendingCategories; track category.label) {
+    <div class="bar-column">
+      <span class="bar-amount">${{ category.amount }}</span>
+      <div class="bar-track">
+        <div
+          class="bar-fill"
+          [class.zero-value]="category.amount === 0"
+          [style.height.%]="getBarHeight(category.amount)"
+          [style.background]="category.color"></div>
+      </div>
+      <span class="bar-label">{{ category.label }}</span>
+    </div>
+    }
+  </div>
+
+  @if (spendingPeriod === 'Monthly') {
+  <div class="chart-legend">
+    @for (category of spendingCategories; track category.label) {
+    <div class="legend-item">
+      <span class="legend-dot" [style.background]="category.color"></span>
+      <span>{{ category.label }}</span>
+    </div>
+    }
+  </div>
+  }
+  } @else {
+  <p class="card-activity-empty-copy">
+    No spending on this card yet this {{ spendingPeriod === 'Weekly' ? 'week' : 'month' }}.
+  </p>
+  }
+</div>

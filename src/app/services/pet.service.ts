@@ -37,7 +37,7 @@ const MIN_TXN_AMOUNT = 0.5;
 // NETS Points bonus for reaching a given pet level. Mirrors
 // backend/services/payogotchi-rewards.js's levelUpBonus() exactly — keep
 // both in sync if either changes. Deliberately much smaller than the real
-// 10-points-per-dollar transaction rate (see transaction-rewards.js on the
+// 1-point-per-dollar transaction rate (see transaction-rewards.js on the
 // backend): these are meant to be hard to earn, a rare milestone reward,
 // not a second way to farm the points economy. Level 50 is the current
 // final level, so it (and anything past it) gets the top bonus.

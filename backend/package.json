@@ -11,6 +11,7 @@
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed-firestore.js",
     "db:seed:reset": "node scripts/seed-firestore.js --reset",
+    "db:migrate-card-balance": "node scripts/migrate-remove-card-balance.js",
     "firestore:seed": "node scripts/seed-firestore.js",
     "firestore:seed:reset": "node scripts/seed-firestore.js --reset"
   },

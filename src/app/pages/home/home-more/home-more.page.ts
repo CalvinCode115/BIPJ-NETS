@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { PetService } from '../../../services/pet.service';
+import { PointsService } from '../../../services/points.service';
 
 interface MoreMenuItem {
   title: string;
@@ -23,9 +25,9 @@ export class MorePage implements OnInit {
     initials: 'AT',
     name: 'Alex Tan',
     phone: '+65 9123 4567',
-    tier: 'Gold Tier',
-    points: 3820,
   };
+
+  pointsBalance = 0;
 
   isHelpOpen = false;
   isTermsOpen = false;
@@ -107,27 +109,25 @@ export class MorePage implements OnInit {
 
   constructor(
     private router: Router,
-    private auth: AuthService
+    private auth: AuthService,
+    private pointsService: PointsService,
+    private petService: PetService
   ) {}
 
+  get petOnboarded(): boolean {
+    return this.petService.state.onboarded;
+  }
+
+  get petXp(): number {
+    return this.petService.state.xp ?? 0;
+  }
+
   ngOnInit(): void {
-    const user = this.auth.currentUser;
-    if (!user) {
-      return;
-    }
+    this.refreshProfile();
+  }
 
-    this.profile = {
-      initials: this.auth.getInitials(user.name),
-      name: user.name,
-      phone: user.phone,
-      tier: user.tier,
-      points: user.points,
-    };
-
-    const rewardsItem = this.menuItems.find((item) => item.title === 'NETS Rewards');
-    if (rewardsItem) {
-      rewardsItem.subtitle = `${user.points.toLocaleString()} points available`;
-    }
+  ionViewWillEnter(): void {
+    this.refreshProfile();
   }
 
   closeMore(): void {
@@ -166,5 +166,34 @@ export class MorePage implements OnInit {
   logOut(): void {
     this.auth.logout();
     this.router.navigate(['/login'], { replaceUrl: true });
+  }
+
+  private refreshProfile(): void {
+    const user = this.auth.currentUser;
+    if (!user) {
+      return;
+    }
+
+    this.profile = {
+      initials: this.auth.getInitials(user.name),
+      name: user.name,
+      phone: user.phone,
+    };
+    this.pointsBalance = user.points ?? 0;
+
+    const rewardsItem = this.menuItems.find((item) => item.title === 'NETS Rewards');
+    if (rewardsItem) {
+      rewardsItem.subtitle = `${this.pointsBalance.toLocaleString()} points available`;
+    }
+
+    this.pointsService.getBalance(user.id).subscribe({
+      next: (res) => {
+        this.pointsBalance = res.totalPoints;
+        if (rewardsItem) {
+          rewardsItem.subtitle = `${res.totalPoints.toLocaleString()} points available`;
+        }
+      },
+      error: (err) => console.error('Failed to load points balance', err),
+    });
   }
 }

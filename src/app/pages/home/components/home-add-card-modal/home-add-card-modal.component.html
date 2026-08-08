@@ -1,0 +1,117 @@
+@if (isOpen) {
+<ion-modal [isOpen]="true" (didDismiss)="close()" class="add-card-modal">
+  <ng-template>
+    <div class="add-card-panel">
+      <div class="add-card-panel-header">
+        <h2>{{ addCardModalTitle }}</h2>
+        <ion-button fill="clear" class="add-card-close" [disabled]="isLinkingCard || isGeneratingCardNumber"
+          (click)="close()">
+          <ion-icon slot="icon-only" name="close"></ion-icon>
+        </ion-button>
+      </div>
+
+      <div class="add-card-panel-body">
+        <div class="security-notice">
+          <ion-icon name="information-circle"></ion-icon>
+          <p>{{ balanceLookupNotice }}</p>
+        </div>
+
+        <p class="manual-entry-label">Enter card details</p>
+
+        <div class="form-group">
+          <label for="cardNumber">Card Number</label>
+          <div class="card-number-entry-row">
+            <ion-input id="cardNumber" class="rounded-input" type="text" inputmode="numeric"
+              placeholder="1234 5678 9012 3456" maxlength="19" [value]="newCardForm.cardNumber"
+              (ionInput)="onCardNumberInput($event)"></ion-input>
+            @if (!showBankCardFields) {
+            <ion-button type="button" class="generate-card-number-btn" fill="outline"
+              [disabled]="isGeneratingCardNumber || isLinkingCard" (click)="generateCardNumber()">
+              @if (isGeneratingCardNumber) {
+              <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+              Generate
+              }
+            </ion-button>
+            }
+          </div>
+        </div>
+
+        @if (showBankCardFields) {
+        <div class="form-group">
+          <label>Bank</label>
+          <ion-select interface="alert" [value]="linkBankName" (ionChange)="linkBankName = $any($event.detail.value)">
+            @for (bank of linkBankOptions; track bank) {
+            <ion-select-option [value]="bank">{{ bank }}</ion-select-option>
+            }
+          </ion-select>
+        </div>
+
+        <div class="form-group">
+          <label>Card type</label>
+          <div class="top-up-quick-grid">
+            <button type="button" class="top-up-quick-btn" [class.selected]="linkAccountKind === 'debit'"
+              (click)="selectLinkAccountKind('debit')">Debit</button>
+            <button type="button" class="top-up-quick-btn" [class.selected]="linkAccountKind === 'credit'"
+              (click)="selectLinkAccountKind('credit')">Credit</button>
+          </div>
+        </div>
+
+        @if (linkAccountKind === 'debit') {
+        <label class="default-receive-row">
+          <input type="checkbox" [checked]="linkDefaultReceive"
+            (change)="linkDefaultReceive = $any($event.target).checked" />
+          Use as default for incoming transfers
+        </label>
+        }
+        }
+
+        @if (showCardholderField) {
+        <div class="form-group">
+          <label for="cardholderName">Cardholder Name</label>
+          <ion-input id="cardholderName" class="rounded-input" type="text" maxlength="40" placeholder="ADAM LIM"
+            [value]="newCardForm.cardholderName" (ionInput)="onCardholderNameInput($event)"></ion-input>
+        </div>
+        }
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="expiryDate">Expiry Date</label>
+            <ion-input id="expiryDate" class="rounded-input" type="text" inputmode="numeric" placeholder="MM/YY"
+              maxlength="5" [value]="newCardForm.expiryDate" (ionInput)="onExpiryInput($event)"></ion-input>
+          </div>
+
+          <div class="form-group">
+            <label for="cvv">CVV</label>
+            <ion-input id="cvv" class="rounded-input" type="password" inputmode="numeric" placeholder="123"
+              maxlength="3" [value]="newCardForm.cvv" (ionInput)="onCvvInput($event)"></ion-input>
+          </div>
+        </div>
+
+        <p class="terms-text">
+          I agree to NETS Terms &amp; Conditions and authorize linking this card to my account.
+        </p>
+
+        @if (formError) {
+        <p class="form-error">{{ formError }}</p>
+        }
+
+        <ion-button expand="block" class="add-card-btn" [disabled]="isLinkingCard || isGeneratingCardNumber"
+          (click)="addCard()">
+          @if (isLinkingCard) {
+          <ion-spinner name="crescent" class="btn-inline-spinner"></ion-spinner>
+          <span>{{ showBankCardFields ? 'LINKING...' : 'ADDING...' }}</span>
+          } @else {
+          <span>ADD CARD</span>
+          }
+        </ion-button>
+
+        <ion-button expand="block" fill="clear" class="cancel-btn"
+          [disabled]="isLinkingCard || isGeneratingCardNumber" (click)="close()">
+          Cancel
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>
+}

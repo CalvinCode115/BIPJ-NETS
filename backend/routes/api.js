@@ -746,7 +746,7 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
     return res.status(400).json({ error: `Maximum top-up is $${MAX_TOP_UP_AMOUNT}.` });
   }
 
-  if ((Number(card.balance) || 0) + amount > MAX_WALLET_BALANCE) {
+  if ((Number(card.multi_currency?.SGD ?? card.balance) || 0) + amount > MAX_WALLET_BALANCE) {
     return res.status(400).json({
       error: `This top-up would exceed the $${MAX_WALLET_BALANCE.toLocaleString('en-SG')} wallet limit.`,
     });
@@ -774,7 +774,7 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
       return res.status(400).json({ error: 'Select a valid linked debit or credit card.' });
     }
 
-    if ((Number(sourceCard.balance) || 0) - amount < SOURCE_CARD_RESERVE) {
+    if ((Number(sourceCard.multi_currency?.SGD ?? sourceCard.balance) || 0) - amount < SOURCE_CARD_RESERVE) {
       return res.status(400).json({
         error: `Keep at least $${SOURCE_CARD_RESERVE} available on the selected bank card.`,
       });
@@ -1015,7 +1015,7 @@ function mapCard(row, view = 'summary') {
     cardType: row.card_type,
     label: row.label,
     maskedNumber: row.masked_number,
-    balance: row.balance,
+    balance: row.multi_currency?.SGD ?? row.balance,
     creditLimit: row.credit_limit ? clampCreditLimit(row.credit_limit) : isCredit ? clampCreditLimit(3000) : null,
     topUpEnabled: Boolean(row.top_up_enabled),
     bankName: normalized.bank_name || null,

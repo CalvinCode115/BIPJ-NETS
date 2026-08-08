@@ -2,6 +2,32 @@
  * Card metadata and payment eligibility helpers.
  */
 
+function getSgd(card) {
+  const n = normalizeCardRow(card) || card;
+  if (!n) return 0;
+  const sgd = n.multi_currency?.SGD ?? n.balance;
+  return Math.max(0, Number(sgd) || 0);
+}
+
+function getAvailableFunds(card) {
+  return getSgd(card);
+}
+
+function applyDebit(card, amount) {
+  const normalized = normalizeCardRow(card);
+  const current = getSgd(normalized);
+  const delta = -Math.abs(amount);
+  return Math.round(Math.max(0, current + delta) * 100) / 100;
+}
+
+function applyCredit(card, amount) {
+  const normalized = normalizeCardRow(card);
+  if (normalized.card_type === 'others' && isCreditCard(normalized)) {
+    return getSgd(normalized);
+  }
+  return Math.round((getSgd(normalized) + Math.abs(amount)) * 100) / 100;
+}
+
 function inferFromLabel(label) {
   const text = String(label || '').toLowerCase();
   const accountKind = text.includes('credit') ? 'credit' : 'debit';
@@ -117,34 +143,8 @@ function resolveReceiveCard(cards) {
   return null;
 }
 
-function getAvailableFunds(card) {
-  const normalized = normalizeCardRow(card);
-  if (!normalized) {
-    return 0;
-  }
-  return Math.max(0, Number(normalized.balance) || 0);
-}
-
 function hasSufficientFunds(card, amount) {
   return getAvailableFunds(card) >= amount;
-}
-
-function applyDebit(card, amount) {
-  const normalized = normalizeCardRow(card);
-  const delta = -Math.abs(amount);
-  if (normalized.card_type === 'others' && isCreditCard(normalized)) {
-    return Math.round(Math.max(0, normalized.balance + delta) * 100) / 100;
-  }
-  return Math.round(Math.max(0, normalized.balance + delta) * 100) / 100;
-}
-
-function applyCredit(card, amount) {
-  const normalized = normalizeCardRow(card);
-  const delta = Math.abs(amount);
-  if (normalized.card_type === 'others' && isCreditCard(normalized)) {
-    return normalized.balance;
-  }
-  return Math.round((normalized.balance + delta) * 100) / 100;
 }
 
 function formatPayFromLabel(card) {

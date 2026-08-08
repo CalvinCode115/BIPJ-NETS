@@ -3,7 +3,7 @@ const { userPointsLedgerRef } = require('../db/firestore-paths');
 
 /**
  * NETS Points bonus for reaching a given Tapatchi level. Deliberately much
- * smaller than transaction points (10/$1 — see transaction-rewards.js):
+ * smaller than transaction points (1/$1 — see transaction-rewards.js):
  * these are meant to be hard to earn, a rare milestone reward rather than
  * a second way to farm the points economy. Scales up as levels get harder
  * to reach; level 50 is the current final level, so it (and anything past

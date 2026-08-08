@@ -1,6 +1,7 @@
 const { getFirestore } = require('../firebase/admin');
 const { userPointsLedgerRef } = require('../db/firestore-paths');
 const db = require('../db');
+const notifications = require('./notifications');
 
 /**
  * Looks up a user by phone number (reuses your groupmate's existing
@@ -38,7 +39,7 @@ async function sendPoints(fromUserId, { toPhone, amount, comment }) {
   const fromRef = firestoreDb.collection('users').doc(fromUserId);
   const toRef = firestoreDb.collection('users').doc(toUser.id);
 
-  return firestoreDb.runTransaction(async (tx) => {
+  const result = await firestoreDb.runTransaction(async (tx) => {
     const [fromSnap, toSnap] = await Promise.all([tx.get(fromRef), tx.get(toRef)]);
 
     if (!fromSnap.exists) {
@@ -78,8 +79,29 @@ async function sendPoints(fromUserId, { toPhone, amount, comment }) {
       comment: comment || null,
     });
 
-    return { ok: true, toName: toUser.name, amount };
+    return {
+      ok: true,
+      toName: toUser.name,
+      amount,
+      fromName: fromData.name || 'Someone',
+      toUserId: toUser.id,
+    };
   });
+
+  // Home notification for the recipient — outside the money txn so a
+  // notification write failure never rolls back the points transfer.
+  if (result?.ok) {
+    try {
+      await notifications.createPointsReceivedNotification(result.toUserId, {
+        fromName: result.fromName,
+        amount: result.amount,
+      });
+    } catch (err) {
+      console.error('createPointsReceivedNotification failed (points still sent):', err);
+    }
+  }
+
+  return result;
 }
 
 module.exports = {

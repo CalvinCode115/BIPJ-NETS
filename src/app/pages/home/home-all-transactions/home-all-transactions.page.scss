@@ -234,6 +234,32 @@
   }
 }
 
+.tx-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 4px;
+  padding-left: 10px;
+}
+
+.tx-rewards {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: #c9a227;
+  white-space: nowrap;
+}
+
+.tx-rewards-sep {
+  opacity: 0.45;
+  font-weight: 400;
+}
+
 .empty-state {
   text-align: center;
   padding: 40px 16px;

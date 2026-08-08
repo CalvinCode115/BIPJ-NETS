@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 import {
   PeriodOption,
@@ -7,6 +7,7 @@ import {
   TransactionsService,
 } from '../../../services/transactions.service';
 import { formatTransactionMeta } from '../../../utils/transfer-display';
+import { estimateTxnRewards } from '../../../utils/txn-rewards-display';
 
 interface TransactionItem {
   id: string;
@@ -18,6 +19,8 @@ interface TransactionItem {
   icon: string;
   iconColor: string;
   metaLine: string;
+  displayPoints?: number;
+  displayXp?: number;
 }
 
 interface TransactionGroup {
@@ -67,12 +70,20 @@ export class AllTransactionsPage implements OnInit {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private auth: AuthService,
     private transactionsService: TransactionsService
   ) {}
 
+  private filterCardId = '';
+  private filterCardNumber = '';
+
   ngOnInit(): void {
-    this.loadTransactions();
+    this.route.queryParamMap.subscribe((params) => {
+      this.filterCardId = params.get('cardId') || '';
+      this.filterCardNumber = params.get('cardNumber') || '';
+      this.loadTransactions();
+    });
   }
 
   closeTransactions(): void {
@@ -171,6 +182,8 @@ export class AllTransactionsPage implements OnInit {
         search: this.searchQuery.trim(),
         type: this.activeTypeFilter,
         category: this.activeCategoryFilter,
+        cardId: this.filterCardId || undefined,
+        cardNumber: this.filterCardNumber || undefined,
       })
       .subscribe({
         next: (response) => {
@@ -194,6 +207,7 @@ export class AllTransactionsPage implements OnInit {
 
     transactions.forEach((txn) => {
       const metaLine = formatTransactionMeta(txn);
+      const rewards = estimateTxnRewards(txn.amount, txn.type, txn.category);
       const items = groups.get(txn.date) ?? [];
       items.push({
         id: txn.id,
@@ -205,6 +219,8 @@ export class AllTransactionsPage implements OnInit {
         icon: txn.icon,
         iconColor: txn.iconColor,
         metaLine,
+        displayPoints: rewards.points,
+        displayXp: rewards.xp,
       });
       groups.set(txn.date, items);
     });
