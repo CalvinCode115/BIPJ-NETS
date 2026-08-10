@@ -29,6 +29,25 @@
     </ion-segment-button>
   </ion-segment>
 
+  <ion-searchbar
+    class="vouchers-searchbar"
+    placeholder="Search by merchant"
+    [(ngModel)]="searchTerm"
+    showClearButton="always">
+  </ion-searchbar>
+
+  <div class="source-filter-row">
+    <button type="button" class="source-filter-chip" [class.selected]="sourceFilter === 'all'" (click)="selectSourceFilter('all')">
+      All
+    </button>
+    <button type="button" class="source-filter-chip" [class.selected]="sourceFilter === 'purchased'" (click)="selectSourceFilter('purchased')">
+      Purchased
+    </button>
+    <button type="button" class="source-filter-chip" [class.selected]="sourceFilter === 'reward'" (click)="selectSourceFilter('reward')">
+      Reward
+    </button>
+  </div>
+
   <div *ngIf="loading" class="state-message">Loading your vouchers...</div>
   <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
 
@@ -36,47 +55,74 @@
 
     <!-- Available vouchers -->
     <div class="voucher-list" *ngIf="activeTab === 'available'">
-      <div class="voucher-card voucher-card--available" *ngFor="let voucher of available" (click)="openDetails(voucher)">
-        <div class="voucher-top">
-          <div class="voucher-icon">
-            <ion-icon [name]="voucher.icon"></ion-icon>
-          </div>
-          <div class="voucher-info">
-            <span class="voucher-name">{{ voucher.merchantName }}</span>
-            <span class="voucher-description">{{ voucher.description }}</span>
-            <span class="voucher-points voucher-points--available">{{ voucher.pointsCost }} Points</span>
-          </div>
+
+      <ng-container *ngIf="expiringSoonVouchers.length > 0">
+        <div class="section-heading section-heading--urgent">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <span>Expiring Soon</span>
         </div>
-        <div class="voucher-dates">
-          <div class="voucher-date">
-            <ion-icon name="calendar-outline"></ion-icon>
-            <div class="voucher-date-text">
-              <span class="voucher-date-label">Redeemed</span>
-              <span class="voucher-date-value">{{ voucher.redeemedAt | date:'d MMM y' }}</span>
-            </div>
-          </div>
-          <div class="voucher-date">
-            <ion-icon name="time-outline"></ion-icon>
-            <div class="voucher-date-text">
-              <span class="voucher-date-label">Expires</span>
-              <span
-                class="voucher-date-value"
-                [class.voucher-date-value--expires]="daysUntilExpiry(voucher) <= 7">
-                {{ voucher.expiresAt | date:'d MMM y' }}
-              </span>
-            </div>
-          </div>
+        <ng-container *ngFor="let voucher of expiringSoonVouchers">
+          <ng-container *ngTemplateOutlet="availableCard; context: { $implicit: voucher }"></ng-container>
+        </ng-container>
+      </ng-container>
+
+      <ng-container *ngIf="otherAvailableVouchers.length > 0">
+        <div class="section-heading" *ngIf="expiringSoonVouchers.length > 0">
+          <span>All Vouchers</span>
         </div>
+        <ng-container *ngFor="let voucher of otherAvailableVouchers">
+          <ng-container *ngTemplateOutlet="availableCard; context: { $implicit: voucher }"></ng-container>
+        </ng-container>
+      </ng-container>
+
+      <div *ngIf="filteredAvailable.length === 0 && !isFiltering" class="state-message">
+        No available vouchers yet —
+        <button type="button" class="state-message-link" (click)="goToMarketplace()">redeem one in the Rewards Marketplace</button>.
+      </div>
+      <div *ngIf="filteredAvailable.length === 0 && isFiltering" class="state-message">
+        {{ emptyFilterMessage() }}
       </div>
 
-      <div *ngIf="available.length === 0" class="state-message">
-        No available vouchers yet — redeem one in the Rewards Marketplace.
-      </div>
+      <ng-template #availableCard let-voucher>
+        <div class="voucher-card voucher-card--available" (click)="openDetails(voucher)">
+          <div class="voucher-top">
+            <div class="voucher-icon">
+              <ion-icon [name]="voucher.icon"></ion-icon>
+            </div>
+            <div class="voucher-info">
+              <span class="voucher-name">{{ voucher.merchantName }}</span>
+              <span class="voucher-description">{{ voucher.description }}</span>
+              <span class="voucher-points voucher-points--available" *ngIf="voucher.source !== 'challenge'">{{ voucher.pointsCost }} Points</span>
+              <span class="voucher-points voucher-points--challenge" *ngIf="voucher.source === 'challenge'">From: {{ voucher.sourceLabel }}</span>
+            </div>
+          </div>
+          <div class="voucher-dates">
+            <div class="voucher-date">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <div class="voucher-date-text">
+                <span class="voucher-date-label">Redeemed</span>
+                <span class="voucher-date-value">{{ voucher.redeemedAt | date:'d MMM y' }}</span>
+              </div>
+            </div>
+            <div class="voucher-date">
+              <ion-icon name="time-outline"></ion-icon>
+              <div class="voucher-date-text">
+                <span class="voucher-date-label">Expires</span>
+                <span
+                  class="voucher-date-value"
+                  [class.voucher-date-value--expires]="daysUntilExpiry(voucher) <= 7">
+                  {{ voucher.expiresAt | date:'d MMM y' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
     </div>
 
     <!-- Used vouchers -->
     <div class="voucher-list" *ngIf="activeTab === 'used'">
-      <div class="voucher-card voucher-card--used" *ngFor="let voucher of used">
+      <div class="voucher-card voucher-card--used" *ngFor="let voucher of filteredUsed">
         <div class="voucher-top">
           <div class="voucher-icon">
             <ion-icon [name]="voucher.icon"></ion-icon>
@@ -84,7 +130,8 @@
           <div class="voucher-info">
             <span class="voucher-name">{{ voucher.merchantName }}</span>
             <span class="voucher-description">{{ voucher.description }}</span>
-            <span class="voucher-points voucher-points--used">{{ voucher.pointsCost }} Points</span>
+            <span class="voucher-points voucher-points--used" *ngIf="voucher.source !== 'challenge'">{{ voucher.pointsCost }} Points</span>
+            <span class="voucher-points voucher-points--challenge" *ngIf="voucher.source === 'challenge'">From: {{ voucher.sourceLabel }}</span>
           </div>
         </div>
         <div class="voucher-dates">
@@ -121,12 +168,13 @@
         </div>
       </div>
 
-      <div *ngIf="used.length === 0" class="state-message">No used vouchers yet.</div>
+      <div *ngIf="filteredUsed.length === 0 && !isFiltering" class="state-message">No used vouchers yet.</div>
+      <div *ngIf="filteredUsed.length === 0 && isFiltering" class="state-message">{{ emptyFilterMessage() }}</div>
     </div>
 
     <!-- Expired vouchers -->
     <div class="voucher-list" *ngIf="activeTab === 'expired'">
-      <div class="voucher-card voucher-card--expired" *ngFor="let voucher of expired">
+      <div class="voucher-card voucher-card--expired" *ngFor="let voucher of filteredExpired">
         <div class="voucher-top">
           <div class="voucher-icon">
             <ion-icon [name]="voucher.icon"></ion-icon>
@@ -134,7 +182,8 @@
           <div class="voucher-info">
             <span class="voucher-name">{{ voucher.merchantName }}</span>
             <span class="voucher-description">{{ voucher.description }}</span>
-            <span class="voucher-points voucher-points--expired">{{ voucher.pointsCost }} Points</span>
+            <span class="voucher-points voucher-points--expired" *ngIf="voucher.source !== 'challenge'">{{ voucher.pointsCost }} Points</span>
+            <span class="voucher-points voucher-points--challenge" *ngIf="voucher.source === 'challenge'">From: {{ voucher.sourceLabel }}</span>
           </div>
         </div>
         <div class="voucher-dates">
@@ -155,7 +204,8 @@
         </div>
       </div>
 
-      <div *ngIf="expired.length === 0" class="state-message">No expired vouchers.</div>
+      <div *ngIf="filteredExpired.length === 0 && !isFiltering" class="state-message">No expired vouchers.</div>
+      <div *ngIf="filteredExpired.length === 0 && isFiltering" class="state-message">{{ emptyFilterMessage() }}</div>
     </div>
   </ng-container>
 

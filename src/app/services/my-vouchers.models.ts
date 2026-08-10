@@ -15,6 +15,8 @@ export interface UserVoucher {
   usedLocation: string | null;
   termsAndConditions: string[];
   usageSteps: string[];
+  source?: string; // 'marketplace' (default/unset) | 'challenge' — how this voucher was obtained
+  sourceLabel?: string; // when source === 'challenge', the challenge's name (shown instead of pointsCost)
 }
 
 export interface VoucherEligibilityMatch {

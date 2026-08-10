@@ -3,7 +3,7 @@ const { userPointsLedgerRef } = require('../db/firestore-paths');
 const quests = require('./quests');
 const db = require('../db');
 
-const POINTS_PER_DOLLAR = 10;
+const POINTS_PER_DOLLAR = 1;
 
 /**
  * Mirrors merchant-tags.js's normalizeMerchant() (lowercase, trim, collapse

@@ -204,13 +204,27 @@ export class TransactionsService {
 
   saveReceiptTransaction(
     userId: string,
-    receipt: ReceiptScanResult
-  ): Observable<{ success: boolean; message: string; transaction: TransactionRecord; card?: WalletCard }> {
+    receipt: ReceiptScanResult,
+    voucherInstanceId?: string | null
+  ): Observable<{
+    success: boolean;
+    message: string;
+    transaction: TransactionRecord;
+    card?: WalletCard;
+    voucherApplied?: boolean;
+    voucherDiscount?: number;
+    voucherError?: string | null;
+  }> {
     return this.http
-      .post<{ success: boolean; message: string; transaction: TransactionRecord; card?: WalletCard }>(
-        `${API_BASE_URL}/users/${userId}/transactions/receipt`,
-        { receipt }
-      )
+      .post<{
+        success: boolean;
+        message: string;
+        transaction: TransactionRecord;
+        card?: WalletCard;
+        voucherApplied?: boolean;
+        voucherDiscount?: number;
+        voucherError?: string | null;
+      }>(`${API_BASE_URL}/users/${userId}/transactions/receipt`, { receipt, voucherInstanceId })
       .pipe(
         catchError((err) => {
           const message =

@@ -39,6 +39,7 @@ const myVouchersRouter = require('./my-vouchers');
 const myVouchers = require('../services/my-vouchers');
 const pointsTransferRouter = require('./points-transfer')
 const dailyCheckinRouter = require('./daily-checkin');
+const badgesRouter = require('./badges');
 
 
 
@@ -51,6 +52,7 @@ router.use('/', marketplaceRouter);
 router.use('/', myVouchersRouter);
 router.use('/', pointsTransferRouter);
 router.use('/', dailyCheckinRouter);
+router.use('/', badgesRouter);
 
 router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'nets-backend', mode: 'firestore' });
@@ -276,14 +278,16 @@ router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
     return res.status(400).json({ error: spendingRules.spendBlockMessage(card, spendContext) });
   }
 
-  // ---- ← NEW: optionally apply a voucher discount before charging ----
+  // ---- Optionally preview a voucher discount before charging — READ ONLY
+  // at this point, nothing is written yet, so an insufficient-balance
+  // failure below can never burn a voucher that was never actually used. ----
   let paymentToCharge = parsed.payment;
   let voucherApplied = false;
   let voucherDiscount = 0;
   let voucherError = null;
 
   if (req.body.voucherInstanceId) {
-    const voucherResult = await myVouchers.applyVoucherToPayment(
+    const voucherPreview = await myVouchers.previewVoucherForPayment(
       req.params.userId,
       req.body.voucherInstanceId,
       {
@@ -293,17 +297,17 @@ router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
       }
     );
 
-    if (voucherResult.ok) {
+    if (voucherPreview.ok) {
       voucherApplied = true;
-      voucherDiscount = voucherResult.discountAmount;
-      paymentToCharge = { ...parsed.payment, amount: voucherResult.finalAmount };
+      voucherDiscount = voucherPreview.discountAmount;
+      paymentToCharge = { ...parsed.payment, amount: voucherPreview.finalAmount };
     } else {
       // Don't fail the whole payment over a voucher issue — charge full
       // price and let the client know why the voucher didn't apply.
-      voucherError = voucherResult.error;
+      voucherError = voucherPreview.error;
     }
   }
-  // ---- end new block ----
+  // ---- end voucher preview ----
 
   if (!cardUtils.hasSufficientFunds(card, paymentToCharge.amount)) {
     return res.status(400).json({ error: 'Insufficient balance on the selected card.' });
@@ -318,6 +322,23 @@ router.post('/users/:userId/payments/qr', asyncHandler(async (req, res) => {
   const rewards = await transactionRewards.awardTransactionRewards(req.params.userId, saved);
 
   const refreshedCard = await db.setCardBalance(card.id, cardUtils.applyDebit(card, paymentToCharge.amount));
+
+  // ---- Only NOW actually commit the voucher as used — the payment has
+  // definitely succeeded at this point (transaction saved, card debited). ----
+  if (voucherApplied) {
+    const commitResult = await myVouchers.commitVoucherUsage(req.params.userId, req.body.voucherInstanceId, {
+      merchant: paymentToCharge.merchant,
+    });
+    if (!commitResult.ok) {
+      // Extremely unlikely — would mean the voucher's state changed
+      // between the preview above and now (e.g. a race with a second
+      // concurrent request). The payment has already gone through at the
+      // discounted price either way, so we don't undo it — just report
+      // that the voucher itself didn't end up getting consumed.
+      voucherApplied = false;
+      voucherError = commitResult.error;
+    }
+  }
 
   const voucherNote = voucherApplied ? ` Voucher applied — you saved $${voucherDiscount.toFixed(2)}.` : '';
 

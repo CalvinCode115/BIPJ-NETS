@@ -10,6 +10,9 @@ const {
   userChallengeProgressRef,
   userQuestMetaRef,
   userPointsLedgerRef,
+  voucherCatalogRef,
+  userVouchersRef,
+  userBadgesRef,
 } = require('../db/firestore-paths');
 
 const TIMEZONE = 'Asia/Singapore';
@@ -81,9 +84,51 @@ function getWeeklyResetsInLabel() {
   return formatDuration(sgtNextMonday.getTime() - sgtNow.getTime());
 }
 
-function pickRandom(items, count) {
-  const shuffled = [...items].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, items.length));
+/**
+ * Picks up to `count` templates for a rotation, preferring:
+ *
+ *   1. Templates NOT in `excludeIds` — avoids repeating the immediately
+ *      preceding day's/week's picks. Falls back to including them anyway
+ *      only if excluding them would leave too few templates to fill the
+ *      rotation (shouldn't happen with the current template counts).
+ *
+ *   2. At most ONE template per `family` — so a single day/week doesn't
+ *      end up with two near-duplicate quests (e.g. both Big Spender and
+ *      Mid-Range Spender, which are the same "spend $X" mechanic at two
+ *      different thresholds). Templates without a `family` tag are
+ *      treated as their own unique family.
+ */
+function pickDiverseRotation(templates, count, excludeIds = new Set()) {
+  const preferred = templates.filter((t) => !excludeIds.has(t.id));
+  const pool = preferred.length >= count ? preferred : templates;
+
+  const byFamily = new Map();
+  for (const t of pool) {
+    const family = t.family || t.id;
+    if (!byFamily.has(family)) byFamily.set(family, []);
+    byFamily.get(family).push(t);
+  }
+
+  const shuffledFamilies = [...byFamily.keys()].sort(() => Math.random() - 0.5);
+  const picked = [];
+  for (const family of shuffledFamilies) {
+    if (picked.length >= count) break;
+    const options = byFamily.get(family);
+    picked.push(options[Math.floor(Math.random() * options.length)]);
+  }
+
+  // Safety net: only kicks in if there aren't enough distinct families to
+  // fill the rotation (not the case with the current template set, but
+  // this keeps the function correct if templates are added/removed later).
+  if (picked.length < count) {
+    const pickedIds = new Set(picked.map((t) => t.id));
+    const remaining = pool.filter((t) => !pickedIds.has(t.id)).sort(() => Math.random() - 0.5);
+    while (picked.length < count && remaining.length) {
+      picked.push(remaining.shift());
+    }
+  }
+
+  return picked.map((t) => t.id);
 }
 
 function randomBetween(min, max) {
@@ -104,9 +149,16 @@ async function getOrCreateDailyRotation(db) {
   }
 
   const templatesSnap = await dailyQuestTemplatesRef(db).where('active', '==', true).get();
-  const templateIds = templatesSnap.docs.map((d) => d.id);
+  const templates = templatesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  // Avoid repeating yesterday's picks where possible.
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdaySnap = await dailyQuestRotationsRef(db).doc(getDateId(yesterday)).get();
+  const excludeIds = new Set(yesterdaySnap.exists ? yesterdaySnap.data().questTemplateIds ?? [] : []);
+
   const size = randomBetween(DAILY_ROTATION_MIN, DAILY_ROTATION_MAX);
-  const questTemplateIds = pickRandom(templateIds, size);
+  const questTemplateIds = pickDiverseRotation(templates, size, excludeIds);
 
   const data = { questTemplateIds, generatedAt: new Date().toISOString() };
   await ref.set(data);
@@ -122,8 +174,15 @@ async function getOrCreateWeeklyRotation(db) {
   }
 
   const templatesSnap = await weeklyQuestTemplatesRef(db).where('active', '==', true).get();
-  const templateIds = templatesSnap.docs.map((d) => d.id);
-  const questTemplateIds = pickRandom(templateIds, WEEKLY_ROTATION_SIZE);
+  const templates = templatesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  // Avoid repeating last week's picks where possible.
+  const lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+  const lastWeekSnap = await weeklyQuestRotationsRef(db).doc(getWeekId(lastWeek)).get();
+  const excludeIds = new Set(lastWeekSnap.exists ? lastWeekSnap.data().questTemplateIds ?? [] : []);
+
+  const questTemplateIds = pickDiverseRotation(templates, WEEKLY_ROTATION_SIZE, excludeIds);
 
   const data = { questTemplateIds, generatedAt: new Date().toISOString() };
   await ref.set(data);
@@ -246,15 +305,22 @@ async function getPartnerChallengesForUser(userId) {
         ? Math.round((challenge.completedCount / challenge.participantCount) * 100)
         : 0;
 
-    // Only 'fixed' duration challenges can expire mid-attempt (e.g. "5 days"
-    // from when the user started it). Permanent/monthly/event challenges
-    // don't expire this way — monthly ones just reset via the scheduled
-    // reset instead.
+    // 'fixed' challenges expire per-user, timed from when THEY started.
+    // 'event' challenges expire for EVERYONE at the same absolute date,
+    // whether or not the user ever started it — this was missing before,
+    // which is why an event challenge like National Day never moved to
+    // Past Challenges after its date passed.
     let isExpired = false;
     if (challenge.durationType === 'fixed' && progress && !progress.completed && !progress.claimed) {
       const startedAtMs = new Date(progress.startedAt).getTime();
       const expiresAtMs = startedAtMs + (challenge.durationDays ?? 0) * 24 * 60 * 60 * 1000;
       isExpired = now > expiresAtMs;
+    } else if (challenge.durationType === 'event' && challenge.eventEndDate && !progress?.completed) {
+      // Only counts as expired if the user DIDN'T finish in time — if they
+      // completed it before the event ended, they keep the ability to
+      // claim later even after the date passes.
+      const eventEndMs = new Date(challenge.eventEndDate).getTime();
+      isExpired = now > eventEndMs;
     }
 
     return { id: doc.id, ...challenge, progress, completionRatePercent, isExpired };
@@ -307,6 +373,28 @@ async function startChallenge(userId, challengeId) {
   });
 }
 
+/**
+ * Writes a badge doc for every 'badge'-style reward in `rewards`, keyed by
+ * a slug of the label so re-earning the same badge (e.g. a weekly quest
+ * rotating back in a future week) doesn't create a duplicate — just
+ * refreshes it. Pure writes, no reads, so it's safe to call from anywhere
+ * inside an existing transaction regardless of read/write ordering so far.
+ */
+function grantBadges(tx, db, userId, rewards, sourceType, sourceLabel) {
+  (rewards ?? []).forEach((reward) => {
+    if (reward.style !== 'badge') return;
+    const badgeId = reward.label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    tx.set(
+      userBadgesRef(db, userId).doc(badgeId),
+      { label: reward.label, sourceType, sourceLabel, earnedAt: new Date().toISOString() },
+      { merge: true }
+    );
+  });
+}
+
 async function claimDailyQuestReward(userId, templateId) {
   const db = getFirestore();
   const dateId = getDateId();
@@ -344,6 +432,7 @@ async function claimDailyQuestReward(userId, templateId) {
       icon: 'trophy-outline',
       timestamp: new Date().toISOString(),
     });
+    grantBadges(tx, db, userId, template.rewards, 'daily', template.title);
 
     return { ok: true, pointsAwarded: template.points };
   });
@@ -386,6 +475,7 @@ async function claimWeeklyQuestReward(userId, templateId) {
       icon: 'trophy-outline',
       timestamp: new Date().toISOString(),
     });
+    grantBadges(tx, db, userId, template.rewards, 'weekly', template.title);
 
     return { ok: true, pointsAwarded: template.points };
   });
@@ -416,6 +506,14 @@ async function claimChallengeReward(userId, challengeId) {
     const points = challenge.points ?? 0;
     const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
 
+    // ---- Read the voucher catalog entry BEFORE any writes, if this
+    // challenge grants a real voucher (Firestore transactions require all
+    // reads before any writes) ----
+    let voucherCatalogSnap = null;
+    if (challenge.grantVoucherId) {
+      voucherCatalogSnap = await tx.get(voucherCatalogRef(db).doc(challenge.grantVoucherId));
+    }
+
     tx.update(progressRef, { claimed: true });
     if (points > 0) {
       tx.update(userRef, { points: currentPoints + points });
@@ -429,7 +527,39 @@ async function claimChallengeReward(userId, challengeId) {
       });
     }
 
-    return { ok: true, pointsAwarded: points };
+    // ---- Grant the real voucher, same shape as a Marketplace redemption
+    // (so it auto-applies at payment and shows up in My Vouchers exactly
+    // the same way) — just free instead of costing points, and tagged
+    // `source: 'challenge'` so it's distinguishable from a real purchase. ----
+    let voucherGranted = false;
+    if (voucherCatalogSnap && voucherCatalogSnap.exists) {
+      const voucher = voucherCatalogSnap.data();
+      const redeemedAt = new Date();
+      const expiresAt = new Date(redeemedAt.getTime() + voucher.validityDays * 24 * 60 * 60 * 1000);
+
+      tx.set(userVouchersRef(db, userId).doc(), {
+        voucherId: challenge.grantVoucherId,
+        merchantName: voucher.merchantName,
+        description: voucher.description,
+        icon: voucher.icon ?? 'gift-outline',
+        pointsCost: 0,
+        source: 'challenge',
+        sourceLabel: challenge.merchantName, // shown in My Vouchers instead of "0 Points" for challenge-granted vouchers
+        redeemedAt: redeemedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        status: 'available',
+        usedAt: null,
+        usedMerchant: null,
+        usedLocation: null,
+        termsAndConditions: voucher.termsAndConditions ?? [],
+        usageSteps: voucher.usageSteps ?? [],
+      });
+      voucherGranted = true;
+    }
+
+    grantBadges(tx, db, userId, challenge.rewards, 'challenge', challenge.merchantName);
+
+    return { ok: true, pointsAwarded: points, voucherGranted };
   });
 }
 
@@ -462,7 +592,7 @@ async function recordQuestEvent(userId, event) {
 
   return db.runTransaction(async (tx) => {
     // ---- 1. READS (all reads before any writes) ----
-    const [dailyDoc, weeklyDoc, metaDoc, userDoc, dailyTemplatesSnap, weeklyTemplatesSnap, challengeProgressSnap] =
+    const [dailyDoc, weeklyDoc, metaDoc, userDoc, dailyTemplatesSnap, weeklyTemplatesSnap, challengeProgressSnap, dailyRotationDoc, weeklyRotationDoc] =
       await Promise.all([
         tx.get(dailyProgressRef),
         tx.get(weeklyProgressRef),
@@ -471,6 +601,8 @@ async function recordQuestEvent(userId, event) {
         tx.get(dailyQuestTemplatesRef(db)),
         tx.get(weeklyQuestTemplatesRef(db)),
         tx.get(challengeProgressCollection),
+        tx.get(dailyQuestRotationsRef(db).doc(dateId)),
+        tx.get(weeklyQuestRotationsRef(db).doc(weekId)),
       ]);
 
     const challengeDocs = await Promise.all(
@@ -591,8 +723,20 @@ async function recordQuestEvent(userId, event) {
     }
 
     // ---- Daily quests (mark completed only — claiming is a separate step, same as weekly) ----
+    // Self-heals any quest in today's rotation that doesn't have a progress
+    // entry yet — this happens if a transaction fires before the user has
+    // ever opened the Daily Quests page for this rotation. Without this,
+    // the event silently has nothing to attach to and does nothing.
     let dailyChanged = false;
     const dailyQuests = { ...(dailyDoc.exists ? dailyDoc.data().quests : {}) };
+    const dailyRotationIds = dailyRotationDoc.exists ? dailyRotationDoc.data().questTemplateIds ?? [] : [];
+    for (const templateId of dailyRotationIds) {
+      if (dailyQuests[templateId]) continue;
+      const template = dailyTemplates.get(templateId);
+      if (!template) continue;
+      dailyQuests[templateId] = { current: 0, target: template.requirementTarget, completed: false, claimed: false };
+      dailyChanged = true;
+    }
     for (const [templateId, progress] of Object.entries(dailyQuests)) {
       const template = dailyTemplates.get(templateId);
       if (!template) continue;
@@ -603,8 +747,17 @@ async function recordQuestEvent(userId, event) {
     }
 
     // ---- Weekly quests (progress only) ----
+    // Same self-healing as daily, for the same reason.
     let weeklyChanged = false;
     const weeklyQuests = { ...(weeklyDoc.exists ? weeklyDoc.data().quests : {}) };
+    const weeklyRotationIds = weeklyRotationDoc.exists ? weeklyRotationDoc.data().questTemplateIds ?? [] : [];
+    for (const templateId of weeklyRotationIds) {
+      if (weeklyQuests[templateId]) continue;
+      const template = weeklyTemplates.get(templateId);
+      if (!template) continue;
+      weeklyQuests[templateId] = { current: 0, target: template.requirementTarget, completed: false, claimed: false };
+      weeklyChanged = true;
+    }
     for (const [templateId, progress] of Object.entries(weeklyQuests)) {
       const template = weeklyTemplates.get(templateId);
       if (!template) continue;
@@ -693,12 +846,71 @@ async function recordQuestEvent(userId, event) {
   });
 }
 
+/**
+ * Every badge earnable across the whole system (daily quests, weekly
+ * quests, partner challenges), cross-referenced against what this user has
+ * actually earned — so the Badges page can show locked placeholders for
+ * ones not yet earned, not just a list of what you have.
+ */
+async function getBadgesForUser(userId) {
+  const db = getFirestore();
+  const [dailySnap, weeklySnap, challengesSnap, earnedSnap] = await Promise.all([
+    dailyQuestTemplatesRef(db).get(),
+    weeklyQuestTemplatesRef(db).get(),
+    partnerChallengesRef(db).get(),
+    userBadgesRef(db, userId).get(),
+  ]);
+
+  const allBadges = new Map(); // label -> { label, sourceType, sourceLabel }
+
+  function collect(snap, sourceType, nameField) {
+    snap.docs.forEach((doc) => {
+      const data = doc.data();
+      const sourceLabel = data[nameField];
+      (data.rewards ?? []).forEach((reward) => {
+        if (reward.style !== 'badge') return;
+        if (allBadges.has(reward.label)) return; // first source wins for display purposes
+        allBadges.set(reward.label, { label: reward.label, sourceType, sourceLabel });
+      });
+    });
+  }
+
+  collect(dailySnap, 'daily', 'title');
+  collect(weeklySnap, 'weekly', 'title');
+  collect(challengesSnap, 'challenge', 'merchantName');
+
+  const earnedByLabel = new Map(earnedSnap.docs.map((d) => [d.data().label, d.data()]));
+
+  const badges = Array.from(allBadges.values()).map((b) => {
+    const earned = earnedByLabel.get(b.label);
+    return {
+      ...b,
+      earned: !!earned,
+      earnedAt: earned?.earnedAt ?? null,
+    };
+  });
+
+  // Earned first (most recent first), then locked ones.
+  badges.sort((a, b) => {
+    if (a.earned !== b.earned) return a.earned ? -1 : 1;
+    if (a.earned && b.earned) return new Date(b.earnedAt).getTime() - new Date(a.earnedAt).getTime();
+    return a.label.localeCompare(b.label);
+  });
+
+  return {
+    badges,
+    earnedCount: badges.filter((b) => b.earned).length,
+    totalCount: badges.length,
+  };
+}
+
 module.exports = {
   getDateId,
   getWeekId,
   getDailyQuestsForUser,
   getWeeklyQuestsForUser,
   getPartnerChallengesForUser,
+  getBadgesForUser,
   startChallenge,
   claimDailyQuestReward,
   claimWeeklyQuestReward,

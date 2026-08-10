@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
+import { ToastController } from '@ionic/angular';
 import { QuestWithProgress } from 'src/app/services/quest.models';
 import { DailyQuestsService } from 'src/app/services/daily-quests.service';
 import { SessionService } from 'src/app/services/session.service';
@@ -28,7 +29,8 @@ export class DailyQuestsPage {
     private questsService: DailyQuestsService,
     private session: SessionService,
     private router: Router,
-    private location: Location
+    private location: Location,
+    private toastController: ToastController
   ) {}
 
   ionViewWillEnter(): void {
@@ -78,14 +80,30 @@ export class DailyQuestsPage {
     this.claimingId = templateId;
 
     this.questsService.claimQuest(this.session.userId, templateId).subscribe({
-      next: () => {
+      next: async (res: any) => {
         this.claimingId = null;
         this.load(); // refresh so the quest moves into the Completed section
+
+        const pointsText = res?.pointsAwarded ? ` +${res.pointsAwarded} points` : '';
+        const toast = await this.toastController.create({
+          message: `Reward claimed!${pointsText}`,
+          duration: 2000,
+          position: 'top',
+          color: 'success',
+        });
+        await toast.present();
       },
-      error: (err) => {
+      error: async (err) => {
         console.error('Failed to claim daily quest reward', err);
         this.claimingId = null;
-        // TODO: surface a toast to the user
+
+        const toast = await this.toastController.create({
+          message: err?.error?.error || 'Could not claim this reward. Please try again.',
+          duration: 2000,
+          position: 'top',
+          color: 'danger',
+        });
+        await toast.present();
       },
     });
   }

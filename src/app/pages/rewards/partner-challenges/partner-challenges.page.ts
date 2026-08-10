@@ -102,13 +102,30 @@ export class PartnerChallengesPage {
     this.busyChallengeId = challengeId;
 
     this.challengesService.claimChallenge(this.session.userId, challengeId).subscribe({
-      next: () => {
+      next: async (res: any) => {
         this.busyChallengeId = null;
         this.load();
+
+        const voucherNote = res?.voucherGranted ? ' A voucher was added to My Vouchers too!' : '';
+        const toast = await this.toastController.create({
+          message: `Reward claimed!${voucherNote}`,
+          duration: 2500,
+          position: 'top',
+          color: 'success',
+        });
+        await toast.present();
       },
-      error: (err) => {
+      error: async (err) => {
         console.error('Failed to claim challenge reward', err);
         this.busyChallengeId = null;
+
+        const toast = await this.toastController.create({
+          message: err?.error?.error || 'Could not claim this reward. Please try again.',
+          duration: 2500,
+          position: 'top',
+          color: 'danger',
+        });
+        await toast.present();
       },
     });
   }

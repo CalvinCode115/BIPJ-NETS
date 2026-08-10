@@ -41,6 +41,8 @@ export interface WeeklyQuestsResponse {
 export interface ChallengeWithProgress {
   id: string;
   merchantName: string;
+  description?: string;
+  progressUnitLabel?: string; // e.g. 'stores', 'cafes' — what the visit-count progress row should call its unit
   location?: string;
   icon: string;
   difficulty: 'easy' | 'average' | 'hard';

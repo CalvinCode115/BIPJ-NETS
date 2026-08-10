@@ -155,4 +155,8 @@ export class NetsPointsPage {
   goToMyVouchers(): void {
     this.router.navigate(['/tabs/rewards/my-vouchers']);
   }
+
+  goToBadges(): void {
+    this.router.navigate(['/tabs/rewards/badges']);
+  }
 }

@@ -42,6 +42,71 @@
   }
 }
 
+// ---- Your Week So Far ----
+.week-summary-card {
+  border: 1px solid #e2e2e5;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+
+  .week-summary-stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 14px;
+  }
+
+  .week-summary-stat {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .week-summary-stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .week-summary-stat-label {
+    font-size: 12px;
+    color: #8a8a8e;
+  }
+}
+
+// ---- How Weekly Quests Work ----
+.info-tip-card {
+  display: flex;
+  gap: 10px;
+  background: #eef4fb;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+
+  ion-icon {
+    font-size: 20px;
+    color: #3d6fe0;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .info-tip-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .info-tip-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .info-tip-body {
+    font-size: 12px;
+    color: #4a4a4e;
+    line-height: 1.4;
+  }
+}
+
 // ---- Weekly progress ----
 .weekly-progress-row {
   display: flex;

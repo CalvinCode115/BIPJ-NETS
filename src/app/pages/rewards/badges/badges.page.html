@@ -1,0 +1,43 @@
+<ion-header class="nets-page-header">
+  <ion-toolbar class="nets-page-toolbar">
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="goBack()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>My Badges</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="badges-content">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div *ngIf="loading" class="state-message">Loading your badges...</div>
+  <div *ngIf="error" class="state-message state-message--error">{{ error }}</div>
+
+  <ng-container *ngIf="!loading && !error">
+    <div class="badges-summary-card">
+      <ion-icon name="ribbon-outline"></ion-icon>
+      <div class="badges-summary-text">
+        <span class="badges-summary-value">{{ earnedCount }}/{{ totalCount }}</span>
+        <span class="badges-summary-label">Badges Earned</span>
+      </div>
+    </div>
+
+    <div class="badges-grid">
+      <div class="badge-tile" *ngFor="let badge of badges" [class.badge-tile--locked]="!badge.earned">
+        <div class="badge-icon">
+          <ion-icon [name]="badge.earned ? 'ribbon' : 'lock-closed-outline'"></ion-icon>
+        </div>
+        <span class="badge-label">{{ badge.label }}</span>
+        <span class="badge-source">{{ sourceLabel(badge.sourceType) }}: {{ badge.sourceLabel }}</span>
+        <span class="badge-earned-date" *ngIf="badge.earned">{{ badge.earnedAt | date:'d MMM y' }}</span>
+      </div>
+    </div>
+
+    <div *ngIf="badges.length === 0" class="state-message">No badges available yet.</div>
+  </ng-container>
+
+</ion-content>

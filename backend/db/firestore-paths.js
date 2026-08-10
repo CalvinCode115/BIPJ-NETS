@@ -20,6 +20,7 @@
  * users/{userId}/challengeProgress/{challengeId}  per-user progress on a partner challenge
  * users/{userId}/questMeta/streak              per-user streak tracking (for streak_day quests)
  * users/{userId}/pointsLedger/{entryId}        every points-earning/spending event (Points History)
+ * users/{userId}/badges/{badgeId}              badges earned from completing quests/challenges
  *
  * ---- Rewards Marketplace (added) ----
  * voucherCatalog/{voucherId}                   voucher/deal definitions (admin/seed managed)
@@ -40,6 +41,7 @@ const USER_SUBCOLLECTIONS = [
   'questMeta',
   'pointsLedger',
   'vouchers',
+  'badges',
 ];
 
 function userRef(db, userId) {
@@ -128,6 +130,10 @@ function userVouchersRef(db, userId) {
   return userRef(db, userId).collection('vouchers');
 }
 
+function userBadgesRef(db, userId) {
+  return userRef(db, userId).collection('badges');
+}
+
 module.exports = {
   USER_SUBCOLLECTIONS,
   userRef,
@@ -151,4 +157,5 @@ module.exports = {
   voucherCatalogRef,
   voucherRedemptionCountersRef,
   userVouchersRef,
+  userBadgesRef,
 };

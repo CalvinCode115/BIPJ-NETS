@@ -62,6 +62,10 @@ const routes: Routes = [
             path: 'rewards-marketplace',
             loadChildren: () => import('../pages/rewards/rewards-marketplace/rewards-marketplace.module').then(m => m.RewardsMarketplacePageModule)
           },
+          {
+            path: 'badges',
+            loadChildren: () => import('../pages/rewards/badges/badges.module').then(m => m.BadgesPageModule)
+          },
         ]
       },
       {

@@ -27,9 +27,18 @@ function computeDiscount(catalogVoucher, amount) {
 function merchantOrCategoryMatches(catalogVoucher, normalizedMerchant, category) {
   const merchantIds = catalogVoucher.merchantIds ?? [];
   const eligibleCategories = catalogVoucher.eligibleCategories ?? [];
-  const merchantMatch = merchantIds.includes('any') || merchantIds.includes(normalizedMerchant);
-  const categoryMatch = eligibleCategories.length > 0 && eligibleCategories.includes(category);
-  return merchantMatch || categoryMatch;
+
+  // If eligibleCategories is set, it's a strict filter — even a wildcard
+  // 'any' merchant match must still satisfy it. Without this, a voucher
+  // like "any F&B merchant" (merchantIds: ['any'] + eligibleCategories:
+  // ['Dining', 'Coffee', 'Drinks']) would match literally everything,
+  // since 'any' alone used to short-circuit the OR below regardless of
+  // category.
+  if (eligibleCategories.length > 0) {
+    return eligibleCategories.includes(category);
+  }
+
+  return merchantIds.includes('any') || merchantIds.includes(normalizedMerchant);
 }
 
 /**
@@ -124,18 +133,58 @@ async function getUserVouchers(userId) {
 }
 
 /**
- * THE REAL "apply this voucher to this payment" function — validates
- * everything server-side (never trusts a client-computed discount),
- * marks the voucher used, and returns the discount/final amount for the
- * caller (the QR payment route) to actually charge.
- *
- * This does NOT create the transaction itself — that stays entirely in
- * your groupmate's existing payment code. This function only validates,
- * computes the discount, and marks the voucher used. The route calling
- * this is responsible for using `finalAmount` when building the
- * transaction instead of the original amount.
+ * Validates a voucher and computes its discount WITHOUT writing anything —
+ * safe to call before we know whether the payment will actually go
+ * through (e.g. before the balance check). Follow up with
+ * commitVoucherUsage() — but ONLY once the payment has actually
+ * succeeded, never before.
  */
-async function applyVoucherToPayment(userId, voucherInstanceId, { merchant, category, amount, location }) {
+async function previewVoucherForPayment(userId, voucherInstanceId, { merchant, category, amount }) {
+  const db = getFirestore();
+  const instanceRef = userVouchersRef(db, userId).doc(voucherInstanceId);
+
+  const instanceSnap = await instanceRef.get();
+  if (!instanceSnap.exists) {
+    return { ok: false, error: 'Voucher not found.' };
+  }
+  const instance = instanceSnap.data();
+
+  if (instance.status === 'used') {
+    return { ok: false, error: 'Voucher already used.' };
+  }
+  if (new Date(instance.expiresAt).getTime() < Date.now()) {
+    return { ok: false, error: 'Voucher has expired.' };
+  }
+
+  const catalogSnap = await voucherCatalogRef(db).doc(instance.voucherId).get();
+  if (!catalogSnap.exists) {
+    return { ok: false, error: 'Voucher definition not found.' };
+  }
+  const catalog = catalogSnap.data();
+
+  const normalizedMerchant = normalizeMerchant(merchant);
+  if (!merchantOrCategoryMatches(catalog, normalizedMerchant, category)) {
+    return { ok: false, error: 'This voucher is not valid for this merchant.' };
+  }
+
+  if (catalog.minSpend != null && amount < catalog.minSpend) {
+    return { ok: false, error: `Spend at least $${catalog.minSpend.toFixed(2)} to use this voucher.` };
+  }
+
+  const discountAmount = computeDiscount(catalog, amount);
+  const finalAmount = Math.round((amount - discountAmount) * 100) / 100;
+
+  return { ok: true, discountAmount, finalAmount };
+}
+
+/**
+ * Marks a voucher as used. Call this ONLY after the payment has actually
+ * succeeded (transaction saved, card debited) — never before. Re-checks
+ * status/expiry inside the transaction in case anything changed between
+ * the preview and now (e.g. a race with a second concurrent request using
+ * the same voucher).
+ */
+async function commitVoucherUsage(userId, voucherInstanceId, { merchant, location }) {
   const db = getFirestore();
   const instanceRef = userVouchersRef(db, userId).doc(voucherInstanceId);
 
@@ -153,24 +202,6 @@ async function applyVoucherToPayment(userId, voucherInstanceId, { merchant, cate
       return { ok: false, error: 'Voucher has expired.' };
     }
 
-    const catalogSnap = await tx.get(voucherCatalogRef(db).doc(instance.voucherId));
-    if (!catalogSnap.exists) {
-      return { ok: false, error: 'Voucher definition not found.' };
-    }
-    const catalog = catalogSnap.data();
-
-    const normalizedMerchant = normalizeMerchant(merchant);
-    if (!merchantOrCategoryMatches(catalog, normalizedMerchant, category)) {
-      return { ok: false, error: 'This voucher is not valid for this merchant.' };
-    }
-
-    if (catalog.minSpend != null && amount < catalog.minSpend) {
-      return { ok: false, error: `Spend at least $${catalog.minSpend.toFixed(2)} to use this voucher.` };
-    }
-
-    const discountAmount = computeDiscount(catalog, amount);
-    const finalAmount = Math.round((amount - discountAmount) * 100) / 100;
-
     tx.update(instanceRef, {
       status: 'used',
       usedAt: new Date().toISOString(),
@@ -178,7 +209,7 @@ async function applyVoucherToPayment(userId, voucherInstanceId, { merchant, cate
       usedLocation: location || null,
     });
 
-    return { ok: true, discountAmount, finalAmount };
+    return { ok: true };
   });
 }
 
@@ -186,7 +217,7 @@ async function applyVoucherToPayment(userId, voucherInstanceId, { merchant, cate
  * Manual test-only helper (no discount/merchant validation) — lets you
  * mark a voucher used directly from the My Vouchers "Simulate Use" button,
  * without needing real payment context. The real flow uses
- * applyVoucherToPayment() above instead.
+ * previewVoucherForPayment() + commitVoucherUsage() above instead.
  */
 async function markVoucherUsed(userId, voucherInstanceId, { merchant, location }) {
   const db = getFirestore();
@@ -220,6 +251,7 @@ async function markVoucherUsed(userId, voucherInstanceId, { merchant, location }
 module.exports = {
   getUserVouchers,
   checkEligibleVouchers,
-  applyVoucherToPayment,
+  previewVoucherForPayment,
+  commitVoucherUsage,
   markVoucherUsed,
 };

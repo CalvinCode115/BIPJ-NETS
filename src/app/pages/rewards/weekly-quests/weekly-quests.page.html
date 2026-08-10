@@ -27,6 +27,39 @@
       </div>
     </div>
 
+    <!-- Your Week So Far -->
+    <div class="week-summary-card">
+      <div class="week-summary-stats">
+        <div class="week-summary-stat">
+          <span class="week-summary-stat-value">{{ pointsEarnedThisWeek }}</span>
+          <span class="week-summary-stat-label">Points Earned</span>
+        </div>
+        <div class="week-summary-stat">
+          <span class="week-summary-stat-value">{{ claimedQuests.length }}/{{ totalQuestCount }}</span>
+          <span class="week-summary-stat-label">Quests Completed</span>
+        </div>
+      </div>
+      <div class="weekly-progress-row">
+        <span class="weekly-progress-label">This Week's Progress</span>
+        <span class="weekly-progress-percent">{{ completionPercent }}%</span>
+      </div>
+      <div class="weekly-progress-bar">
+        <div class="weekly-progress-fill" [style.width.%]="completionPercent"></div>
+      </div>
+    </div>
+
+    <!-- How Weekly Quests Work -->
+    <div class="info-tip-card">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      <div class="info-tip-text">
+        <span class="info-tip-title">How Weekly Quests Work</span>
+        <span class="info-tip-body">
+          3 of the quests are randomly chosen for you every Monday. They're bigger, tougher
+          versions of Daily Quests — so the rewards are bigger too.
+        </span>
+      </div>
+    </div>
+
     <!-- In Progress -->
     <div class="section-heading">
       <ion-icon name="ribbon-outline" class="section-heading-icon"></ion-icon>

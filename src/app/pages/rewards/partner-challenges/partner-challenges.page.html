@@ -46,6 +46,7 @@
         <div class="challenge-title-block">
           <span class="challenge-title">{{ challenge.merchantName }}</span>
           <span class="challenge-location" *ngIf="challenge.location">{{ challenge.location }}</span>
+          <span class="challenge-description" *ngIf="challenge.description">{{ challenge.description }}</span>
         </div>
         <div class="challenge-tags">
           <span class="difficulty-tag" [ngClass]="'difficulty-tag--' + challenge.difficulty">{{ challenge.difficulty | titlecase }}</span>
@@ -90,7 +91,7 @@
               {{ i + 1 }}
             </span>
           </div>
-          <span class="challenge-progress-caption">{{ progress.current }}/{{ progress.target }} cafes visited</span>
+          <span class="challenge-progress-caption">{{ progress.current }}/{{ progress.target }} {{ challenge.progressUnitLabel || 'visited' }}</span>
         </ng-container>
 
         <ng-container *ngIf="challenge.requirementType === 'visit_stall_count'">
