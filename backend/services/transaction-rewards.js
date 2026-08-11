@@ -104,6 +104,18 @@ async function awardTransactionRewards(userId, transaction) {
       isNewMerchant,
     });
 
+    if (transaction.id && !result.error) {
+      try {
+        await db.updateTransactionRewards(userId, transaction.id, {
+          points_awarded: result.pointsAwarded ?? 0,
+          points_capped: Boolean(result.capped),
+          points_recorded: true,
+        });
+      } catch (persistErr) {
+        console.error('persist points on transaction failed:', persistErr);
+      }
+    }
+
     return result;
   } catch (err) {
     console.error('awardTransactionRewards failed (payment itself still succeeded):', err);

@@ -7,7 +7,7 @@ import {
   TransactionsService,
 } from '../../../services/transactions.service';
 import { formatTransactionMeta } from '../../../utils/transfer-display';
-import { estimateTxnRewards } from '../../../utils/txn-rewards-display';
+import { resolveTxnRewardsDisplay } from '../../../utils/txn-rewards-display';
 
 interface TransactionItem {
   id: string;
@@ -21,6 +21,7 @@ interface TransactionItem {
   metaLine: string;
   displayPoints?: number;
   displayXp?: number;
+  rewardsLimitLabel?: string | null;
 }
 
 interface TransactionGroup {
@@ -207,7 +208,7 @@ export class AllTransactionsPage implements OnInit {
 
     transactions.forEach((txn) => {
       const metaLine = formatTransactionMeta(txn);
-      const rewards = estimateTxnRewards(txn.amount, txn.type, txn.category);
+      const rewards = resolveTxnRewardsDisplay(txn);
       const items = groups.get(txn.date) ?? [];
       items.push({
         id: txn.id,
@@ -221,6 +222,7 @@ export class AllTransactionsPage implements OnInit {
         metaLine,
         displayPoints: rewards.points,
         displayXp: rewards.xp,
+        rewardsLimitLabel: rewards.limitLabel,
       });
       groups.set(txn.date, items);
     });

@@ -94,7 +94,7 @@ function cardToDoc(card) {
 }
 
 function transactionToDoc(txn) {
-  return {
+  const doc = {
     user_id: txn.user_id,
     card_id: txn.card_id,
     merchant: txn.merchant,
@@ -110,8 +110,28 @@ function transactionToDoc(txn) {
     counterparty_name: txn.counterparty_name ?? null,
     transfer_id: txn.transfer_id ?? null,
     display_amount: txn.display_amount ?? null,
-    //other properties 
   };
+
+  if (txn.points_awarded != null || txn.pointsAwarded != null) {
+    doc.points_awarded = txn.points_awarded ?? txn.pointsAwarded;
+  }
+  if (txn.points_capped != null || txn.pointsCapped != null) {
+    doc.points_capped = Boolean(txn.points_capped ?? txn.pointsCapped);
+  }
+  if (txn.points_recorded != null || txn.pointsRecorded != null) {
+    doc.points_recorded = Boolean(txn.points_recorded ?? txn.pointsRecorded);
+  }
+  if (txn.xp_gained != null || txn.xpGained != null) {
+    doc.xp_gained = txn.xp_gained ?? txn.xpGained;
+  }
+  if (txn.xp_capped != null || txn.xpCapped != null) {
+    doc.xp_capped = Boolean(txn.xp_capped ?? txn.xpCapped);
+  }
+  if (txn.xp_recorded != null || txn.xpRecorded != null) {
+    doc.xp_recorded = Boolean(txn.xp_recorded ?? txn.xpRecorded);
+  }
+
+  return doc;
 }
 
 async function initialize() {
@@ -308,6 +328,29 @@ async function addTransaction(transaction) {
     .doc(transaction.id)
     .set(transactionToDoc(transaction), { merge: true });
   return transaction;
+}
+
+async function updateTransactionRewards(userId, txnId, patch) {
+  const allowed = {};
+  if (typeof patch?.points_awarded === 'number') allowed.points_awarded = patch.points_awarded;
+  if (typeof patch?.points_capped === 'boolean') allowed.points_capped = patch.points_capped;
+  if (typeof patch?.points_recorded === 'boolean') allowed.points_recorded = patch.points_recorded;
+  if (typeof patch?.xp_gained === 'number') allowed.xp_gained = patch.xp_gained;
+  if (typeof patch?.xp_capped === 'boolean') allowed.xp_capped = patch.xp_capped;
+  if (typeof patch?.xp_recorded === 'boolean') allowed.xp_recorded = patch.xp_recorded;
+  if (!userId || !txnId || !Object.keys(allowed).length) {
+    return null;
+  }
+
+  const db = getFirestore();
+  const ref = userTransactionsRef(db, userId).doc(txnId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    return null;
+  }
+
+  await ref.update(allowed);
+  return { id: txnId, ...snap.data(), ...allowed };
 }
 
 async function syncAutoTopUpPreference(cardRow) {
@@ -645,6 +688,7 @@ module.exports = {
   deleteCard,
   formatPhoneDisplay,
   addTransaction,
+  updateTransactionRewards,
   updateCardBalance,
   setCardBalance,
   applyWalletTopUp,

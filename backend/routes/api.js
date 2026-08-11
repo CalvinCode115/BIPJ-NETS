@@ -882,6 +882,29 @@ router.post('/users/:userId/cards/:cardId/top-up', asyncHandler(async (req, res)
   res.json(responsePayload);
 }));
 
+router.patch('/users/:userId/transactions/:txnId/rewards', asyncHandler(async (req, res) => {
+  const user = await db.getUser(req.params.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  const xpGained = Number(req.body?.xpGained);
+  if (!Number.isFinite(xpGained) || xpGained < 0) {
+    return res.status(400).json({ error: 'xpGained must be a non-negative number.' });
+  }
+
+  const updated = await db.updateTransactionRewards(req.params.userId, req.params.txnId, {
+    xp_gained: Math.round(xpGained),
+    xp_capped: Boolean(req.body?.xpCapped),
+    xp_recorded: true,
+  });
+  if (!updated) {
+    return res.status(404).json({ error: 'Transaction not found' });
+  }
+
+  res.json({ success: true, transaction: formatTransaction(updated) });
+}));
+
 router.get('/users/:userId/transactions', asyncHandler(async (req, res) => {
   const user = await db.getUser(req.params.userId);
   if (!user) {

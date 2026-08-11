@@ -510,6 +510,12 @@ function formatTransaction(row) {
     category: row.category,
     cardId: row.card_id,
     counterparty,
+    pointsAwarded: row.points_awarded ?? row.pointsAwarded ?? null,
+    pointsCapped: Boolean(row.points_capped ?? row.pointsCapped),
+    pointsRecorded: Boolean(row.points_recorded ?? row.pointsRecorded),
+    xpGained: row.xp_gained ?? row.xpGained ?? null,
+    xpCapped: Boolean(row.xp_capped ?? row.xpCapped),
+    xpRecorded: Boolean(row.xp_recorded ?? row.xpRecorded),
   };
 }
 

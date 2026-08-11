@@ -15,7 +15,7 @@ import {
 } from '../services/home-activity.service';
 import { EMPTY_CARDS_BY_TYPE, HomeWalletService } from '../services/home-wallet.service';
 import { HomeAlertsService } from '../services/home-alerts.service';
-import { estimateTxnRewards } from '../../../utils/txn-rewards-display';
+import { resolveTxnRewardsDisplay } from '../../../utils/txn-rewards-display';
 import {
   formatNotificationAmount,
   formatNotificationSender,
@@ -660,19 +660,23 @@ export class HomePage {
       this.loadMultiCurrencyBalances();
       this.loadCardsForUser(this.auth.userId ?? 'user_1');
 
-      if (detail.sgdEquivalent && detail.category) {
-        const pet = this.petBridge.record(
-          detail.sgdEquivalent,
-          detail.category,
-          detail.venue || 'Travel Payment'
-        );
-        if (pet?.pointsEarned) {
-          this.rewards.currentPoints += pet.pointsEarned;
-        }
+      const pet =
+        detail.sgdEquivalent && detail.category
+          ? this.petBridge.record(detail.sgdEquivalent, detail.category, detail.venue || 'Travel Payment')
+          : null;
+      if (pet?.pointsEarned) {
+        this.rewards.currentPoints += pet.pointsEarned;
       }
 
       const spendAmount = -Math.abs(detail.sgdEquivalent || 0);
-      const rewards = estimateTxnRewards(spendAmount, 'debit');
+      const rewards = resolveTxnRewardsDisplay({
+        amount: spendAmount,
+        type: 'debit',
+        category: detail.category,
+        xpGained: pet?.xpGained ?? null,
+        xpCapped: Boolean(pet?.xpCapped),
+        xpRecorded: Boolean(pet),
+      });
       const newTxn: HomeRecentTransaction = {
         merchant: detail.venue || 'Travel Payment',
         subtitle: `${detail.currency} ${detail.amount.toLocaleString()} · ${detail.category}`,
@@ -683,8 +687,10 @@ export class HomePage {
         icon: 'airplane',
         iconColor: '#d71920',
         type: 'debit',
+        category: detail.category,
         displayPoints: rewards.points,
         displayXp: rewards.xp,
+        rewardsLimitLabel: rewards.limitLabel,
       };
       this.recentTransactions = [newTxn, ...this.recentTransactions].slice(0, 5);
       this.saveLocalTransaction(newTxn);
@@ -700,6 +706,9 @@ export class HomePage {
       ...txn,
       id: `travel_${Date.now()}`,
       cardId: this.currentCard?.id,
+      xpGained: txn.displayXp ?? 0,
+      xpCapped: Boolean(txn.rewardsLimitLabel),
+      xpRecorded: txn.displayXp != null || Boolean(txn.rewardsLimitLabel),
     });
     sessionStorage.setItem(key, JSON.stringify(existing.slice(0, 20)));
   }

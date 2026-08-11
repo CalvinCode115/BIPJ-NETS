@@ -47,6 +47,8 @@ export function isTransferTransaction(txn: TransferDisplayInput): boolean {
   return (
     txn.category === 'Transfer' ||
     txn.merchant === 'PayNow Transfer' ||
+    txn.merchant === 'PayNow (QR Code)' ||
+    txn.merchant === 'PayNow (Mobile)' ||
     txn.merchant === 'P2P Transfer'
   );
 }

@@ -94,12 +94,13 @@ async function executeTransfer(fromUserId, input) {
   const senderSubtitle = `To ${formatPhoneDisplay(toUser.phone)}`;
 
   const receiverSubtitle = `From ${formatPhoneDisplay(fromUser.phone)}`;
+  const merchantLabel = input.channel === 'qr' ? 'PayNow (QR Code)' : 'PayNow (Mobile)';
 
   const senderTxn = await db.addTransaction({
     id: `txn_${Date.now()}_out`,
     user_id: fromUserId,
     card_id: fromCard.id,
-    merchant: 'PayNow Transfer',
+    merchant: merchantLabel,
     category: 'Transfer',
     subtitle: senderSubtitle,
     transfer_direction: 'to',
@@ -117,7 +118,7 @@ async function executeTransfer(fromUserId, input) {
     id: `txn_${Date.now()}_in`,
     user_id: toUser.id,
     card_id: toCard.id,
-    merchant: 'PayNow Transfer',
+    merchant: merchantLabel,
     category: 'Transfer',
     subtitle: receiverSubtitle,
     transfer_direction: 'from',

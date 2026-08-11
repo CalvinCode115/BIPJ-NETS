@@ -21,7 +21,9 @@
         [class.exchange]="tx.type === 'exchange'">
         {{ tx.displayAmount || formatAmount(tx.amount) }}
       </span>
-      @if ((tx.displayPoints ?? 0) > 0 || (tx.displayXp ?? 0) > 0) {
+      @if (tx.rewardsLimitLabel) {
+      <span class="tx-rewards-limit">{{ tx.rewardsLimitLabel }}</span>
+      } @else if ((tx.displayPoints ?? 0) > 0 || (tx.displayXp ?? 0) > 0) {
       <span class="tx-rewards">
         @if ((tx.displayPoints ?? 0) > 0) {
         <span>+{{ tx.displayPoints }} pts</span>

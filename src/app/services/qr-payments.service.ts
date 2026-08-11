@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
-import { TransactionRecord } from './transactions.service';
+import { TransactionRecord, TransactionsService } from './transactions.service';
 import { PetBridgeService } from './pet-bridge.service';
 import { TransactionResult } from '../models/pet.model';
 
@@ -66,7 +66,11 @@ export interface QrParseResponse {
   providedIn: 'root',
 })
 export class QrPaymentsService {
-  constructor(private http: HttpClient, private petBridge: PetBridgeService) {}
+  constructor(
+    private http: HttpClient,
+    private petBridge: PetBridgeService,
+    private transactions: TransactionsService
+  ) {}
 
   getDemoMerchants(): Observable<{ merchants: DemoMerchantQr[] }> {
     return this.http.get<{ merchants: DemoMerchantQr[] }>(`${API_BASE_URL}/pay/qr-merchants/summary`).pipe(
@@ -135,8 +139,21 @@ export class QrPaymentsService {
           }
           const pet = this.petBridge.record(res.payment.amount, res.payment.category, res.payment.merchant);
           return { ...res, pet, petName: this.petBridge.petName };
-        })
+        }),
+        tap((res) => this.persistPetXp(userId, res?.transaction?.id, res?.pet))
       );
+  }
+
+  private persistPetXp(userId: string, txnId: string | undefined, pet?: TransactionResult): void {
+    if (!userId || !txnId || !pet) {
+      return;
+    }
+    this.transactions
+      .recordTxnRewards(userId, txnId, {
+        xpGained: pet.xpGained,
+        xpCapped: pet.xpCapped,
+      })
+      .subscribe();
   }
 }
 

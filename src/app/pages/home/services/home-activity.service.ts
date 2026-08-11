@@ -3,7 +3,7 @@ import { Observable, map, of, catchError } from 'rxjs';
 import { WalletCard, CardType } from '../../../services/cards.service';
 import { TransactionRecord, TransactionsService } from '../../../services/transactions.service';
 import { formatTransactionMeta } from '../../../utils/transfer-display';
-import { estimateTxnRewards } from '../../../utils/txn-rewards-display';
+import { resolveTxnRewardsDisplay } from '../../../utils/txn-rewards-display';
 
 export interface HomeRecentTransaction {
   merchant: string;
@@ -15,8 +15,10 @@ export interface HomeRecentTransaction {
   icon: string;
   iconColor: string;
   type: 'debit' | 'credit' | 'exchange';
+  category?: string;
   displayPoints?: number;
   displayXp?: number;
+  rewardsLimitLabel?: string | null;
 }
 
 export interface HomeMonthlySummary {
@@ -150,7 +152,7 @@ export class HomeActivityService {
   }
 
   private mapRecentTransaction(txn: TransactionRecord): HomeRecentTransaction {
-    const rewards = estimateTxnRewards(txn.amount, txn.type, txn.category);
+    const rewards = resolveTxnRewardsDisplay(txn);
     return {
       merchant: txn.merchant,
       subtitle: formatTransactionMeta(txn),
@@ -163,6 +165,7 @@ export class HomeActivityService {
       type: txn.type,
       displayPoints: rewards.points,
       displayXp: rewards.xp,
+      rewardsLimitLabel: rewards.limitLabel,
     };
   }
 

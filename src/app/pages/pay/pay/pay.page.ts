@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { ToastController } from '@ionic/angular';
 import { AuthService } from '../../../services/auth.service';
 import { CardContextService } from '../../../services/card-context.service';
 import {
@@ -28,6 +29,7 @@ import {
 import { buildTopUpFundingOptions, canManualTopUpWalletCard, isAutoTopUpEnabled, LOW_BALANCE_THRESHOLD, MAX_TOP_UP_AMOUNT, MAX_WALLET_BALANCE, MIN_TOP_UP_AMOUNT, SOURCE_CARD_RESERVE, manualTopUpDisabledReason as walletTopUpReason, TopUpFundingOption } from '../../../utils/wallet-topup';
 import { shortReceiveLabel } from '../../../utils/display-name';
 import { formatCounterpartyLine } from '../../../utils/transfer-display';
+import { buildRewardsToastMessage } from '../../../utils/rewards-toast';
 
 interface QuickPayOption {
   title: string;
@@ -92,7 +94,8 @@ export class PayPage {
     private cardsService: CardsService,
     private cardContext: CardContextService,
     private transfersService: TransfersService,
-    private savedContactsService: SavedContactsService
+    private savedContactsService: SavedContactsService,
+    private toastController: ToastController,
   ) {}
 
   ionViewWillEnter(): void {
@@ -629,19 +632,56 @@ export class PayPage {
         channel: 'paynow',
       })
       .subscribe({
-        next: (response) => {
+        next: async (response) => {
           this.isTransferring = false;
           this.transferSuccess = response.message;
           if (response.fromCard) {
             this.cardContext.selectCard(response.fromCard);
           }
           this.loadActiveCard();
+          await this.showTransferRewardsToast(response);
         },
         error: (err: { error?: { error?: string } }) => {
           this.isTransferring = false;
           this.transferError = err?.error?.error ?? 'Transfer failed.';
         },
       });
+  }
+
+  private async showTransferRewardsToast(response: {
+    pet?: { xpGained?: number; xpCapped?: boolean; leveledUp?: boolean; newLevel?: number; evolved?: boolean; newStage?: string; revived?: boolean };
+    petName?: string;
+    amount?: number;
+  }): Promise<void> {
+    const message = buildRewardsToastMessage({
+      xpGained: response.pet?.xpGained,
+      xpCapped: response.pet?.xpCapped,
+      pointsAwarded: 0,
+      leveledUp: response.pet?.leveledUp,
+      newLevel: response.pet?.newLevel,
+      evolved: response.pet?.evolved,
+      newStage: response.pet?.newStage,
+      revived: response.pet?.revived,
+      petName: response.petName,
+    });
+
+    const toastMessage =
+      message ??
+      ((response.amount ?? this.transferAmount) >= 0.5
+        ? 'Daily XP limit reached — more tomorrow.'
+        : null);
+    if (!toastMessage) {
+      return;
+    }
+
+    const toast = await this.toastController.create({
+      message: toastMessage,
+      duration: 3500,
+      position: 'top',
+      color: message ? 'success' : 'warning',
+      icon: message ? 'sparkles' : 'alert-circle',
+    });
+    await toast.present();
   }
 
   formatContactPhone(contact: SavedContact): string {

@@ -31,6 +31,12 @@ export interface TransactionRecord {
   category: string;
   cardId?: string;
   counterparty?: TransferCounterparty | null;
+  pointsAwarded?: number | null;
+  pointsCapped?: boolean;
+  pointsRecorded?: boolean;
+  xpGained?: number | null;
+  xpCapped?: boolean;
+  xpRecorded?: boolean;
 }
 
 export interface TransactionSummary {
@@ -176,6 +182,16 @@ export class TransactionsService {
     return this.http
       .get<DashboardResponse>(`${API_BASE_URL}/users/${userId}/dashboard`, { params })
       .pipe(map((response) => this.mergeDashboard(userId, response, options, scoped)));
+  }
+
+  recordTxnRewards(
+    userId: string,
+    txnId: string,
+    body: { xpGained: number; xpCapped: boolean }
+  ): Observable<{ success: boolean }> {
+    return this.http
+      .patch<{ success: boolean }>(`${API_BASE_URL}/users/${userId}/transactions/${txnId}/rewards`, body)
+      .pipe(catchError(() => of({ success: false })));
   }
 
   getReport(

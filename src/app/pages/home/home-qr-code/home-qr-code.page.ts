@@ -526,7 +526,10 @@ export class QrCodePage implements OnDestroy {
   // payments and transfers — transfers carry no pointsAwarded, so those
   // show XP only.
   private async showRewardsToast(
-    response: Pick<QrPayResponse, 'pet' | 'petName' | 'pointsAwarded'>
+    response: Pick<QrPayResponse, 'pet' | 'petName' | 'pointsAwarded'> & {
+      amount?: number;
+      payment?: { amount?: number };
+    }
   ): Promise<void> {
     const message = buildRewardsToastMessage({
       xpGained: response.pet?.xpGained,
@@ -539,16 +542,20 @@ export class QrCodePage implements OnDestroy {
       revived: response.pet?.revived,
       petName: response.petName,
     });
-    if (!message) {
+    const spend = response.amount ?? response.payment?.amount ?? 0;
+    const toastMessage =
+      message ??
+      (spend >= 0.5 ? 'Daily reward limit reached — more tomorrow.' : null);
+    if (!toastMessage) {
       return;
     }
 
     const toast = await this.toastController.create({
-      message,
+      message: toastMessage,
       duration: 3500,
       position: 'top',
-      color: 'success',
-      icon: 'sparkles',
+      color: message ? 'success' : 'warning',
+      icon: message ? 'sparkles' : 'alert-circle',
     });
     await toast.present();
   }
