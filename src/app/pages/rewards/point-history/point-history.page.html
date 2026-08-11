@@ -93,6 +93,7 @@
       </div>
       <div class="transaction-details">
         <span class="transaction-title">{{ item.title }}</span>
+        <span class="transaction-comment" *ngIf="item.comment">"{{ item.comment }}"</span>
         <div class="transaction-meta">
           <span class="transaction-timestamp">{{ item.timestamp | date:'MMM d, y, h:mm a' }}</span>
           <span class="transaction-tag" [ngClass]="'transaction-tag--' + item.type">{{ item.tag }}</span>

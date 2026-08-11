@@ -15,7 +15,7 @@ export class PointsTransferService {
 
   sendPoints(
     userId: string,
-    payload: { toPhone: string; amount: number; comment?: string }
+    payload: { toPhone: string; amount: number; comment?: string; allowPartial?: boolean }
   ): Observable<SendPointsResponse> {
     return this.http.post<SendPointsResponse>(`${environment.apiUrl}/users/${userId}/points/send`, payload);
   }

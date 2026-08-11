@@ -1,5 +1,7 @@
 const { getFirestore } = require('../firebase/admin');
 const { userPointsLedgerRef } = require('../db/firestore-paths');
+const { getTodaysPointsBudget } = require('./points-budget');
+const { capBalanceAward } = require('./points-balance-cap');
 const quests = require('./quests');
 const db = require('../db');
 
@@ -41,21 +43,45 @@ async function awardTransactionRewards(userId, transaction) {
       return { pointsAwarded: 0 };
     }
 
-    // ---- 1 point per $1 spent ----
-    const pointsAwarded = Math.round(spendAmount * POINTS_PER_DOLLAR);
     const firestoreDb = getFirestore();
     const userRef = firestoreDb.collection('users').doc(userId);
-    const userSnap = await userRef.get();
-    const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
 
-    await userRef.update({ points: currentPoints + pointsAwarded });
-    await userPointsLedgerRef(firestoreDb, userId).doc().set({
-      title: `Purchase at ${transaction.merchant}`,
-      amount: pointsAwarded,
-      type: 'transaction',
-      tag: 'Transaction',
-      icon: 'card-outline',
-      timestamp: new Date().toISOString(),
+    // ---- Everything that reads-then-decides-then-writes the cap and the
+    // points balance MUST be atomic, or two near-simultaneous calls (e.g.
+    // a double-tapped payment, or two receipts processed close together)
+    // could both read the same "remaining budget" before either commits,
+    // letting the real daily total slip past the cap. ----
+    const result = await firestoreDb.runTransaction(async (tx) => {
+      // ---- reads first ----
+      const { pointsRemaining, transactionCapReached } = await getTodaysPointsBudget(firestoreDb, userId, tx);
+      const userSnap = await tx.get(userRef);
+
+      if (transactionCapReached) {
+        // Hard stop: this transaction earns nothing and doesn't advance any
+        // quest either — this is what actually prevents someone from
+        // spamming small transactions to farm quest progress once points
+        // alone are capped.
+        return { pointsAwarded: 0, capped: true, capReason: 'daily_transaction_cap' };
+      }
+
+      const uncappedPoints = Math.round(spendAmount * POINTS_PER_DOLLAR);
+      const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
+      const pointsAwarded = capBalanceAward(currentPoints, Math.min(uncappedPoints, pointsRemaining));
+
+      // ---- then writes ----
+      if (pointsAwarded > 0) {
+        tx.update(userRef, { points: currentPoints + pointsAwarded });
+        tx.set(userPointsLedgerRef(firestoreDb, userId).doc(), {
+          title: `Purchase at ${transaction.merchant}`,
+          amount: pointsAwarded,
+          type: 'transaction',
+          tag: 'Transaction',
+          icon: 'card-outline',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      return { pointsAwarded, capped: pointsAwarded < uncappedPoints };
     });
 
     // ---- Is this a merchant the user hasn't paid before? (for Explorer-style quests) ----
@@ -65,7 +91,11 @@ async function awardTransactionRewards(userId, transaction) {
       (t) => t.id !== transaction.id && normalizeMerchant(t.merchant) === normalizedMerchant
     );
 
-    // ---- Advance any matching daily quest / weekly quest / started challenge ----
+    // ---- Advance any matching daily quest / weekly quest / started
+    // challenge — this still runs even if pointsAwarded is 0 due to
+    // hitting the points cap (only the transaction-count cap above blocks
+    // quest progress entirely). Kept outside the transaction above since
+    // it doesn't touch the points cap or balance at all. ----
     await quests.recordQuestEvent(userId, {
       eventType: 'transaction',
       amount: spendAmount,
@@ -74,7 +104,7 @@ async function awardTransactionRewards(userId, transaction) {
       isNewMerchant,
     });
 
-    return { pointsAwarded };
+    return result;
   } catch (err) {
     console.error('awardTransactionRewards failed (payment itself still succeeded):', err);
     return { pointsAwarded: 0, error: true };

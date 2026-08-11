@@ -310,6 +310,68 @@ const voucherCatalog = {
     ],
     active: true,
   },
+  'groceries-10-off-voucher': {
+    merchantName: 'Groceries $10 Off Voucher',
+    description: '$10 off any Groceries purchase',
+    icon: 'cart-outline',
+    logoUrl: 'assets/merchant-logos/groceries-promo.png', // put your actual logo file at src/assets/merchant-logos/groceries-promo.png
+    category: 'Groceries',
+    pointsCost: 1000,
+    type: 'limited',
+    difficulty: 'challenging',
+    // Category-based rather than merchant-based, same pattern as National
+    // Day — matches any Groceries-category transaction.
+    merchantIds: ['any'],
+    eligibleCategories: ['Groceries'],
+    quantityLimitType: 'daily',
+    quantityLimitAmount: 50,
+    validityDays: 7,
+    discountType: 'flat',
+    discountValue: 10,
+    discountCap: null,
+    minSpend: null,
+    termsAndConditions: [
+      '$10 off any transaction at a Groceries-category merchant.',
+      'Limited to 50 redemptions per day, first come first served.',
+      'One voucher per transaction.',
+      'Valid for 7 days from the date of redemption.',
+    ],
+    usageSteps: [
+      'This voucher applies automatically the next time you pay any Groceries merchant via NETS QR.',
+    ],
+    active: true,
+  },
+  'travel-10-percent-voucher': {
+    merchantName: 'Travel 10% Off Voucher',
+    description: '10% off any Travel purchase, up to $15 off',
+    icon: 'airplane-outline',
+    logoUrl: 'assets/merchant-logos/travel-promo.jpg', // put your actual logo file at src/assets/merchant-logos/travel-promo.png
+    category: 'Travel',
+    pointsCost: 2000,
+    type: 'limited',
+    difficulty: 'challenging',
+    // Category-based rather than merchant-based, same pattern as National
+    // Day — matches any Travel-category transaction.
+    merchantIds: ['any'],
+    eligibleCategories: ['Travel'],
+    quantityLimitType: 'daily',
+    quantityLimitAmount: 20,
+    validityDays: 10,
+    discountType: 'percentage',
+    discountValue: 10,
+    discountCap: 15,
+    minSpend: null,
+    termsAndConditions: [
+      '10% off any transaction at a Travel-category merchant, capped at $15 off.',
+      'Limited to 20 redemptions per day, first come first served.',
+      'One voucher per booking.',
+      'Valid for 10 days from the date of redemption.',
+    ],
+    usageSteps: [
+      'This voucher applies automatically the next time you pay any Travel merchant via NETS QR.',
+    ],
+    active: true,
+  },
 };
 
 module.exports = { voucherCatalog };

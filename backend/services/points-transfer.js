@@ -2,6 +2,7 @@ const { getFirestore } = require('../firebase/admin');
 const { userPointsLedgerRef } = require('../db/firestore-paths');
 const db = require('../db');
 const notifications = require('./notifications');
+const { capBalanceAward } = require('./points-balance-cap');
 
 /**
  * Looks up a user by phone number (reuses your groupmate's existing
@@ -21,8 +22,16 @@ async function lookupUserByPhone(phone) {
  * existing card-based money transfer in p2p-transfer.js) from one user to
  * another, identified by phone number. Deducts from sender, credits
  * recipient, and logs a Points History entry on both sides.
+ *
+ * If sending the full amount would push the RECEIVER over the 5,000-point
+ * balance cap, nothing is moved on the first call — instead it returns
+ * `wouldExceedCap: true` and `maxSendable` (how much WOULD fit), so the
+ * sender can be shown a choice. Call again with `allowPartial: true` to
+ * actually send that reduced amount — the backend recomputes the receiver's
+ * current headroom fresh on that second call rather than trusting a
+ * client-remembered number, in case anything changed in between.
  */
-async function sendPoints(fromUserId, { toPhone, amount, comment }) {
+async function sendPoints(fromUserId, { toPhone, amount, comment, allowPartial = false }) {
   if (!(amount > 0)) {
     return { ok: false, error: 'Enter an amount greater than 0.' };
   }
@@ -53,15 +62,34 @@ async function sendPoints(fromUserId, { toPhone, amount, comment }) {
     }
 
     const toPoints = toSnap.exists ? toSnap.data().points ?? 0 : 0;
+    const maxSendable = capBalanceAward(toPoints, amount);
 
-    tx.update(fromRef, { points: fromPoints - amount });
-    tx.update(toRef, { points: toPoints + amount });
+    if (maxSendable < amount && !allowPartial) {
+      // Nothing moves yet — surface the choice back to the sender instead.
+      return {
+        ok: false,
+        wouldExceedCap: true,
+        maxSendable,
+        error:
+          maxSendable > 0
+            ? `Sending ${amount} points would push your friend over the 5,000-point limit. You can send up to ${maxSendable} points instead.`
+            : `Your friend is already at the 5,000-point limit and can't receive more right now.`,
+      };
+    }
+
+    const amountToSend = allowPartial ? maxSendable : amount;
+    if (amountToSend <= 0) {
+      return { ok: false, error: `Your friend is already at the 5,000-point limit and can't receive more right now.` };
+    }
+
+    tx.update(fromRef, { points: fromPoints - amountToSend });
+    tx.update(toRef, { points: toPoints + amountToSend });
 
     const now = new Date().toISOString();
 
     tx.set(userPointsLedgerRef(firestoreDb, fromUserId).doc(), {
       title: `Sent Points to ${toUser.name}`,
-      amount: -amount,
+      amount: -amountToSend,
       type: 'transfer',
       tag: 'Transfer',
       icon: 'paper-plane-outline',
@@ -71,7 +99,7 @@ async function sendPoints(fromUserId, { toPhone, amount, comment }) {
 
     tx.set(userPointsLedgerRef(firestoreDb, toUser.id).doc(), {
       title: `Received Points from ${fromData.name}`,
-      amount,
+      amount: amountToSend,
       type: 'transfer',
       tag: 'Transfer',
       icon: 'paper-plane-outline',
@@ -82,7 +110,8 @@ async function sendPoints(fromUserId, { toPhone, amount, comment }) {
     return {
       ok: true,
       toName: toUser.name,
-      amount,
+      amount: amountToSend,
+      wasCapped: amountToSend < amount,
       fromName: fromData.name || 'Someone',
       toUserId: toUser.id,
     };

@@ -20,17 +20,32 @@ router.post('/users/:userId/points/send', asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const { toPhone, amount, comment } = req.body;
+  const { toPhone, amount, comment, allowPartial } = req.body;
   if (!toPhone || amount === undefined) {
     return res.status(400).json({ error: 'toPhone and amount are required.' });
   }
 
-  const result = await pointsTransfer.sendPoints(req.params.userId, { toPhone, amount, comment });
+  const result = await pointsTransfer.sendPoints(req.params.userId, {
+    toPhone,
+    amount,
+    comment,
+    allowPartial: !!allowPartial,
+  });
+
   if (!result.ok) {
-    return res.status(400).json({ error: result.error });
+    return res.status(400).json({
+      error: result.error,
+      wouldExceedCap: result.wouldExceedCap ?? false,
+      maxSendable: result.maxSendable ?? null,
+    });
   }
 
-  res.json({ success: true, toName: result.toName, amount: result.amount });
+  res.json({
+    success: true,
+    toName: result.toName,
+    amount: result.amount,
+    wasCapped: result.wasCapped ?? false,
+  });
 }));
 
 module.exports = router;

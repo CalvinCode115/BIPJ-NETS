@@ -12,6 +12,7 @@ export interface PointsHistoryEntry {
   tag: string; // display label, e.g. 'Quest', 'Redemption'
   icon: string;
   timestamp: string; // ISO string
+  comment?: string | null; // only set on 'transfer' entries — the message the sender attached
 }
 
 export interface PointsHistoryQuery {
@@ -23,4 +24,10 @@ export interface PointsHistoryQuery {
 
 export interface PointsHistoryResponse {
   entries: PointsHistoryEntry[];
+}
+
+export interface PointsBudgetStatus {
+  pointsRemaining: number;
+  transactionCapReached: boolean;
+  pointsCapped: boolean; // true once today's 300-point earning cap is fully used up
 }

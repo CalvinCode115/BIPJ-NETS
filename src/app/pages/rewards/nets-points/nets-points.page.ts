@@ -7,6 +7,11 @@ import { CheckinStatus } from 'src/app/services/daily-checkin.models';
 import { PointsService } from 'src/app/services/points.service';
 import { DailyCheckinService } from 'src/app/services/daily-checkin.service';
 import { SessionService } from 'src/app/services/session.service';
+import { DailyQuestsService } from 'src/app/services/daily-quests.service';
+import { WeeklyQuestsService } from 'src/app/services/weekly-quests.service';
+import { PartnerChallengesService } from 'src/app/services/partner-challenges.service';
+import { MyVouchersService } from 'src/app/services/my-vouchers.service';
+import { PointsBudgetService } from 'src/app/services/points-budget.service';
 
 const PREVIEW_LIMIT = 8;
 
@@ -29,24 +34,117 @@ export class NetsPointsPage {
   checkinStatus: CheckinStatus | null = null;
   checkingIn = false;
 
+  // Quick-nav notification badges — how many unclaimed/urgent items sit
+  // behind each tile, so the grid tells you something at a glance instead
+  // of being pure navigation.
+  dailyQuestsBadge = 0;
+  weeklyQuestsBadge = 0;
+  challengesBadge = 0;
+  vouchersBadge = 0;
+
   constructor(
     private pointsService: PointsService,
     private dailyCheckinService: DailyCheckinService,
     private session: SessionService,
     private router: Router,
     private location: Location,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private dailyQuestsService: DailyQuestsService,
+    private weeklyQuestsService: WeeklyQuestsService,
+    private partnerChallengesService: PartnerChallengesService,
+    private myVouchersService: MyVouchersService,
+    private pointsBudgetService: PointsBudgetService
   ) {}
 
   ionViewWillEnter(): void {
     this.load();
     this.loadCheckinStatus();
+    this.loadNavBadges();
+    this.checkDailyCapStatus();
+  }
+
+  /**
+   * Shows a toast if today's earning caps have been hit — fires every time
+   * the page is visited while capped, so the user always understands why
+   * their next transaction/quest claim might not add any points.
+   */
+  private checkDailyCapStatus(): void {
+    this.pointsBudgetService.getBudgetStatus(this.session.userId).subscribe({
+      next: async (res) => {
+        if (res.pointsCapped) {
+          const toast = await this.toastController.create({
+            message: "You've reached today's 300-point earning limit \u2014 more points resume tomorrow!",
+            duration: 3000,
+            position: 'top',
+            color: 'warning',
+          });
+          await toast.present();
+        } else if (res.transactionCapReached) {
+          const toast = await this.toastController.create({
+            message: "You've reached today's transaction limit for earning points.",
+            duration: 3000,
+            position: 'top',
+            color: 'warning',
+          });
+          await toast.present();
+        }
+      },
+      error: (err) => console.error('Failed to load points budget status', err),
+    });
   }
 
   private loadCheckinStatus(): void {
     this.dailyCheckinService.getStatus(this.session.userId).subscribe({
       next: (res) => (this.checkinStatus = res),
       error: (err) => console.error('Failed to load check-in status', err),
+    });
+  }
+
+  /**
+   * Computes the little notification-dot counts on each quick-nav tile.
+   * Deliberately reuses the exact same endpoints each destination page
+   * already calls — no new backend routes, just filtering the response
+   * client-side for "completed but not yet claimed" / "expiring soon".
+   */
+  private loadNavBadges(): void {
+    const userId = this.session.userId;
+
+    this.dailyQuestsService.getDailyQuests(userId).subscribe({
+      next: (res) => {
+        this.dailyQuestsBadge = res.incompleteQuests.filter(
+          (q) => q.progress?.completed && !q.progress?.claimed
+        ).length;
+      },
+      error: (err) => console.error('Failed to load daily quests badge', err),
+    });
+
+    this.weeklyQuestsService.getWeeklyQuests(userId).subscribe({
+      next: (res) => {
+        this.weeklyQuestsBadge = res.inProgressQuests.filter(
+          (q) => q.progress?.completed && !q.progress?.claimed
+        ).length;
+      },
+      error: (err) => console.error('Failed to load weekly quests badge', err),
+    });
+
+    this.partnerChallengesService.getChallenges(userId).subscribe({
+      next: (res) => {
+        this.challengesBadge = res.activeChallenges.filter(
+          (c) => c.progress?.completed && !c.progress?.claimed
+        ).length;
+      },
+      error: (err) => console.error('Failed to load challenges badge', err),
+    });
+
+    this.myVouchersService.getVouchers(userId).subscribe({
+      next: (res) => {
+        const now = Date.now();
+        this.vouchersBadge = res.available.filter((v) => {
+          const daysLeft = Math.ceil((new Date(v.expiresAt).getTime() - now) / (24 * 60 * 60 * 1000));
+          return daysLeft <= 7;
+        }).length;
+      },
+      error: (err) => console.error('Failed to load vouchers badge', err),
     });
   }
 
@@ -158,5 +256,9 @@ export class NetsPointsPage {
 
   goToBadges(): void {
     this.router.navigate(['/tabs/rewards/badges']);
+  }
+
+  goToAboutPoints(): void {
+    this.router.navigate(['/tabs/rewards/about-points']);
   }
 }

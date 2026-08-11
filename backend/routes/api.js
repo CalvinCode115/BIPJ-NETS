@@ -40,6 +40,7 @@ const myVouchers = require('../services/my-vouchers');
 const pointsTransferRouter = require('./points-transfer')
 const dailyCheckinRouter = require('./daily-checkin');
 const badgesRouter = require('./badges');
+const pointsBudgetStatusRouter = require('./points-budget-status');
 
 
 
@@ -93,6 +94,7 @@ function listPayQrMerchantsFull(_req, res) {
 
 router.get('/pay/qr-merchants', listPayQrMerchantsFull);
 router.get('/payments/qr/demo-assets', listPayQrMerchantsFull);
+router.use('/', pointsBudgetStatusRouter);
 
 router.post('/receipts/scan', (req, res) => {
   const result = receiptSimulator.resolveScan(req.body);

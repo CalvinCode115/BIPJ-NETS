@@ -1,6 +1,7 @@
 const { getFirestore } = require('../firebase/admin');
 const { userPointsLedgerRef } = require('../db/firestore-paths');
 const { getDateId } = require('./quests');
+const { capBalanceAward } = require('./points-balance-cap');
 
 /** index 0 = Day 1, ... index 6 = Day 7 */
 const REWARD_SCHEDULE = [1, 1, 3, 3, 5, 8, 10];
@@ -67,19 +68,22 @@ async function checkIn(userId) {
     const reward = REWARD_SCHEDULE[newDay - 1];
 
     const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
+    const rewardAwarded = capBalanceAward(currentPoints, reward);
 
     tx.set(ref, { lastCheckInDateId: todayId, currentDay: newDay }, { merge: true });
-    tx.update(userRef, { points: currentPoints + reward });
-    tx.set(userPointsLedgerRef(db, userId).doc(), {
-      title: `Daily Check-In (Day ${newDay})`,
-      amount: reward,
-      type: 'bonus',
-      tag: 'Bonus',
-      icon: 'sparkles-outline',
-      timestamp: new Date().toISOString(),
-    });
+    if (rewardAwarded > 0) {
+      tx.update(userRef, { points: currentPoints + rewardAwarded });
+      tx.set(userPointsLedgerRef(db, userId).doc(), {
+        title: `Daily Check-In (Day ${newDay})`,
+        amount: rewardAwarded,
+        type: 'bonus',
+        tag: 'Bonus',
+        icon: 'sparkles-outline',
+        timestamp: new Date().toISOString(),
+      });
+    }
 
-    return { ok: true, day: newDay, reward };
+    return { ok: true, day: newDay, reward: rewardAwarded };
   });
 }
 

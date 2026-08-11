@@ -8,4 +8,5 @@ export interface SendPointsResponse {
   success: boolean;
   toName: string;
   amount: number;
+  wasCapped?: boolean
 }

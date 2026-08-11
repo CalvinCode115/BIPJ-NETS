@@ -14,6 +14,8 @@ const {
   userVouchersRef,
   userBadgesRef,
 } = require('../db/firestore-paths');
+const { getTodaysPointsBudget } = require('./points-budget');
+const { capBalanceAward } = require('./points-balance-cap');
 
 const TIMEZONE = 'Asia/Singapore';
 const DAILY_ROTATION_MIN = 4;
@@ -422,19 +424,27 @@ async function claimDailyQuestReward(userId, templateId) {
     const template = templateSnap.data();
     const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
 
+    // ---- Daily points cap — shared across all reward sources. The quest
+    // still gets marked claimed (and badges still granted) even if capped
+    // to 0 points, so it never gets permanently stuck unclaimable. ----
+    const { pointsRemaining } = await getTodaysPointsBudget(db, userId, tx);
+    const pointsAwarded = capBalanceAward(currentPoints, Math.min(template.points, pointsRemaining));
+
     tx.set(progressRef, { quests: { [templateId]: { ...entry, claimed: true } } }, { merge: true });
-    tx.update(userRef, { points: currentPoints + template.points });
-    tx.set(userPointsLedgerRef(db, userId).doc(), {
-      title: `Completed Daily Quest: ${template.title}`,
-      amount: template.points,
-      type: 'quest',
-      tag: 'Quest',
-      icon: 'trophy-outline',
-      timestamp: new Date().toISOString(),
-    });
+    if (pointsAwarded > 0) {
+      tx.update(userRef, { points: currentPoints + pointsAwarded });
+      tx.set(userPointsLedgerRef(db, userId).doc(), {
+        title: `Completed Daily Quest: ${template.title}`,
+        amount: pointsAwarded,
+        type: 'quest',
+        tag: 'Quest',
+        icon: 'trophy-outline',
+        timestamp: new Date().toISOString(),
+      });
+    }
     grantBadges(tx, db, userId, template.rewards, 'daily', template.title);
 
-    return { ok: true, pointsAwarded: template.points };
+    return { ok: true, pointsAwarded };
   });
 }
 
@@ -465,19 +475,24 @@ async function claimWeeklyQuestReward(userId, templateId) {
     const template = templateSnap.data();
     const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
 
+    const { pointsRemaining } = await getTodaysPointsBudget(db, userId, tx);
+    const pointsAwarded = capBalanceAward(currentPoints, Math.min(template.points, pointsRemaining));
+
     tx.set(progressRef, { quests: { [templateId]: { ...entry, claimed: true } } }, { merge: true });
-    tx.update(userRef, { points: currentPoints + template.points });
-    tx.set(userPointsLedgerRef(db, userId).doc(), {
-      title: `Completed Weekly Quest: ${template.title}`,
-      amount: template.points,
-      type: 'quest',
-      tag: 'Quest',
-      icon: 'trophy-outline',
-      timestamp: new Date().toISOString(),
-    });
+    if (pointsAwarded > 0) {
+      tx.update(userRef, { points: currentPoints + pointsAwarded });
+      tx.set(userPointsLedgerRef(db, userId).doc(), {
+        title: `Completed Weekly Quest: ${template.title}`,
+        amount: pointsAwarded,
+        type: 'quest',
+        tag: 'Quest',
+        icon: 'trophy-outline',
+        timestamp: new Date().toISOString(),
+      });
+    }
     grantBadges(tx, db, userId, template.rewards, 'weekly', template.title);
 
-    return { ok: true, pointsAwarded: template.points };
+    return { ok: true, pointsAwarded };
   });
 }
 
@@ -503,8 +518,9 @@ async function claimChallengeReward(userId, challengeId) {
     if (progress.claimed) return { ok: false, error: 'Reward already claimed.' };
 
     const challenge = challengeSnap.data();
-    const points = challenge.points ?? 0;
+    const { pointsRemaining } = await getTodaysPointsBudget(db, userId, tx);
     const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
+    const pointsAwarded = capBalanceAward(currentPoints, Math.min(challenge.points ?? 0, pointsRemaining));
 
     // ---- Read the voucher catalog entry BEFORE any writes, if this
     // challenge grants a real voucher (Firestore transactions require all
@@ -515,11 +531,11 @@ async function claimChallengeReward(userId, challengeId) {
     }
 
     tx.update(progressRef, { claimed: true });
-    if (points > 0) {
-      tx.update(userRef, { points: currentPoints + points });
+    if (pointsAwarded > 0) {
+      tx.update(userRef, { points: currentPoints + pointsAwarded });
       tx.set(userPointsLedgerRef(db, userId).doc(), {
         title: `Partner Challenge: ${challenge.merchantName}`,
-        amount: points,
+        amount: pointsAwarded,
         type: 'challenge',
         tag: 'Challenge',
         icon: 'trophy-outline',
@@ -559,7 +575,7 @@ async function claimChallengeReward(userId, challengeId) {
 
     grantBadges(tx, db, userId, challenge.rewards, 'challenge', challenge.merchantName);
 
-    return { ok: true, pointsAwarded: points, voucherGranted };
+    return { ok: true, pointsAwarded, voucherGranted };
   });
 }
 

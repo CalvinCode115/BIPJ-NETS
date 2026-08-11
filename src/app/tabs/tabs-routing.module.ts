@@ -66,6 +66,10 @@ const routes: Routes = [
             path: 'badges',
             loadChildren: () => import('../pages/rewards/badges/badges.module').then(m => m.BadgesPageModule)
           },
+          {
+            path: 'about-points',
+            loadChildren: () => import('../pages/rewards/about-points/about-points.module').then(m => m.AboutPointsPageModule)
+          },
         ]
       },
       {

@@ -12,7 +12,7 @@
 const dailyQuestTemplates = {
   'daily-coffee-run': {
     title: 'Coffee Run',
-    description: 'Make a F&B purchase',
+    description: 'Make a coffee purchase',
     icon: 'cafe-outline',
     family: 'category-fnb', // used to keep the daily/weekly rotation from picking near-duplicate quests
     points: 1,

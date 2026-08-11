@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { ToastController } from '@ionic/angular';
+import { AlertController, ToastController } from '@ionic/angular';
 import { PointsTransferService } from 'src/app/services/points-transfer.service';
 import { PointsService } from 'src/app/services/points.service';
 import { SessionService } from 'src/app/services/session.service';
@@ -19,7 +19,7 @@ export class SendPointsPage {
   amount: number | null = null;
   comment = '';
 
-  quickAmounts = [100, 250, 500, 1000];
+  quickAmounts = [10, 25, 50, 100];
 
   // Payee lookup state
   payeeName: string | null = null;
@@ -36,7 +36,8 @@ export class SendPointsPage {
     private session: SessionService,
     private router: Router,
     private location: Location,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private alertController: AlertController
   ) {}
 
   ionViewWillEnter(): void {
@@ -127,6 +128,16 @@ export class SendPointsPage {
     if (!this.isFormValid || this.sending || !this.amount) {
       return;
     }
+    this.executeSend(false);
+  }
+
+  /**
+   * `allowPartial: true` is only ever passed on the SECOND call, after the
+   * user has explicitly confirmed sending the reduced amount shown in the
+   * over-cap dialog below.
+   */
+  private executeSend(allowPartial: boolean): void {
+    if (!this.amount) return;
 
     this.sending = true;
 
@@ -135,12 +146,14 @@ export class SendPointsPage {
         toPhone: this.contactNumber,
         amount: this.amount,
         comment: this.comment || undefined,
+        allowPartial,
       })
       .subscribe({
         next: async (res) => {
           this.sending = false;
+          const cappedNote = res.wasCapped ? ' (reduced to fit your friend\'s point limit)' : '';
           const toast = await this.toastController.create({
-            message: `Sent ${res.amount} points to ${res.toName}!`,
+            message: `Sent ${res.amount} points to ${res.toName}!${cappedNote}`,
             duration: 2500,
             position: 'top',
             color: 'success',
@@ -150,6 +163,12 @@ export class SendPointsPage {
         },
         error: async (err) => {
           this.sending = false;
+
+          if (err?.error?.wouldExceedCap && err?.error?.maxSendable > 0) {
+            await this.showOverCapConfirm(err.error.maxSendable);
+            return;
+          }
+
           console.error('Failed to send points', err);
           const toast = await this.toastController.create({
             message: err?.error?.error || 'Could not send points. Please try again.',
@@ -160,6 +179,21 @@ export class SendPointsPage {
           await toast.present();
         },
       });
+  }
+
+  private async showOverCapConfirm(maxSendable: number): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Friend Would Exceed Point Limit',
+      message: `Sending ${this.amount} points would push your friend over the 5,000-point limit. Send ${maxSendable} points instead?`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: `Send ${maxSendable} instead`,
+          handler: () => this.executeSend(true),
+        },
+      ],
+    });
+    await alert.present();
   }
 
   goBackToBalance(): void {
