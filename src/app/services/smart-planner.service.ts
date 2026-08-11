@@ -6,7 +6,13 @@ export interface PlannedVenue {
   name: string;
   lat: number;
   lng: number;
-  type: 'restaurant' | 'attraction' | 'shopping' | 'activity' | 'nightlife' | 'cafe';
+  type:
+    | 'restaurant'
+    | 'attraction'
+    | 'shopping'
+    | 'activity'
+    | 'nightlife'
+    | 'cafe';
   durationMinutes: number;
   priceLevel?: number;
   rating?: number;
@@ -42,11 +48,14 @@ export interface DayPlan {
 }
 
 // Helper type for the nearby search callback
-type NearbySearcher = (lat: number, lng: number, keyword: string) => Promise<PlannedVenue | null>;
+type NearbySearcher = (
+  lat: number,
+  lng: number,
+  keyword: string,
+) => Promise<PlannedVenue | null>;
 
 @Injectable({ providedIn: 'root' })
 export class SmartPlannerService {
-
   private readonly defaultDurations: Record<string, number> = {
     cafe: 45,
     restaurant: 90,
@@ -64,14 +73,18 @@ export class SmartPlannerService {
     const lng = card.lng || card.location?.longitude;
 
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      console.warn(`DNA card ${card.venueName} has no valid coordinates, skipping`);
+      console.warn(
+        `DNA card ${card.venueName} has no valid coordinates, skipping`,
+      );
       return null;
     }
 
     const type = this.inferType(card);
+    // STABLE ID: based on name + coordinates (not random)
+    const stableId = `dna-${this.slugify(card.venueName || card.title || 'unknown')}-${lat.toFixed(4)}-${lng.toFixed(4)}`;
 
     return {
-      id: `dna-${card.venueName || card.title}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      id: stableId,
       name: card.venueName || card.title || 'Unknown',
       lat,
       lng,
@@ -87,37 +100,59 @@ export class SmartPlannerService {
     };
   }
 
-  // Update buildItinerary signature
+  private slugify(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
   async buildItinerary(
     userVenues: PlannedVenue[],
     nearbySearcher: NearbySearcher,
     maxDays: number = 5,
-    dnaRecommendations: any[] = []  // ← NEW: DNA picks from backend
+    dnaRecommendations: any[] = [],
+    variationSeed: number = 0,
   ): Promise<DayPlan[]> {
-
     if (!userVenues.length) return [];
 
     // Convert DNA recommendations to PlannedVenue pool
     let dnaPool = dnaRecommendations
-      .map(c => this.dnaCardToPlannedVenue(c))
+      .map((c) => this.dnaCardToPlannedVenue(c))
       .filter((v): v is PlannedVenue => v !== null);
 
-    console.log(`[buildItinerary] DNA pool: ${dnaPool.length} venues with coordinates`);
-
-    let cafes = userVenues.filter(v => v.type === 'cafe');
-    let restaurants = userVenues.filter(v => v.type === 'restaurant');
-    let activities = userVenues.filter(v =>
-      ['attraction', 'shopping', 'activity'].includes(v.type)
+    console.log(
+      `[buildItinerary] DNA pool: ${dnaPool.length} venues with coordinates`,
     );
-    let nightlifes = userVenues.filter(v => v.type === 'nightlife');
+
+    // ═══ VARIATION: Shuffle user venues based on seed ═══
+    const shuffledVenues =
+      variationSeed > 0
+        ? this.shuffleWithSeed([...userVenues], variationSeed)
+        : [...userVenues];
+
+    let cafes = shuffledVenues.filter((v: PlannedVenue) => v.type === 'cafe');
+    let restaurants = shuffledVenues.filter(
+      (v: PlannedVenue) => v.type === 'restaurant',
+    );
+    let activities = shuffledVenues.filter((v: PlannedVenue) =>
+      ['attraction', 'shopping', 'activity'].includes(v.type),
+    );
+    let nightlifes = shuffledVenues.filter(
+      (v: PlannedVenue) => v.type === 'nightlife',
+    );
 
     // Also separate DNA recommendations by type
-    let dnaCafes = dnaPool.filter(v => v.type === 'cafe');
-    let dnaRestaurants = dnaPool.filter(v => v.type === 'restaurant');
-    let dnaActivities = dnaPool.filter(v =>
-      ['attraction', 'shopping', 'activity'].includes(v.type)
+    let dnaCafes = dnaPool.filter((v: PlannedVenue) => v.type === 'cafe');
+    let dnaRestaurants = dnaPool.filter(
+      (v: PlannedVenue) => v.type === 'restaurant',
     );
-    let dnaNightlife = dnaPool.filter(v => v.type === 'nightlife');
+    let dnaActivities = dnaPool.filter((v: PlannedVenue) =>
+      ['attraction', 'shopping', 'activity'].includes(v.type),
+    );
+    let dnaNightlife = dnaPool.filter(
+      (v: PlannedVenue) => v.type === 'nightlife',
+    );
 
     const days: DayPlan[] = [];
     let dayNumber = 1;
@@ -130,7 +165,11 @@ export class SmartPlannerService {
       return `${lat.toFixed(3)},${lng.toFixed(3)}:${type}`;
     };
 
-    const findInCache = (lat: number, lng: number, type: string): PlannedVenue | null | undefined => {
+    const findInCache = (
+      lat: number,
+      lng: number,
+      type: string,
+    ): PlannedVenue | null | undefined => {
       for (const [key, value] of searchCache.entries()) {
         const [coords, cachedType] = key.split(':');
         if (cachedType !== type) continue;
@@ -141,7 +180,11 @@ export class SmartPlannerService {
       return undefined;
     };
 
-    const searchNearby = async (lat: number, lng: number, type: string): Promise<PlannedVenue | null> => {
+    const searchNearby = async (
+      lat: number,
+      lng: number,
+      type: string,
+    ): Promise<PlannedVenue | null> => {
       const cached = findInCache(lat, lng, type);
       if (cached !== undefined) return cached;
 
@@ -151,14 +194,16 @@ export class SmartPlannerService {
       // Fallback keywords
       if (!result) {
         const fallbacks: Record<string, string[]> = {
-          'cafe': ['coffee_shop', 'bakery'],
-          'restaurant': ['food'],
-          'attraction': ['shopping', 'museum'],
-          'nightlife': ['bar', 'pub']
+          cafe: ['coffee_shop', 'bakery'],
+          restaurant: ['food'],
+          attraction: ['shopping', 'museum'],
+          nightlife: ['bar', 'pub'],
         };
-        for (const fb of (fallbacks[type] || [])) {
+        for (const fb of fallbacks[type] || []) {
           if (result) break;
-          console.log(`[search] fallback ${fb} near ${lat.toFixed(4)},${lng.toFixed(4)}`);
+          console.log(
+            `[search] fallback ${fb} near ${lat.toFixed(4)},${lng.toFixed(4)}`,
+          );
           result = await nearbySearcher(lat, lng, fb);
         }
       }
@@ -168,125 +213,231 @@ export class SmartPlannerService {
       return result;
     };
 
-    const findNearestDna = (dnaList: PlannedVenue[], ref: { lat: number; lng: number }): PlannedVenue | null => {
-      if (!dnaList.length) return null;
-      const sorted = [...dnaList].sort((a, b) => {
-        const distA = this.haversine(a.lat, a.lng, ref.lat, ref.lng);
-        const distB = this.haversine(b.lat, b.lng, ref.lat, ref.lng);
-        return distA - distB;
-      });
-      return sorted[0];
-    };
+    const usedIds = new Set<string>();
+
+const usedSignatures = new Set<string>(); // name + lat/lng signature
+
+const getSignature = (venue: PlannedVenue): string => {
+  // Round coordinates to 3 decimals for fuzzy matching
+  return `${venue.name.toLowerCase().trim()}|${venue.lat.toFixed(3)}|${venue.lng.toFixed(3)}`;
+};
+
+const isUsed = (venue: PlannedVenue): boolean => {
+  return usedSignatures.has(getSignature(venue));
+};
+
+const markUsed = (venue: PlannedVenue) => {
+  usedSignatures.add(getSignature(venue));
+  // Also remove from all pools by signature
+  const sig = getSignature(venue);
+  cafes = cafes.filter((v) => getSignature(v) !== sig);
+  restaurants = restaurants.filter((v) => getSignature(v) !== sig);
+  activities = activities.filter((v) => getSignature(v) !== sig);
+  nightlifes = nightlifes.filter((v) => getSignature(v) !== sig);
+  dnaCafes = dnaCafes.filter((v) => getSignature(v) !== sig);
+  dnaRestaurants = dnaRestaurants.filter((v) => getSignature(v) !== sig);
+  dnaActivities = dnaActivities.filter((v) => getSignature(v) !== sig);
+  dnaNightlife = dnaNightlife.filter((v) => getSignature(v) !== sig);
+};
+const findNearestDna = (
+  dnaList: PlannedVenue[],
+  ref: { lat: number; lng: number },
+): PlannedVenue | null => {
+  const available = dnaList.filter((v) => !usedIds.has(v.id));
+  if (!available.length) return null;
+  const sorted = [...available].sort((a, b) => {
+    const distA = this.haversine(a.lat, a.lng, ref.lat, ref.lng);
+    const distB = this.haversine(b.lat, b.lng, ref.lat, ref.lng);
+    return distA - distB;
+  });
+  return sorted[0];
+};
 
     // NEW: Remove used DNA venue from pool
     const removeFromDnaPool = (venue: PlannedVenue) => {
-      dnaCafes = dnaCafes.filter(v => v.id !== venue.id);
-      dnaRestaurants = dnaRestaurants.filter(v => v.id !== venue.id);
-      dnaActivities = dnaActivities.filter(v => v.id !== venue.id);
-      dnaNightlife = dnaNightlife.filter(v => v.id !== venue.id);
+      dnaCafes = dnaCafes.filter((v) => v.id !== venue.id);
+      dnaRestaurants = dnaRestaurants.filter((v) => v.id !== venue.id);
+      dnaActivities = dnaActivities.filter((v) => v.id !== venue.id);
+      dnaNightlife = dnaNightlife.filter((v) => v.id !== venue.id);
     };
 
     while (days.length < maxDays) {
       const dayVenues: PlannedVenue[] = [];
       let currentTime = this.timeToMinutes('08:00');
 
-      const startRef: { lat: number; lng: number } = lastLocation || this.getCenter(userVenues);
+      const startRef: { lat: number; lng: number } =
+        lastLocation || this.getCenter(userVenues);
 
       // ── 1. BREAKFAST (08:00) ──
       if (cafes.length > 0) {
         const breakfast = cafes.shift()!;
-        dayVenues.push({ ...breakfast, isMeal: true, whyThisTime: `☕ Breakfast — ${breakfast.name}` });
+        dayVenues.push({
+          ...breakfast,
+          isMeal: true,
+          whyThisTime: `☕ Breakfast — ${breakfast.name}`,
+        });
         lastLocation = { lat: breakfast.lat, lng: breakfast.lng };
       } else {
         // PRIORITY 1: DNA recommendation
         const dnaCafe = findNearestDna(dnaCafes, startRef);
         if (dnaCafe) {
-          dayVenues.push({ ...dnaCafe, isMeal: true, whyThisTime: `☕ Breakfast — ${dnaCafe.name} (DNA Match: ${dnaCafe.whyThisTime})` });
+          dayVenues.push({
+            ...dnaCafe,
+            isMeal: true,
+            whyThisTime: `☕ Breakfast — ${dnaCafe.name} (DNA Match: ${dnaCafe.whyThisTime})`,
+          });
           lastLocation = { lat: dnaCafe.lat, lng: dnaCafe.lng };
           removeFromDnaPool(dnaCafe);
         } else {
           // PRIORITY 2: Nearby search fallback
-          const nearbyCafe = await searchNearby(startRef.lat, startRef.lng, 'cafe');
+          const nearbyCafe = await searchNearby(
+            startRef.lat,
+            startRef.lng,
+            'cafe',
+          );
           if (nearbyCafe) {
-            dayVenues.push({ ...nearbyCafe, isMeal: true, isDnaSuggestion: true, whyThisTime: `☕ Breakfast — ${nearbyCafe.name}` });
+            dayVenues.push({
+              ...nearbyCafe,
+              isMeal: true,
+              isDnaSuggestion: true,
+              whyThisTime: `☕ Breakfast — ${nearbyCafe.name}`,
+            });
             lastLocation = { lat: nearbyCafe.lat, lng: nearbyCafe.lng };
           }
         }
       }
       if (dayVenues.length > 0) currentTime += 55;
 
-      // ── 2. MORNING ACTIVITIES (09:00-12:00) ──
-      for (let i = 0; i < 2; i++) {
-        if (currentTime >= this.timeToMinutes('12:00')) break;
+for (let i = 0; i < 2; i++) {
+  if (currentTime >= this.timeToMinutes('12:00')) break;
 
-        if (activities.length > 0) {
-          const activity = this.findNearest(activities, lastLocation || startRef);
-          activities = activities.filter(v => v.id !== activity.id);
-          dayVenues.push({ ...activity, whyThisTime: `🌤️ Morning — ${activity.name}` });
-          lastLocation = { lat: activity.lat, lng: activity.lng };
-        } else {
-          // PRIORITY 1: DNA recommendation
-          const dnaActivity = findNearestDna(dnaActivities, lastLocation || startRef);
-          if (dnaActivity && !dayVenues.some(v => v.id === dnaActivity.id)) {
-            dayVenues.push({ ...dnaActivity, whyThisTime: `🌤️ Morning — ${dnaActivity.name} (DNA Match: ${dnaActivity.whyThisTime})` });
-            lastLocation = { lat: dnaActivity.lat, lng: dnaActivity.lng };
-            removeFromDnaPool(dnaActivity);
-          } else {
-            // PRIORITY 2: Nearby search
-            const nearby = await searchNearby(lastLocation!.lat, lastLocation!.lng, 'attraction');
-            if (nearby && !dayVenues.some(v => v.id === nearby.id)) {
-              dayVenues.push({ ...nearby, isDnaSuggestion: true, whyThisTime: `🌤️ Morning — ${nearby.name}` });
-              lastLocation = { lat: nearby.lat, lng: nearby.lng };
-            }
-          }
-        }
-        currentTime += 160;
+  if (activities.length > 0) {
+    const activity = this.findNearest(activities, lastLocation || startRef);
+    if (activity && !isUsed(activity)) {
+      activities = activities.filter(
+        (v) => getSignature(v) !== getSignature(activity),
+      );
+      dayVenues.push({
+        ...activity,
+        whyThisTime: `🌤️ Morning — ${activity.name}`,
+      });
+      lastLocation = { lat: activity.lat, lng: activity.lng };
+      markUsed(activity);
+    }
+  } else {
+    const dnaActivity = findNearestDna(dnaActivities, lastLocation || startRef);
+    if (dnaActivity && !isUsed(dnaActivity)) {
+      dayVenues.push({
+        ...dnaActivity,
+        whyThisTime: `🌤️ Morning — ${dnaActivity.name} (DNA Match: ${dnaActivity.whyThisTime})`,
+      });
+      lastLocation = { lat: dnaActivity.lat, lng: dnaActivity.lng };
+      markUsed(dnaActivity);
+    } else {
+      const nearby = await searchNearby(
+        lastLocation!.lat,
+        lastLocation!.lng,
+        'attraction',
+      );
+      if (nearby && !isUsed(nearby)) {
+        dayVenues.push({
+          ...nearby,
+          isDnaSuggestion: true,
+          whyThisTime: `🌤️ Morning — ${nearby.name}`,
+        });
+        lastLocation = { lat: nearby.lat, lng: nearby.lng };
+        markUsed(nearby);
       }
+    }
+  }
+  currentTime += 160;
+}
 
       // ── 3. LUNCH (12:00-13:30) ──
       if (restaurants.length > 0) {
         const lunch = restaurants.shift()!;
-        dayVenues.push({ ...lunch, isMeal: true, whyThisTime: `🍜 Lunch — ${lunch.name}` });
+        dayVenues.push({
+          ...lunch,
+          isMeal: true,
+          whyThisTime: `🍜 Lunch — ${lunch.name}`,
+        });
         lastLocation = { lat: lunch.lat, lng: lunch.lng };
       } else {
         // PRIORITY 1: DNA recommendation
-        const dnaLunch = findNearestDna(dnaRestaurants, lastLocation || startRef);
+        const dnaLunch = findNearestDna(
+          dnaRestaurants,
+          lastLocation || startRef,
+        );
         if (dnaLunch) {
-          dayVenues.push({ ...dnaLunch, isMeal: true, whyThisTime: `🍜 Lunch — ${dnaLunch.name} (DNA Match: ${dnaLunch.whyThisTime})` });
+          dayVenues.push({
+            ...dnaLunch,
+            isMeal: true,
+            whyThisTime: `🍜 Lunch — ${dnaLunch.name} (DNA Match: ${dnaLunch.whyThisTime})`,
+          });
           lastLocation = { lat: dnaLunch.lat, lng: dnaLunch.lng };
           removeFromDnaPool(dnaLunch);
         } else {
           // PRIORITY 2: Nearby search
-          const nearby = await searchNearby(lastLocation!.lat, lastLocation!.lng, 'restaurant');
-          if (nearby && !dayVenues.some(v => v.id === nearby.id)) {
-            dayVenues.push({ ...nearby, isMeal: true, isDnaSuggestion: true, whyThisTime: `🍜 Lunch — ${nearby.name}` });
+          const nearby = await searchNearby(
+            lastLocation!.lat,
+            lastLocation!.lng,
+            'restaurant',
+          );
+          if (nearby && !dayVenues.some((v) => v.id === nearby.id)) {
+            dayVenues.push({
+              ...nearby,
+              isMeal: true,
+              isDnaSuggestion: true,
+              whyThisTime: `🍜 Lunch — ${nearby.name}`,
+            });
             lastLocation = { lat: nearby.lat, lng: nearby.lng };
           }
         }
       }
-      if (dayVenues.length > 0 && dayVenues[dayVenues.length - 1].isMeal) currentTime += 100;
+      if (dayVenues.length > 0 && dayVenues[dayVenues.length - 1].isMeal)
+        currentTime += 100;
 
       // ── 4. AFTERNOON ACTIVITIES (14:00-17:00) ──
       for (let i = 0; i < 2; i++) {
         if (currentTime >= this.timeToMinutes('17:00')) break;
 
         if (activities.length > 0) {
-          const activity = this.findNearest(activities, lastLocation || startRef);
-          activities = activities.filter(v => v.id !== activity.id);
-          dayVenues.push({ ...activity, whyThisTime: `🌤️ Afternoon — ${activity.name}` });
+          const activity = this.findNearest(
+            activities,
+            lastLocation || startRef,
+          );
+          activities = activities.filter((v) => v.id !== activity.id);
+          dayVenues.push({
+            ...activity,
+            whyThisTime: `🌤️ Afternoon — ${activity.name}`,
+          });
           lastLocation = { lat: activity.lat, lng: activity.lng };
         } else {
           // PRIORITY 1: DNA recommendation
-          const dnaActivity = findNearestDna(dnaActivities, lastLocation || startRef);
-          if (dnaActivity && !dayVenues.some(v => v.id === dnaActivity.id)) {
-            dayVenues.push({ ...dnaActivity, whyThisTime: `🌤️ Afternoon — ${dnaActivity.name} (DNA Match: ${dnaActivity.whyThisTime})` });
+          const dnaActivity = findNearestDna(
+            dnaActivities,
+            lastLocation || startRef,
+          );
+          if (dnaActivity && !dayVenues.some((v) => v.id === dnaActivity.id)) {
+            dayVenues.push({
+              ...dnaActivity,
+              whyThisTime: `🌤️ Afternoon — ${dnaActivity.name} (DNA Match: ${dnaActivity.whyThisTime})`,
+            });
             lastLocation = { lat: dnaActivity.lat, lng: dnaActivity.lng };
             removeFromDnaPool(dnaActivity);
           } else {
             // PRIORITY 2: Nearby search
-            const nearby = await searchNearby(lastLocation!.lat, lastLocation!.lng, 'attraction');
-            if (nearby && !dayVenues.some(v => v.id === nearby.id)) {
-              dayVenues.push({ ...nearby, isDnaSuggestion: true, whyThisTime: `🌤️ Afternoon — ${nearby.name}` });
+            const nearby = await searchNearby(
+              lastLocation!.lat,
+              lastLocation!.lng,
+              'attraction',
+            );
+            if (nearby && !dayVenues.some((v) => v.id === nearby.id)) {
+              dayVenues.push({
+                ...nearby,
+                isDnaSuggestion: true,
+                whyThisTime: `🌤️ Afternoon — ${nearby.name}`,
+              });
               lastLocation = { lat: nearby.lat, lng: nearby.lng };
             }
           }
@@ -300,10 +451,16 @@ export class SmartPlannerService {
         dayVenues.push({ ...tea, whyThisTime: `☕ Tea Break — ${tea.name}` });
         lastLocation = { lat: tea.lat, lng: tea.lng };
         currentTime += 55;
-      } else if (dnaCafes.length > 0 && currentTime < this.timeToMinutes('18:00')) {
+      } else if (
+        dnaCafes.length > 0 &&
+        currentTime < this.timeToMinutes('18:00')
+      ) {
         const dnaTea = findNearestDna(dnaCafes, lastLocation || startRef);
         if (dnaTea) {
-          dayVenues.push({ ...dnaTea, whyThisTime: `☕ Tea Break — ${dnaTea.name} (DNA Match: ${dnaTea.whyThisTime})` });
+          dayVenues.push({
+            ...dnaTea,
+            whyThisTime: `☕ Tea Break — ${dnaTea.name} (DNA Match: ${dnaTea.whyThisTime})`,
+          });
           lastLocation = { lat: dnaTea.lat, lng: dnaTea.lng };
           removeFromDnaPool(dnaTea);
           currentTime += 55;
@@ -313,43 +470,78 @@ export class SmartPlannerService {
       // ── 6. DINNER (18:30-20:00) ──
       if (restaurants.length > 0) {
         const dinner = restaurants.shift()!;
-        dayVenues.push({ ...dinner, isMeal: true, whyThisTime: `🍽️ Dinner — ${dinner.name}` });
+        dayVenues.push({
+          ...dinner,
+          isMeal: true,
+          whyThisTime: `🍽️ Dinner — ${dinner.name}`,
+        });
         lastLocation = { lat: dinner.lat, lng: dinner.lng };
       } else {
         // PRIORITY 1: DNA recommendation
-        const dnaDinner = findNearestDna(dnaRestaurants, lastLocation || startRef);
+        const dnaDinner = findNearestDna(
+          dnaRestaurants,
+          lastLocation || startRef,
+        );
         if (dnaDinner) {
-          dayVenues.push({ ...dnaDinner, isMeal: true, whyThisTime: `🍽️ Dinner — ${dnaDinner.name} (DNA Match: ${dnaDinner.whyThisTime})` });
+          dayVenues.push({
+            ...dnaDinner,
+            isMeal: true,
+            whyThisTime: `🍽️ Dinner — ${dnaDinner.name} (DNA Match: ${dnaDinner.whyThisTime})`,
+          });
           lastLocation = { lat: dnaDinner.lat, lng: dnaDinner.lng };
           removeFromDnaPool(dnaDinner);
         } else {
           // PRIORITY 2: Nearby search
-          const nearby = await searchNearby(lastLocation!.lat, lastLocation!.lng, 'restaurant');
-          if (nearby && !dayVenues.some(v => v.id === nearby.id)) {
-            dayVenues.push({ ...nearby, isMeal: true, isDnaSuggestion: true, whyThisTime: `🍽️ Dinner — ${nearby.name}` });
+          const nearby = await searchNearby(
+            lastLocation!.lat,
+            lastLocation!.lng,
+            'restaurant',
+          );
+          if (nearby && !dayVenues.some((v) => v.id === nearby.id)) {
+            dayVenues.push({
+              ...nearby,
+              isMeal: true,
+              isDnaSuggestion: true,
+              whyThisTime: `🍽️ Dinner — ${nearby.name}`,
+            });
             lastLocation = { lat: nearby.lat, lng: nearby.lng };
           }
         }
       }
-      if (dayVenues.length > 0 && dayVenues[dayVenues.length - 1].isMeal) currentTime += 100;
+      if (dayVenues.length > 0 && dayVenues[dayVenues.length - 1].isMeal)
+        currentTime += 100;
 
       // ── 7. NIGHTLIFE (20:30+) ──
       if (nightlifes.length > 0 && currentTime >= this.timeToMinutes('20:30')) {
         const nightlife = nightlifes.shift()!;
-        dayVenues.push({ ...nightlife, whyThisTime: `🌙 Evening — ${nightlife.name}` });
+        dayVenues.push({
+          ...nightlife,
+          whyThisTime: `🌙 Evening — ${nightlife.name}`,
+        });
         lastLocation = { lat: nightlife.lat, lng: nightlife.lng };
       } else if (currentTime >= this.timeToMinutes('20:30') && lastLocation) {
         // PRIORITY 1: DNA recommendation
         const dnaNight = findNearestDna(dnaNightlife, lastLocation);
         if (dnaNight) {
-          dayVenues.push({ ...dnaNight, whyThisTime: `🌙 Evening — ${dnaNight.name} (DNA Match: ${dnaNight.whyThisTime})` });
+          dayVenues.push({
+            ...dnaNight,
+            whyThisTime: `🌙 Evening — ${dnaNight.name} (DNA Match: ${dnaNight.whyThisTime})`,
+          });
           lastLocation = { lat: dnaNight.lat, lng: dnaNight.lng };
           removeFromDnaPool(dnaNight);
         } else {
           // PRIORITY 2: Nearby search
-          const nearby = await searchNearby(lastLocation.lat, lastLocation.lng, 'nightlife');
-          if (nearby && !dayVenues.some(v => v.id === nearby.id)) {
-            dayVenues.push({ ...nearby, isDnaSuggestion: true, whyThisTime: `🌙 Evening — ${nearby.name}` });
+          const nearby = await searchNearby(
+            lastLocation.lat,
+            lastLocation.lng,
+            'nightlife',
+          );
+          if (nearby && !dayVenues.some((v) => v.id === nearby.id)) {
+            dayVenues.push({
+              ...nearby,
+              isDnaSuggestion: true,
+              whyThisTime: `🌙 Evening — ${nearby.name}`,
+            });
             lastLocation = { lat: nearby.lat, lng: nearby.lng };
           }
         }
@@ -357,22 +549,37 @@ export class SmartPlannerService {
 
       // STOP CONDITIONS (same as before)
       if (dayVenues.length === 0) break;
-      const userAddedRemaining = cafes.length + restaurants.length + activities.length + nightlifes.length;
-      const userAddedInThisDay = dayVenues.filter(v => v.userAdded).length;
+      const userAddedRemaining =
+        cafes.length +
+        restaurants.length +
+        activities.length +
+        nightlifes.length;
+      const userAddedInThisDay = dayVenues.filter((v) => v.userAdded).length;
       if (userAddedRemaining === 0 && userAddedInThisDay === 0) break;
 
       days.push({
         day: dayNumber++,
         theme: this.inferTheme(dayVenues),
         venues: dayVenues,
-        totalDurationMinutes: dayVenues.reduce((sum, v) => sum + v.durationMinutes, 0),
+        totalDurationMinutes: dayVenues.reduce(
+          (sum, v) => sum + v.durationMinutes,
+          0,
+        ),
         estimatedWalkingKm: this.estimateTotalDistance(dayVenues),
       });
 
-      if (cafes.length === 0 && restaurants.length === 0 && activities.length === 0 && nightlifes.length === 0) break;
+      if (
+        cafes.length === 0 &&
+        restaurants.length === 0 &&
+        activities.length === 0 &&
+        nightlifes.length === 0
+      )
+        break;
     }
 
-    console.log(`[buildItinerary] Created ${days.length} days. DNA remaining: ${dnaCafes.length + dnaRestaurants.length + dnaActivities.length + dnaNightlife.length}`);
+    console.log(
+      `[buildItinerary] Created ${days.length} days. DNA remaining: ${dnaCafes.length + dnaRestaurants.length + dnaActivities.length + dnaNightlife.length}`,
+    );
     return days;
   }
   // ═══════════════════════════════════════════════════════════════
@@ -380,9 +587,12 @@ export class SmartPlannerService {
   // ═══════════════════════════════════════════════════════════════
   async assignTimeSlotsWithDirections(
     dayPlan: DayPlan,
-    getDirections: (origin: any, dest: any, waypoints: any[]) => Promise<DirectionsResponse | null>
+    getDirections: (
+      origin: any,
+      dest: any,
+      waypoints: any[],
+    ) => Promise<DirectionsResponse | null>,
   ): Promise<DayPlan> {
-
     const venues = dayPlan.venues;
     if (venues.length < 2) {
       return this.assignBasicTimeSlots(dayPlan);
@@ -390,8 +600,13 @@ export class SmartPlannerService {
 
     // Build route through ALL venues in scheduled order
     const origin = { lat: venues[0].lat, lng: venues[0].lng };
-    const destination = { lat: venues[venues.length - 1].lat, lng: venues[venues.length - 1].lng };
-    const waypoints = venues.slice(1, -1).map(v => ({ lat: v.lat, lng: v.lng }));
+    const destination = {
+      lat: venues[venues.length - 1].lat,
+      lng: venues[venues.length - 1].lng,
+    };
+    const waypoints = venues
+      .slice(1, -1)
+      .map((v) => ({ lat: v.lat, lng: v.lng }));
 
     // Call Google Directions API with driving mode
     let legDurations: number[] = [];
@@ -407,18 +622,30 @@ export class SmartPlannerService {
           const seconds = this.parseDurationText(durationText);
           return Math.max(1, Math.round(seconds / 60));
         });
-        console.log(`Day ${dayPlan.day} Google Directions (driving):`, legDurations);
+        console.log(
+          `Day ${dayPlan.day} Google Directions (driving):`,
+          legDurations,
+        );
       } else {
-        console.warn(`Day ${dayPlan.day} Directions API returned:`, routeDetails?.status);
+        console.warn(
+          `Day ${dayPlan.day} Directions API returned:`,
+          routeDetails?.status,
+        );
       }
     } catch (err) {
       console.error(`Day ${dayPlan.day} Directions API failed:`, err);
     }
 
     // Fallback: if API failed, estimate from distances
-    if (legDurations.length === 0 || legDurations.length !== venues.length - 1) {
+    if (
+      legDurations.length === 0 ||
+      legDurations.length !== venues.length - 1
+    ) {
       legDurations = this.estimateDriveTimes(venues);
-      console.log(`Day ${dayPlan.day} using estimated drive times:`, legDurations);
+      console.log(
+        `Day ${dayPlan.day} using estimated drive times:`,
+        legDurations,
+      );
     }
 
     // Assign time slots using the leg durations
@@ -431,15 +658,20 @@ export class SmartPlannerService {
   private assignTimeSlotsWithLegs(
     dayPlan: DayPlan,
     legDurations: number[],
-    routeDetails: DirectionsResponse | null
+    routeDetails: DirectionsResponse | null,
   ): DayPlan {
     const venues = [...dayPlan.venues];
 
-    const locked = venues.filter(v => v.locked && v.lockedTime);
-    const unlocked = venues.filter(v => !v.locked || !v.lockedTime);
+    const locked = venues.filter((v) => v.locked && v.lockedTime);
+    const unlocked = venues.filter((v) => !v.locked || !v.lockedTime);
 
     if (locked.length === 0) {
-      return this.assignSequentialSlots(dayPlan, venues, legDurations, routeDetails);
+      return this.assignSequentialSlots(
+        dayPlan,
+        venues,
+        legDurations,
+        routeDetails,
+      );
     }
 
     for (const venue of locked) {
@@ -448,7 +680,10 @@ export class SmartPlannerService {
       venue.endTime = this.minutesToTime(start + venue.durationMinutes);
     }
 
-    locked.sort((a, b) => this.timeToMinutes(a.startTime!) - this.timeToMinutes(b.startTime!));
+    locked.sort(
+      (a, b) =>
+        this.timeToMinutes(a.startTime!) - this.timeToMinutes(b.startTime!),
+    );
 
     const placed: PlannedVenue[] = [];
     let allUnlocked = [...unlocked];
@@ -458,9 +693,10 @@ export class SmartPlannerService {
       const prevLocked = i > 0 ? locked[i - 1] : null;
 
       // FIX 1: Add travel from prevLocked to first candidate in this segment
-      const travelFromPrevLocked = (prevLocked && allUnlocked.length > 0)
-        ? this.estimateTravelMinutes(prevLocked, allUnlocked[0])
-        : 0;
+      const travelFromPrevLocked =
+        prevLocked && allUnlocked.length > 0
+          ? this.estimateTravelMinutes(prevLocked, allUnlocked[0])
+          : 0;
 
       const segmentStart = prevLocked
         ? this.timeToMinutes(prevLocked.endTime!) + travelFromPrevLocked
@@ -480,9 +716,10 @@ export class SmartPlannerService {
           : 0;
         const needed = venue.durationMinutes + travel;
 
-        const travelToLock = (nextLocked && segmentVenues.length === 0)
-          ? this.estimateTravelMinutes(venue, nextLocked)
-          : 0;
+        const travelToLock =
+          nextLocked && segmentVenues.length === 0
+            ? this.estimateTravelMinutes(venue, nextLocked)
+            : 0;
 
         const totalNeeded = needed + travelToLock;
 
@@ -495,15 +732,19 @@ export class SmartPlannerService {
       }
 
       if (nextLocked && segmentVenues.length > 0) {
-        segmentUsed += this.estimateTravelMinutes(segmentVenues[segmentVenues.length - 1], nextLocked);
+        segmentUsed += this.estimateTravelMinutes(
+          segmentVenues[segmentVenues.length - 1],
+          nextLocked,
+        );
       }
 
-      const extraSpace = (segmentEnd - segmentStart) - segmentUsed;
+      const extraSpace = segmentEnd - segmentStart - segmentUsed;
       let current = nextLocked ? segmentStart + extraSpace : segmentStart;
 
       for (let j = 0; j < segmentVenues.length; j++) {
         const venue = segmentVenues[j];
-        const travel = j > 0 ? this.estimateTravelMinutes(segmentVenues[j - 1], venue) : 0;
+        const travel =
+          j > 0 ? this.estimateTravelMinutes(segmentVenues[j - 1], venue) : 0;
 
         const start = current + travel;
         const end = start + venue.durationMinutes;
@@ -518,7 +759,10 @@ export class SmartPlannerService {
       // FIX 3: Store travel on locked venue
       if (nextLocked) {
         if (placed.length > 0 && placed[placed.length - 1] !== nextLocked) {
-          const travel = this.estimateTravelMinutes(placed[placed.length - 1], nextLocked);
+          const travel = this.estimateTravelMinutes(
+            placed[placed.length - 1],
+            nextLocked,
+          );
           placed[placed.length - 1].travelToNext = travel;
         }
         placed.push(nextLocked);
@@ -529,9 +773,11 @@ export class SmartPlannerService {
     // FIX 2: Use stored travelToNext instead of recalculating
     while (allUnlocked.length > 0) {
       const venue = allUnlocked.shift()!;
-      const start = placed.length > 0
-        ? this.timeToMinutes(placed[placed.length - 1].endTime!) + (placed[placed.length - 1].travelToNext || 0)
-        : this.timeToMinutes('08:00');
+      const start =
+        placed.length > 0
+          ? this.timeToMinutes(placed[placed.length - 1].endTime!) +
+            (placed[placed.length - 1].travelToNext || 0)
+          : this.timeToMinutes('08:00');
       const end = start + venue.durationMinutes;
 
       venue.startTime = this.minutesToTime(start);
@@ -541,11 +787,18 @@ export class SmartPlannerService {
 
     // Final recalculation
     for (let i = 0; i < placed.length - 1; i++) {
-      placed[i].travelToNext = this.estimateTravelMinutes(placed[i], placed[i + 1]);
+      placed[i].travelToNext = this.estimateTravelMinutes(
+        placed[i],
+        placed[i + 1],
+      );
     }
 
-    const totalTravel = placed.slice(0, -1).reduce((sum, v) => sum + (v.travelToNext || 0), 0);
-    const totalDuration = this.timeToMinutes(placed[placed.length - 1].endTime!) - this.timeToMinutes('08:00');
+    const totalTravel = placed
+      .slice(0, -1)
+      .reduce((sum, v) => sum + (v.travelToNext || 0), 0);
+    const totalDuration =
+      this.timeToMinutes(placed[placed.length - 1].endTime!) -
+      this.timeToMinutes('08:00');
 
     return {
       ...dayPlan,
@@ -562,7 +815,7 @@ export class SmartPlannerService {
     dayPlan: DayPlan,
     venues: PlannedVenue[],
     legDurations: number[],
-    routeDetails: DirectionsResponse | null
+    routeDetails: DirectionsResponse | null,
   ): DayPlan {
     const timed: PlannedVenue[] = [];
     let current = this.timeToMinutes('08:00');
@@ -604,7 +857,10 @@ export class SmartPlannerService {
   // HELPERS
   // ═══════════════════════════════════════════════════════════════
 
-  private findNearest(venues: PlannedVenue[], ref: { lat: number; lng: number }): PlannedVenue {
+  private findNearest(
+    venues: PlannedVenue[],
+    ref: { lat: number; lng: number },
+  ): PlannedVenue {
     return [...venues].sort((a, b) => {
       const distA = this.haversine(a.lat, a.lng, ref.lat, ref.lng);
       const distB = this.haversine(b.lat, b.lng, ref.lat, ref.lng);
@@ -615,12 +871,12 @@ export class SmartPlannerService {
   private createPlaceholder(
     type: 'cafe' | 'restaurant' | 'attraction',
     label: string,
-    ref: { lat: number; lng: number }
+    ref: { lat: number; lng: number },
   ): PlannedVenue {
     const defaults: Record<string, { emoji: string; duration: number }> = {
       cafe: { emoji: '☕', duration: 45 },
       restaurant: { emoji: '🍽️', duration: 90 },
-      attraction: { emoji: '✨', duration: 120 }
+      attraction: { emoji: '✨', duration: 120 },
     };
     const config = defaults[type];
 
@@ -656,7 +912,12 @@ export class SmartPlannerService {
   private estimateDriveTimes(venues: PlannedVenue[]): number[] {
     const legs: number[] = [];
     for (let i = 0; i < venues.length - 1; i++) {
-      const distKm = this.haversine(venues[i].lat, venues[i].lng, venues[i + 1].lat, venues[i + 1].lng);
+      const distKm = this.haversine(
+        venues[i].lat,
+        venues[i].lng,
+        venues[i + 1].lat,
+        venues[i + 1].lng,
+      );
 
       let minutes: number;
       if (distKm < 0.5) {
@@ -679,15 +940,20 @@ export class SmartPlannerService {
   private estimateTotalDistance(venues: PlannedVenue[]): number {
     let total = 0;
     for (let i = 1; i < venues.length; i++) {
-      total += this.haversine(venues[i - 1].lat, venues[i - 1].lng, venues[i].lat, venues[i].lng);
+      total += this.haversine(
+        venues[i - 1].lat,
+        venues[i - 1].lng,
+        venues[i].lat,
+        venues[i].lng,
+      );
     }
     return Math.round(total * 10) / 10;
   }
 
   private inferTheme(venues: PlannedVenue[]): string {
-    const types = venues.map(v => v.type);
+    const types = venues.map((v) => v.type);
     const counts: Record<string, number> = {};
-    types.forEach(t => counts[t] = (counts[t] || 0) + 1);
+    types.forEach((t) => (counts[t] = (counts[t] || 0) + 1));
 
     if (counts['restaurant'] >= 2) return 'Food & Culture';
     if (counts['attraction'] >= 2) return 'Heritage & Sights';
@@ -698,17 +964,25 @@ export class SmartPlannerService {
   }
 
   // Haversine distance in km
-  private haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  private haversine(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number,
+  ): number {
     const R = 6371;
     const dLat = this.toRad(lat2 - lat1);
     const dLng = this.toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) ** 2 +
-      Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(this.toRad(lat1)) *
+        Math.cos(this.toRad(lat2)) *
+        Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   private toRad(deg: number): number {
-    return deg * Math.PI / 180;
+    return (deg * Math.PI) / 180;
   }
 
   private timeToMinutes(time: string): number {
@@ -726,8 +1000,11 @@ export class SmartPlannerService {
   // LEGACY METHODS (keep for compatibility)
   // ═══════════════════════════════════════════════════════════════
 
-  convertPlannedVenues(venues: any[], fallbackCenter?: { lat: number; lng: number }): PlannedVenue[] {
-    return venues.map(v => {
+  convertPlannedVenues(
+    venues: any[],
+    fallbackCenter?: { lat: number; lng: number },
+  ): PlannedVenue[] {
+    return venues.map((v) => {
       const type = this.inferType(v);
 
       let lat = v.lat;
@@ -737,16 +1014,20 @@ export class SmartPlannerService {
         lng = v.location.longitude;
       }
 
-      const fallback = fallbackCenter || { lat: 37.5665, lng: 126.9780 };
+      const fallback = fallbackCenter || { lat: 37.5665, lng: 126.978 };
 
       return {
-        id: v.id || v.venueName || `venue-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        id:
+          v.id ||
+          v.venueName ||
+          `venue-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         name: v.venueName || v.name || 'Unknown Venue',
         lat: lat || fallback.lat,
         lng: lng || fallback.lng,
         type,
         category: v.category,
-        durationMinutes: v.durationMinutes || this.defaultDurations[type] || 120,
+        durationMinutes:
+          v.durationMinutes || this.defaultDurations[type] || 120,
         priceLevel: v.priceLevel,
         rating: v.rating,
         userAdded: true,
@@ -763,34 +1044,83 @@ export class SmartPlannerService {
     const name = (v.venueName || v.name || '').toLowerCase();
     const types = v.types || [];
 
-    const cafeKeywords = ['cafe', 'coffee', 'toast', 'pastry', 'bagel', 'brunch', 'tea', 'bingsu', 'bread', 'cake', 'kopitiam'];
-    if (cafeKeywords.some(k => name.includes(k))) return 'cafe';
+    const cafeKeywords = [
+      'cafe',
+      'coffee',
+      'toast',
+      'pastry',
+      'bagel',
+      'brunch',
+      'tea',
+      'bingsu',
+      'bread',
+      'cake',
+      'kopitiam',
+    ];
+    if (cafeKeywords.some((k) => name.includes(k))) return 'cafe';
 
     if (category === 'coffee') return 'cafe';
     if (category === 'food') return 'restaurant';
-    if (category === 'culture' || category === 'attractions') return 'attraction';
+    if (category === 'culture' || category === 'attractions')
+      return 'attraction';
     if (category === 'shopping') return 'shopping';
     if (category === 'wellness') return 'activity';
     if (category === 'nightlife') return 'nightlife';
 
     if (types.includes('cafe') || types.includes('bakery')) return 'cafe';
-    if (types.includes('restaurant') || types.includes('food')) return 'restaurant';
-    if (types.includes('museum') || types.includes('tourist_attraction')) return 'attraction';
-    if (types.includes('shopping_mall') || types.includes('store')) return 'shopping';
-    if (types.includes('night_club') || types.includes('bar')) return 'nightlife';
+    if (types.includes('restaurant') || types.includes('food'))
+      return 'restaurant';
+    if (types.includes('museum') || types.includes('tourist_attraction'))
+      return 'attraction';
+    if (types.includes('shopping_mall') || types.includes('store'))
+      return 'shopping';
+    if (types.includes('night_club') || types.includes('bar'))
+      return 'nightlife';
     if (types.includes('spa') || types.includes('gym')) return 'activity';
 
-    const foodKeywords = ['restaurant', 'kitchen', 'noodle', 'hawker', 'dining', 'eats', 'bbq', 'grill', 'sushi', 'ramen', 'steak', 'chicken', 'rice', 'nasi', 'mee', 'kway', 'dim sum', 'hotpot', 'steamboat', 'bistro'];
-    if (foodKeywords.some(k => name.includes(k))) return 'restaurant';
+    const foodKeywords = [
+      'restaurant',
+      'kitchen',
+      'noodle',
+      'hawker',
+      'dining',
+      'eats',
+      'bbq',
+      'grill',
+      'sushi',
+      'ramen',
+      'steak',
+      'chicken',
+      'rice',
+      'nasi',
+      'mee',
+      'kway',
+      'dim sum',
+      'hotpot',
+      'steamboat',
+      'bistro',
+    ];
+    if (foodKeywords.some((k) => name.includes(k))) return 'restaurant';
 
-    const nightlifeKeywords = ['bar', 'club', 'pub', 'lounge', 'karaoke', 'rooftop'];
-    if (nightlifeKeywords.some(k => name.includes(k))) return 'nightlife';
+    const nightlifeKeywords = [
+      'bar',
+      'club',
+      'pub',
+      'lounge',
+      'karaoke',
+      'rooftop',
+    ];
+    if (nightlifeKeywords.some((k) => name.includes(k))) return 'nightlife';
 
     return 'attraction';
   }
 
   // Legacy wrapper for old code that calls this
-  clusterIntoDays(venues: PlannedVenue[], requestedDays: number, dnaRecommendations: any[] = []): DayPlan[] {
+  clusterIntoDays(
+    venues: PlannedVenue[],
+    requestedDays: number,
+    dnaRecommendations: any[] = [],
+  ): DayPlan[] {
     // This is now a sync wrapper — the real logic is in buildItinerary (async)
     // For backward compatibility, return basic split
     if (!venues.length) return [];
@@ -806,7 +1136,10 @@ export class SmartPlannerService {
         day: i + 1,
         theme: this.inferTheme(dayVenues),
         venues: dayVenues,
-        totalDurationMinutes: dayVenues.reduce((sum, v) => sum + v.durationMinutes, 0),
+        totalDurationMinutes: dayVenues.reduce(
+          (sum, v) => sum + v.durationMinutes,
+          0,
+        ),
         estimatedWalkingKm: this.estimateTotalDistance(dayVenues),
       });
     }
@@ -815,11 +1148,18 @@ export class SmartPlannerService {
   }
 
   // Legacy wrapper
-  assignTimeSlotsWithTravel(dayPlan: DayPlan, travelTimes: number[] = [], dnaRecommendations: any[] = []): DayPlan {
+  assignTimeSlotsWithTravel(
+    dayPlan: DayPlan,
+    travelTimes: number[] = [],
+    dnaRecommendations: any[] = [],
+  ): DayPlan {
     return this.assignTimeSlotsWithLegs(dayPlan, travelTimes, null);
   }
 
-  private getCenter(points: { lat: number; lng: number }[]): { lat: number; lng: number } {
+  private getCenter(points: { lat: number; lng: number }[]): {
+    lat: number;
+    lng: number;
+  } {
     if (!points || points.length === 0) return { lat: 0, lng: 0 };
     const avgLat = points.reduce((s, p) => s + p.lat, 0) / points.length;
     const avgLng = points.reduce((s, p) => s + p.lng, 0) / points.length;
@@ -832,5 +1172,16 @@ export class SmartPlannerService {
     if (distKm < 2) return Math.round(2 + distKm * 4);
     if (distKm < 5) return Math.round(2 + distKm * 3);
     return Math.round(2 + distKm * 2);
+  }
+  private shuffleWithSeed<T>(array: T[], seed: number): T[] {
+    const result = [...array];
+    // Simple seeded shuffle: swap each element with a pseudo-random index
+    for (let i = result.length - 1; i > 0; i--) {
+      // Linear congruential generator for seeded randomness
+      seed = (seed * 9301 + 49297) % 233280;
+      const j = seed % (i + 1);
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
   }
 }

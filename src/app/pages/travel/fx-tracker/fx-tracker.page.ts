@@ -6,7 +6,7 @@ import { FxInsightWithPrediction } from './fx-tracker.model';
 import { DESTINATIONS, DEFAULT_DESTINATION } from '../../../services/destination.config';
 import { DestinationConfig } from '../../../services/destination.config';
 import { CardLinkedExchangeService, ExchangeRequest } from '../../../services/card-linked-exchange.service';
-import { CardsService, MultiCurrencyWallet, ExchangeCurrencyResponse } from '../../../services/cards.service';
+import { CardsService, MultiCurrencyWallet, ExchangeCurrencyResponse, getCardFundsAmount } from '../../../services/cards.service';
 import { catchError, map, Observable, of } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { currentSgdBalanceStorageKey, selectedCardStorageKey } from '../../../utils/card-storage';
@@ -183,7 +183,7 @@ export class FxTrackerPage implements OnInit {
           exchangeCard.id
         );
 
-        const realSgdBalance = exchangeCard.balance;
+        const realSgdBalance = getCardFundsAmount(exchangeCard);
 
         // Sync SGD to localStorage
         localStorage.setItem(

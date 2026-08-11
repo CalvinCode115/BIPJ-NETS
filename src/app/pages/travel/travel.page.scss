@@ -6,7 +6,11 @@
 
 // Destination Bar
 .destination-bar {
-  background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--nets-red) 0%,
+    var(--nets-blue) 100%
+  );
   color: white;
   padding: 12px 20px;
   display: flex;
@@ -215,7 +219,11 @@
     position: relative;
 
     &.placeholder {
-      background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-purple) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--nets-red) 0%,
+        var(--nets-purple) 100%
+      );
       display: flex;
       align-items: center;
       justify-content: center;
@@ -563,7 +571,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 
   &:active {
     transform: scale(0.92);
@@ -665,7 +675,9 @@
     .budget-bar-fill {
       height: 100%;
       border-radius: 4px;
-      transition: width 0.4s ease, background 0.4s ease;
+      transition:
+        width 0.4s ease,
+        background 0.4s ease;
     }
   }
 
@@ -761,7 +773,11 @@
     padding: 20px;
     margin-bottom: 20px;
     color: white;
-    background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--nets-red) 0%,
+      var(--nets-blue) 100%
+    );
     box-shadow: 0 4px 12px rgba(215, 25, 32, 0.3);
 
     &.theme-prepaid {
@@ -907,7 +923,11 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--nets-red) 0%,
+      var(--nets-blue) 100%
+    );
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -994,7 +1014,11 @@
       background-position: center;
 
       &.placeholder {
-        background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+        background: linear-gradient(
+          135deg,
+          var(--nets-red) 0%,
+          var(--nets-blue) 100%
+        );
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1195,7 +1219,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--nets-red) 0%,
+    var(--nets-blue) 100%
+  );
   border-radius: 16px;
   margin: 12px 16px 0;
   padding: 14px 18px;
@@ -1610,7 +1638,13 @@
         &::-webkit-slider-runnable-track {
           height: 8px;
           border-radius: 4px;
-          background: linear-gradient(to right, var(--nets-red) 0%, var(--nets-red) var(--value, 50%), #d0d0d0 var(--value, 50%), #d0d0d0 100%);
+          background: linear-gradient(
+            to right,
+            var(--nets-red) 0%,
+            var(--nets-red) var(--value, 50%),
+            #d0d0d0 var(--value, 50%),
+            #d0d0d0 100%
+          );
         }
 
         &::-moz-range-track {
@@ -1733,7 +1767,11 @@
 
     .report-badge {
       display: inline-block;
-      background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+      background: linear-gradient(
+        135deg,
+        var(--nets-red) 0%,
+        var(--nets-blue) 100%
+      );
       color: white;
       font-size: 12px;
       font-weight: 700;
@@ -1936,7 +1974,11 @@
     gap: 10px;
 
     .report-download-btn {
-      --background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+      --background: linear-gradient(
+        135deg,
+        var(--nets-red) 0%,
+        var(--nets-blue) 100%
+      );
       --border-radius: 14px;
       --box-shadow: 0 4px 12px rgba(215, 25, 32, 0.3);
       height: 52px;
@@ -1995,7 +2037,7 @@
       position: relative;
 
       &:after {
-        content: '';
+        content: "";
         position: absolute;
         right: -4px;
         top: -3px;
@@ -2105,7 +2147,11 @@
     gap: 10px;
 
     .confirm-end-btn {
-      --background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+      --background: linear-gradient(
+        135deg,
+        var(--nets-red) 0%,
+        var(--nets-blue) 100%
+      );
       --border-radius: 14px;
       --box-shadow: 0 4px 16px rgba(215, 25, 32, 0.3);
       height: 52px;
@@ -2208,7 +2254,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--nets-red) 0%,
+    var(--nets-blue) 100%
+  );
   color: white;
   padding: 16px 20px;
   border-radius: 16px;
@@ -2632,7 +2682,11 @@
 
   // Buttons
   .budget-start-btn {
-    --background: linear-gradient(135deg, var(--nets-red) 0%, var(--nets-blue) 100%);
+    --background: linear-gradient(
+      135deg,
+      var(--nets-red) 0%,
+      var(--nets-blue) 100%
+    );
     --border-radius: 14px;
     --box-shadow: 0 4px 16px rgba(215, 25, 32, 0.3);
     height: 52px;
@@ -3191,7 +3245,6 @@
 }
 
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0);
@@ -3710,7 +3763,6 @@
 }
 
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0);
@@ -5031,44 +5083,6 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   padding-left: 8px;
 }
 
-// Timeline Item
-.timeline-item {
-  display: flex;
-  gap: 16px;
-  position: relative;
-  padding-bottom: 8px;
-
-  &.meal {
-    .timeline-dot {
-      background: #10b981;
-      border-color: #10b981;
-      color: white;
-    }
-
-    .timeline-card {
-      background: #f0fdf4;
-      border-color: #bbf7d0;
-    }
-  }
-
-  &.locked {
-    .timeline-dot {
-      background: #f59e0b;
-      border-color: #f59e0b;
-      color: white;
-    }
-
-    .timeline-card {
-      background: #fffbeb;
-      border-color: #fcd34d;
-    }
-
-    .card-name {
-      color: #92400e;
-    }
-  }
-}
-
 // Left side: Time + dot + line
 .timeline-left {
   display: flex;
@@ -5085,26 +5099,6 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
   color: #374151;
   margin-bottom: 6px;
   font-variant-numeric: tabular-nums;
-}
-
-.timeline-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: white;
-  border: 3px solid var(--nets-red);
-  color: var(--nets-red);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-  z-index: 2;
-  position: relative;
-
-  ion-icon {
-    font-size: 14px;
-  }
 }
 
 .timeline-line {
@@ -5130,6 +5124,123 @@ ion-modal.globe-modal-fullscreen .modal-wrapper {
 
   &:active {
     transform: scale(0.98);
+  }
+}
+
+// ── Time-aware states ──
+
+.timeline-item {
+  // existing styles...
+
+  &.past {
+    opacity: 0.5;
+
+    .venue-card {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+
+    .timeline-dot {
+      background: #9ca3af;
+      border-color: #9ca3af;
+      color: white;
+    }
+  }
+
+  &.current {
+    .venue-card {
+      border-color: var(--nets-red);
+      box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.15);
+    }
+
+    .timeline-time {
+      color: var(--nets-red);
+    }
+  }
+
+  &.upcoming {
+    .venue-card {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+
+    .timeline-time {
+      color: #3b82f6;
+    }
+  }
+}
+
+// Live pulse animation on current dot
+.timeline-dot {
+  // existing styles...
+
+  &.pulse {
+    animation: pulse-ring 2s ease-out infinite;
+
+    ion-icon {
+      animation: pulse-icon 2s ease-out infinite;
+    }
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(215, 25, 32, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(215, 25, 32, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(215, 25, 32, 0);
+  }
+}
+
+@keyframes pulse-icon {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+// Badges
+.live-badge {
+  display: inline-block;
+  background: var(--nets-red);
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  letter-spacing: 0.5px;
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+.next-badge {
+  display: inline-block;
+  background: #3b82f6;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+
+@keyframes pulse-badge {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
   }
 }
 
@@ -5521,71 +5632,6 @@ app-day-map {
   }
 }
 
-.timeline-item {
-  &.dna-suggestion {
-    opacity: 0.85;
-
-    .timeline-dot {
-      background: #dbeafe; // Light blue
-      border: 2px dashed #3b82f6;
-    }
-  }
-
-  &.placeholder {
-    opacity: 0.7;
-
-    .timeline-dot {
-      background: #f3f4f6;
-      border: 2px dashed #9ca3af;
-    }
-
-    .card-name {
-      color: #6b7280;
-      font-style: italic;
-    }
-  }
-}
-
-.timeline-item {
-  &.dna-suggestion {
-    .timeline-dot {
-      background: #dbeafe;
-      border: 2px dashed #3b82f6;
-    }
-
-    .card {
-      border-left: 3px solid #3b82f6;
-    }
-
-    .card-name::before {
-      content: '💡 ';
-    }
-  }
-
-  &.placeholder {
-    opacity: 0.75;
-
-    .timeline-dot {
-      background: #f3f4f6;
-      border: 2px dashed #9ca3af;
-    }
-
-    .card {
-      border-left: 3px dashed #9ca3af;
-      background: #f9fafb;
-    }
-
-    .card-name {
-      color: #6b7280;
-      font-style: italic;
-    }
-
-    .card-name::before {
-      content: '🔍 ';
-    }
-  }
-}
-
 /* ═══ TRIP MODE TIMELINE ═══ */
 .trip-planner-section {
   padding: 0 16px 80px;
@@ -5607,7 +5653,10 @@ app-day-map {
   padding: 6px 14px;
   border-radius: 8px;
   border: 1px solid var(--ion-color-light-shade);
-  background: var(--ion-card-background, var(--ion-background-color, #ffffff)); // ← Explicit background
+  background: var(
+    --ion-card-background,
+    var(--ion-background-color, #ffffff)
+  ); // ← Explicit background
   font-size: 13px;
   font-weight: 500;
   color: var(--ion-text-color, var(--ion-color-dark)); // ← Explicit text color
@@ -5684,60 +5733,13 @@ app-day-map {
   padding-left: 32px;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 10px;
     top: 0;
     bottom: 0;
     width: 2px;
     background: var(--ion-color-light-shade);
-  }
-}
-
-.timeline-item {
-  position: relative;
-  margin-bottom: 16px;
-}
-
-.timeline-dot {
-  position: absolute;
-  left: -28px;
-  top: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2.5px solid var(--ion-background-color, white);
-  box-shadow: 0 0 0 1.5px var(--ion-color-light-shade);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-  background: var(--ion-color-medium);
-
-  &.cafe {
-    background: #34c759;
-  }
-
-  &.restaurant {
-    background: #ff9500;
-  }
-
-  &.attraction {
-    background: #007aff;
-  }
-
-  &.shopping {
-    background: #af52de;
-  }
-
-  &.activity {
-    background: #5856d6;
-  }
-
-  &.nightlife {
-    background: #ff2d55;
   }
 }
 
@@ -6108,7 +6110,6 @@ app-day-map {
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -6174,35 +6175,7 @@ app-day-map {
   }
 }
 
-// ── TIMELINE DOT COLORS ──
-.timeline-dot {
-  &.cafe {
-    background: #8d6e63;
-  }
-
-  &.restaurant {
-    background: #ff7043;
-  }
-
-  &.attraction {
-    background: #42a5f5;
-  }
-
-  &.shopping {
-    background: #ab47bc;
-  }
-
-  &.activity {
-    background: #26a69a;
-  }
-
-  &.nightlife {
-    background: #7e57c2;
-  }
-}
-
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -6401,5 +6374,117 @@ app-day-map {
       font-size: 32px;
       margin-bottom: 8px;
     }
+  }
+}
+
+// ── Time badge (already exists, just confirming format) ──
+.next-badge {
+  display: inline-block;
+  background: #3b82f6;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+
+// ── Nearby suggestions ──
+.nearby-card {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+}
+
+.nearby-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0369a1;
+  margin-bottom: 8px;
+
+  ion-icon {
+    font-size: 14px;
+  }
+}
+
+.nearby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nearby-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nearby-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nearby-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.nearby-meta {
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dna-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #7c3aed;
+  font-weight: 600;
+  font-size: 10px;
+
+  ion-icon {
+    font-size: 10px;
+  }
+}
+
+// ── Quick Pay ──
+.quick-pay-strip {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #d1d5db;
+}
+
+.quick-pay-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--nets-red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+
+  ion-icon {
+    font-size: 14px;
   }
 }

@@ -372,11 +372,12 @@ export function getCardFundsLabel(card: WalletCard | null | undefined): string {
   return 'CURRENT BALANCE';
 }
 
-export function getCardFundsAmount(card: WalletCard | null | undefined): number {
-  if (!card) {
-    return 0;
-  }
-  return card.balance;
+export function getCardFundsAmount(
+  card: WalletCard | null | undefined,
+): number {
+  if (!card) return 0;
+  // New: read from multi_currency.SGD if available, else fall back to legacy balance
+  return (card as any).multi_currency?.SGD ?? card.balance ?? 0;
 }
 
 export function getCardFundsSubtext(card: WalletCard | null | undefined): string | null {

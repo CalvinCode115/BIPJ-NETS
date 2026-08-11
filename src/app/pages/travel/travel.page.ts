@@ -7,7 +7,10 @@ import { FxTrackerService } from './fx-tracker/fx-tracker.service';
 import { AuthService } from '../../services/auth.service';
 import { CardContextService } from '../../services/card-context.service';
 import { GooglePlace } from './travel.model';
-import { CountryDataService, CountryInfo } from '../../services/country-data.service';
+import {
+  CountryDataService,
+  CountryInfo,
+} from '../../services/country-data.service';
 import { CountryGlobeComponent } from '../../components/country-globe/country-globe.component';
 import {
   CardsService,
@@ -20,7 +23,11 @@ import {
   formatCardPaymentLabel,
   MultiCurrencyWallet,
 } from '../../services/cards.service';
-import { DestinationConfig, DESTINATIONS, DEFAULT_DESTINATION } from '../../services/destination.config';
+import {
+  DestinationConfig,
+  DESTINATIONS,
+  DEFAULT_DESTINATION,
+} from '../../services/destination.config';
 import { CacheService } from '../../services/cache.service';
 import {
   displayedCardBalance as formatDisplayedCardBalance,
@@ -36,14 +43,21 @@ import {
 } from './travel.model';
 
 import { PackingItem, WeatherService, DailyForecast } from './weather.service';
-import { CardCurrencyBalance, CardLinkedExchangeService } from '../../services/card-linked-exchange.service';
-import { SmartPlannerService, PlannedVenue, DayPlan } from '../../services/smart-planner.service';
+import {
+  CardCurrencyBalance,
+  CardLinkedExchangeService,
+} from '../../services/card-linked-exchange.service';
+import {
+  SmartPlannerService,
+  PlannedVenue,
+  DayPlan,
+} from '../../services/smart-planner.service';
 import { RouteService, DirectionsResponse } from '../../services/route.service';
 @Component({
   selector: 'app-travel',
   templateUrl: './travel.page.html',
   styleUrls: ['./travel.page.scss'],
-  standalone: false
+  standalone: false,
 })
 export class TravelPage implements OnInit {
   @ViewChild('tripToggle', { static: false }) tripToggle: any;
@@ -52,7 +66,6 @@ export class TravelPage implements OnInit {
   currentDestination: DestinationConfig = DESTINATIONS[DEFAULT_DESTINATION];
   destinationDropdownOpen = false;
   readonly destinations = Object.values(DESTINATIONS);
-
 
   // Travel
   recommendations: RecommendationCard[] = [];
@@ -102,7 +115,13 @@ export class TravelPage implements OnInit {
 
   // Simulator
   isSimulatorOpen = false;
-  simulatorCategories: { name: string; key: string; current: number; adjusted: number; color: string }[] = [];
+  simulatorCategories: {
+    name: string;
+    key: string;
+    current: number;
+    adjusted: number;
+    color: string;
+  }[] = [];
 
   // Post-Trip Report
   isReportOpen = false;
@@ -148,6 +167,12 @@ export class TravelPage implements OnInit {
   alternativesForVenue: PlannedVenue | null = null;
   alternativeOptions: PlannedVenue[] = [];
   isLoadingAlternatives = false;
+  private generationCount = 0;
+
+  nearbyCache = new Map<
+    string,
+    Array<{ name: string; distance: number; type: string; isDna: boolean }>
+  >();
 
   constructor(
     private http: HttpClient,
@@ -164,8 +189,8 @@ export class TravelPage implements OnInit {
     public cardExchange: CardLinkedExchangeService,
     private smartPlanner: SmartPlannerService,
     private routeService: RouteService,
-    private cdr: ChangeDetectorRef
-  ) { }
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit() {
     const savedDest = localStorage.getItem('nets_selected_destination');
@@ -191,7 +216,6 @@ export class TravelPage implements OnInit {
       }
     }
 
-
     this.loadTripMode();
     this.migrateOldPlans();
     this.loadPlan();
@@ -209,7 +233,7 @@ export class TravelPage implements OnInit {
   }
 
   loadAll() {
-    this.loadTravelData();      // ← this now fetches places too
+    this.loadTravelData(); // ← this now fetches places too
     this.loadWeather();
     this.loadFxCircle();
     this.loadForecastAndBuildItinerary();
@@ -217,12 +241,14 @@ export class TravelPage implements OnInit {
     this.weatherService.getForecast(this.currentDestination).subscribe({
       next: (forecast) => {
         this.forecast = forecast;
-        this.packingList = this.weatherService.getPackingList(forecast, this.currentDestination);
+        this.packingList = this.weatherService.getPackingList(
+          forecast,
+          this.currentDestination,
+        );
         // buildWeatherItinerary() is now called inside loadTravelData() when places arrive
-      }
+      },
     });
   }
-
 
   // ========== TRAVEL DATA ==========
   // Update loadTravelData to call onPlacesLoaded
@@ -231,38 +257,41 @@ export class TravelPage implements OnInit {
     this.error = null;
     const now = new Date();
 
-    this.travelService.getTravelRecommendations(
-      this.userId,
-      this.currentDestination,
-      now.getMonth() + 1,
-      now.getFullYear()
-    ).subscribe({
-      next: (result) => {
-        this.recommendations = result.dnaPicks || [];
-        this.categories = (result.categories || []).map((cat: CategorySection) => ({
-          ...cat,
-          visibleCount: 3
-        }));
-        this.places = result.places || [];
+    this.travelService
+      .getTravelRecommendations(
+        this.userId,
+        this.currentDestination,
+        now.getMonth() + 1,
+        now.getFullYear(),
+      )
+      .subscribe({
+        next: (result) => {
+          this.recommendations = result.dnaPicks || [];
+          this.categories = (result.categories || []).map(
+            (cat: CategorySection) => ({
+              ...cat,
+              visibleCount: 3,
+            }),
+          );
+          this.places = result.places || [];
 
-        // ═══ FIX: Attach coordinates from places to recommendations ═══
-        this.attachCoordinates();
+          // ═══ FIX: Attach coordinates from places to recommendations ═══
+          this.attachCoordinates();
 
-        if (result.budget && !this.budget) {
-          this.budget = result.budget;
-          this.saveBudget();
-        }
+          if (result.budget && !this.budget) {
+            this.budget = result.budget;
+            this.saveBudget();
+          }
 
-        this.onPlacesLoaded();
-        this.isLoading = false;
-      },
-      error: (err: any) => {
-        this.error = err.message || 'Something went wrong';
-        this.isLoading = false;
-      }
-    });
+          this.onPlacesLoaded();
+          this.isLoading = false;
+        },
+        error: (err: any) => {
+          this.error = err.message || 'Something went wrong';
+          this.isLoading = false;
+        },
+      });
   }
-
 
   loadMoreCards(category: CategorySection) {
     category.visibleCount += 3;
@@ -274,7 +303,7 @@ export class TravelPage implements OnInit {
     this.weatherService.getWeather(this.currentDestination).subscribe({
       next: (weather) => {
         this.weather = weather;
-      }
+      },
     });
   }
 
@@ -293,7 +322,22 @@ export class TravelPage implements OnInit {
 
   loadFxCircle() {
     // Skip FX for exotic currencies that may not be supported
-    const supportedFxCurrencies = ['MYR', 'THB', 'JPY', 'KRW', 'AUD', 'USD', 'EUR', 'GBP', 'SGD', 'CNY', 'IDR', 'PHP', 'VND', 'INR'];
+    const supportedFxCurrencies = [
+      'MYR',
+      'THB',
+      'JPY',
+      'KRW',
+      'AUD',
+      'USD',
+      'EUR',
+      'GBP',
+      'SGD',
+      'CNY',
+      'IDR',
+      'PHP',
+      'VND',
+      'INR',
+    ];
     const currency = this.currentDestination?.currencyCode;
 
     if (currency && !supportedFxCurrencies.includes(currency)) {
@@ -301,13 +345,15 @@ export class TravelPage implements OnInit {
       return;
     }
 
-    this.fxService.getFxInsightWithPrediction(this.currentDestination, 7).subscribe({
-      next: (insight) => this.fxInsight = insight,
-      error: (err) => {
-        console.error('FX load failed:', err);
-        this.fxInsight = null;
-      }
-    });
+    this.fxService
+      .getFxInsightWithPrediction(this.currentDestination, 7)
+      .subscribe({
+        next: (insight) => (this.fxInsight = insight),
+        error: (err) => {
+          console.error('FX load failed:', err);
+          this.fxInsight = null;
+        },
+      });
   }
 
   goToFxTracker() {
@@ -361,7 +407,7 @@ export class TravelPage implements OnInit {
       JSON.stringify({
         budget: this.budget,
         transactions: this.transactions,
-      })
+      }),
     );
   }
 
@@ -376,10 +422,55 @@ export class TravelPage implements OnInit {
 
   inferCategory(venueName: string): string {
     const n = venueName.toLowerCase();
-    if (n.includes('cafe') || n.includes('kopitiam') || n.includes('restaurant') || n.includes('food') || n.includes('eats') || n.includes('dining') || n.includes('bakery') || n.includes('hawker') || n.includes('kitchen') || n.includes('noodle')) return 'food';
-    if (n.includes('mall') || n.includes('shop') || n.includes('store') || n.includes('market') || n.includes('plaza') || n.includes('boutique') || n.includes('retail')) return 'shopping';
-    if (n.includes('museum') || n.includes('park') || n.includes('temple') || n.includes('garden') || n.includes('attraction') || n.includes('zoo') || n.includes('gallery') || n.includes('theme') || n.includes('adventure') || n.includes('beach') || n.includes('landmark')) return 'activities';
-    if (n.includes('bus') || n.includes('taxi') || n.includes('train') || n.includes('ferry') || n.includes('transport') || n.includes('mrt') || n.includes('rail') || n.includes('transit') || n.includes('terminal')) return 'transport';
+    if (
+      n.includes('cafe') ||
+      n.includes('kopitiam') ||
+      n.includes('restaurant') ||
+      n.includes('food') ||
+      n.includes('eats') ||
+      n.includes('dining') ||
+      n.includes('bakery') ||
+      n.includes('hawker') ||
+      n.includes('kitchen') ||
+      n.includes('noodle')
+    )
+      return 'food';
+    if (
+      n.includes('mall') ||
+      n.includes('shop') ||
+      n.includes('store') ||
+      n.includes('market') ||
+      n.includes('plaza') ||
+      n.includes('boutique') ||
+      n.includes('retail')
+    )
+      return 'shopping';
+    if (
+      n.includes('museum') ||
+      n.includes('park') ||
+      n.includes('temple') ||
+      n.includes('garden') ||
+      n.includes('attraction') ||
+      n.includes('zoo') ||
+      n.includes('gallery') ||
+      n.includes('theme') ||
+      n.includes('adventure') ||
+      n.includes('beach') ||
+      n.includes('landmark')
+    )
+      return 'activities';
+    if (
+      n.includes('bus') ||
+      n.includes('taxi') ||
+      n.includes('train') ||
+      n.includes('ferry') ||
+      n.includes('transport') ||
+      n.includes('mrt') ||
+      n.includes('rail') ||
+      n.includes('transit') ||
+      n.includes('terminal')
+    )
+      return 'transport';
     return 'food';
   }
 
@@ -391,7 +482,8 @@ export class TravelPage implements OnInit {
 
     this.cardsService.getWallet(userId).subscribe({
       next: (wallet: any) => {
-        const fallback = wallet.prepaid[0] ?? wallet.cashcard[0] ?? wallet.others[0] ?? null;
+        const fallback =
+          wallet.prepaid[0] ?? wallet.cashcard[0] ?? wallet.others[0] ?? null;
         this.activeCard = selected || fallback;
         if (this.activeCard) {
           this.cardContext.selectCard(this.activeCard);
@@ -425,7 +517,9 @@ export class TravelPage implements OnInit {
   }
 
   onPaymentAmountInput(event: any) {
-    const { text, amount } = sanitizeDecimalAmountInput(String(event.detail.value ?? ''));
+    const { text, amount } = sanitizeDecimalAmountInput(
+      String(event.detail.value ?? ''),
+    );
     this.paymentAmountText = text;
     this.paymentAmount = amount;
   }
@@ -505,19 +599,21 @@ export class TravelPage implements OnInit {
 
   // ========== PLAN / TO-DO ==========
   addToPlan(card: RecommendationCard) {
-    if (!this.plannedVenues.find(v => v.venueName === card.venueName)) {
+    if (!this.plannedVenues.find((v) => v.venueName === card.venueName)) {
       let lat = card.lat;
       let lng = card.lng;
 
       // Active lookup from places
       if (!lat || !lng) {
-        const match = this.places.find(p => {
+        const match = this.places.find((p) => {
           const pName = p.name?.toLowerCase() || '';
           const cName = card.venueName?.toLowerCase() || '';
-          return pName === cName ||
+          return (
+            pName === cName ||
             pName.includes(cName) ||
             cName.includes(pName) ||
-            p.vicinity?.toLowerCase().includes(cName);
+            p.vicinity?.toLowerCase().includes(cName)
+          );
         });
 
         if (match?.geometry?.location) {
@@ -536,23 +632,37 @@ export class TravelPage implements OnInit {
         const center = this.getDestinationCenter();
         lat = center.lat + (Math.random() - 0.5) * 0.08;
         lng = center.lng + (Math.random() - 0.5) * 0.08;
-        console.warn('Fallback for', card.venueName, ':', lat.toFixed(5), lng.toFixed(5));
+        console.warn(
+          'Fallback for',
+          card.venueName,
+          ':',
+          lat.toFixed(5),
+          lng.toFixed(5),
+        );
       }
 
       const venueWithCoords = { ...card, lat, lng };
       this.plannedVenues.push(venueWithCoords);
       this.savePlan();
 
-      console.log('Added:', card.venueName, 'at', lat.toFixed(5), lng.toFixed(5));
+      console.log(
+        'Added:',
+        card.venueName,
+        'at',
+        lat.toFixed(5),
+        lng.toFixed(5),
+      );
     }
   }
   removeFromPlan(card: RecommendationCard) {
-    this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== card.venueName);
+    this.plannedVenues = this.plannedVenues.filter(
+      (v) => v.venueName !== card.venueName,
+    );
     this.savePlan();
   }
 
   isPlanned(card: RecommendationCard): boolean {
-    return this.plannedVenues.some(v => v.venueName === card.venueName);
+    return this.plannedVenues.some((v) => v.venueName === card.venueName);
   }
 
   savePlan() {
@@ -612,7 +722,9 @@ export class TravelPage implements OnInit {
   }
 
   confirmBudgetAndStartTrip() {
-    const budget = this.customBudget ? parseInt(this.customBudget) : this.selectedBudgetOption;
+    const budget = this.customBudget
+      ? parseInt(this.customBudget)
+      : this.selectedBudgetOption;
     const duration = this.selectedTripDuration;
 
     if (!budget || budget < 50) {
@@ -620,7 +732,7 @@ export class TravelPage implements OnInit {
     }
 
     this.isBudgetPickerOpen = false;
-    this.enterTripMode(budget, duration);  // Pass duration
+    this.enterTripMode(budget, duration); // Pass duration
   }
 
   enterTripMode(budgetAmount: number, durationDays: number = 4) {
@@ -635,20 +747,23 @@ export class TravelPage implements OnInit {
     localStorage.setItem(this.TRIP_LOCK_KEY, 'true');
     localStorage.setItem(this.TRIP_COUNTRY_KEY, this.currentDestination.id);
 
-    localStorage.setItem('nets_trip_mode', JSON.stringify({
-      active: true,
-      startDate: this.tripStartDate,
-      day: this.tripDay,
-      destination: this.destination,
-      budget: budgetAmount,
-      duration: durationDays
-    }));
+    localStorage.setItem(
+      'nets_trip_mode',
+      JSON.stringify({
+        active: true,
+        startDate: this.tripStartDate,
+        day: this.tripDay,
+        destination: this.destination,
+        budget: budgetAmount,
+        duration: durationDays,
+      }),
+    );
 
     this.budget = {
       spentSoFar: 0,
       typicalTripSpend: budgetAmount,
       remaining: budgetAmount,
-      percentage: 0
+      percentage: 0,
     };
     this.transactions = [];
     this.saveBudget();
@@ -680,15 +795,16 @@ export class TravelPage implements OnInit {
   showEndTripConfirmation() {
     const totalSpent = this.budget?.spentSoFar || 0;
     const typical = this.budget?.typicalTripSpend || 0;
-    const venueCount = new Set(this.transactions.map(t => t.venueName)).size;
+    const venueCount = new Set(this.transactions.map((t) => t.venueName)).size;
 
     this.tripToEndSummary = {
       totalSpent,
       typical,
-      percentageUsed: typical > 0 ? Math.round((totalSpent / typical) * 100) : 0,
+      percentageUsed:
+        typical > 0 ? Math.round((totalSpent / typical) * 100) : 0,
       venueCount,
       day: this.tripDay,
-      overUnder: totalSpent - typical
+      overUnder: totalSpent - typical,
     };
 
     this.isConfirmingEndTrip = true;
@@ -715,15 +831,15 @@ export class TravelPage implements OnInit {
         this.isTripMode = parsed.active;
         this.tripStartDate = parsed.startDate;
         this.tripDay = parsed.day || 1;
-        this.tripTotalDays = parsed.duration || 4;  // ADD THIS
-        this.selectedTripDuration = parsed.duration || 4;  // ADD THIS
+        this.tripTotalDays = parsed.duration || 4; // ADD THIS
+        this.selectedTripDuration = parsed.duration || 4; // ADD THIS
 
         if (parsed.budget && !this.budget) {
           this.budget = {
             spentSoFar: 0,
             typicalTripSpend: parsed.budget,
             remaining: parsed.budget,
-            percentage: 0
+            percentage: 0,
           };
         }
       } catch {
@@ -753,7 +869,9 @@ export class TravelPage implements OnInit {
 
   get paceVsHome(): number {
     if (!this.homeDailySpend) return 0;
-    return ((this.tripDailySpend - this.homeDailySpend) / this.homeDailySpend) * 100;
+    return (
+      ((this.tripDailySpend - this.homeDailySpend) / this.homeDailySpend) * 100
+    );
   }
 
   get paceLabel(): string {
@@ -806,17 +924,20 @@ export class TravelPage implements OnInit {
   }
 
   get foodDrift(): number {
-    const foodTxns = this.transactions.filter(t =>
-      t.category === 'food' || t.venueName.toLowerCase().includes('cafe') ||
-      t.venueName.toLowerCase().includes('restaurant') ||
-      t.venueName.toLowerCase().includes('kopitiam')
+    const foodTxns = this.transactions.filter(
+      (t) =>
+        t.category === 'food' ||
+        t.venueName.toLowerCase().includes('cafe') ||
+        t.venueName.toLowerCase().includes('restaurant') ||
+        t.venueName.toLowerCase().includes('kopitiam'),
     );
     const foodSpend = foodTxns.reduce((sum, t) => sum + t.amount, 0);
     if (!this.budget || this.budget.spentSoFar === 0) return 0;
     const tripFoodShare = (foodSpend / this.budget.spentSoFar) * 100;
-    const homeFoodShare = (this.dnaProfile?.topCategories?.find((c: any) =>
-      c.category === 'Dining' || c.category === 'Coffee'
-    )?.share || 0.35) * 100;
+    const homeFoodShare =
+      (this.dnaProfile?.topCategories?.find(
+        (c: any) => c.category === 'Dining' || c.category === 'Coffee',
+      )?.share || 0.35) * 100;
     return tripFoodShare - homeFoodShare;
   }
 
@@ -853,18 +974,24 @@ export class TravelPage implements OnInit {
       { key: 'food', name: 'Food & Dining', color: '#d71920' },
       { key: 'shopping', name: 'Shopping', color: '#ff9500' },
       { key: 'transport', name: 'Transport', color: '#2f80ed' },
-      { key: 'activities', name: 'Activities', color: '#34c759' }
+      { key: 'activities', name: 'Activities', color: '#34c759' },
     ];
 
-    this.simulatorCategories = cats.map(c => {
+    this.simulatorCategories = cats.map((c) => {
       const current = this.getSpentInCategory(c.key);
       const budget = this.categoryBudgets[c.key] || 0;
-      return { ...c, current, adjusted: budget > 0 ? budget : Math.round((this.budget?.typicalTripSpend || 500) * 0.25) };
+      return {
+        ...c,
+        current,
+        adjusted:
+          budget > 0
+            ? budget
+            : Math.round((this.budget?.typicalTripSpend || 500) * 0.25),
+      };
     });
 
     this.isSimulatorOpen = true;
   }
-
 
   closeSimulator() {
     this.isSimulatorOpen = false;
@@ -916,25 +1043,32 @@ export class TravelPage implements OnInit {
     const names = ['Food', 'Shopping', 'Transport', 'Activities'];
     const colors = ['#d71920', '#ff9500', '#2f80ed', '#34c759'];
 
-    const categoryBreakdown = cats.map((key, i) => {
-      const amount = this.transactions.filter(t => t.category === key).reduce((s, t) => s + t.amount, 0);
-      return {
-        key,
-        name: names[i],
-        amount,
-        percentage: totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
-        color: colors[i]
-      };
-    }).filter(c => c.amount > 0).sort((a, b) => b.amount - a.amount);
+    const categoryBreakdown = cats
+      .map((key, i) => {
+        const amount = this.transactions
+          .filter((t) => t.category === key)
+          .reduce((s, t) => s + t.amount, 0);
+        return {
+          key,
+          name: names[i],
+          amount,
+          percentage:
+            totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
+          color: colors[i],
+        };
+      })
+      .filter((c) => c.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
 
-    const venueNames = [...new Set(this.transactions.map(t => t.venueName))];
+    const venueNames = [...new Set(this.transactions.map((t) => t.venueName))];
     const vsHome = this.paceVsHome;
     const overUnder = totalSpent - typical;
 
     this.tripReport = {
       totalSpent,
       typical,
-      percentageUsed: typical > 0 ? Math.round((totalSpent / typical) * 100) : 0,
+      percentageUsed:
+        typical > 0 ? Math.round((totalSpent / typical) * 100) : 0,
       categoryBreakdown,
       venuesVisited: venueNames.length,
       venueNames: venueNames.slice(0, 5),
@@ -942,7 +1076,7 @@ export class TravelPage implements OnInit {
       overUnder,
       avgDaily: this.tripDailySpend,
       days: this.tripDay,
-      transactions: [...this.transactions]
+      transactions: [...this.transactions],
     };
   }
 
@@ -1013,7 +1147,11 @@ export class TravelPage implements OnInit {
       ctx.fillText(cat.name, 50, y);
       ctx.fillStyle = '#888';
       ctx.font = '16px sans-serif';
-      ctx.fillText(`$${cat.amount.toFixed(0)} · ${cat.percentage}%`, 50, y + 24);
+      ctx.fillText(
+        `$${cat.amount.toFixed(0)} · ${cat.percentage}%`,
+        50,
+        y + 24,
+      );
 
       ctx.fillStyle = '#e0e0e0';
       ctx.fillRect(50, y + 36, 500, 12);
@@ -1027,7 +1165,11 @@ export class TravelPage implements OnInit {
     ctx.fillStyle = '#aaa';
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${this.tripReport.venuesVisited} venues visited · ${this.tripReport.days} days`, 300, 860);
+    ctx.fillText(
+      `${this.tripReport.venuesVisited} venues visited · ${this.tripReport.days} days`,
+      300,
+      860,
+    );
 
     const link = document.createElement('a');
     link.download = `nets-trip-report-${Date.now()}.png`;
@@ -1045,7 +1187,9 @@ export class TravelPage implements OnInit {
       `📍 Venues: ${this.tripReport.venuesVisited}`,
       '',
       'Category Breakdown:',
-      ...this.tripReport.categoryBreakdown.map((c: any) => `• ${c.name}: $${c.amount.toFixed(0)} (${c.percentage}%)`)
+      ...this.tripReport.categoryBreakdown.map(
+        (c: any) => `• ${c.name}: $${c.amount.toFixed(0)} (${c.percentage}%)`,
+      ),
     ];
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       alert('Trip summary copied to clipboard!');
@@ -1072,7 +1216,10 @@ export class TravelPage implements OnInit {
 
   openInMaps(card: RecommendationCard) {
     const query = encodeURIComponent(`${card.venueName}, ${card.address}`);
-    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+    window.open(
+      `https://www.google.com/maps/search/?api=1&query=${query}`,
+      '_blank',
+    );
   }
 
   formatTimeAgo(isoString: string): string {
@@ -1098,11 +1245,14 @@ export class TravelPage implements OnInit {
   }
 
   saveSimulatorPlan() {
-    localStorage.setItem(`nets_simulator_plan_${this.userId}`, JSON.stringify(this.simulatorPlan));
+    localStorage.setItem(
+      `nets_simulator_plan_${this.userId}`,
+      JSON.stringify(this.simulatorPlan),
+    );
   }
 
   applySimulatorPlan() {
-    this.simulatorCategories.forEach(cat => {
+    this.simulatorCategories.forEach((cat) => {
       this.categoryBudgets[cat.key] = cat.adjusted;
     });
     this.saveCategoryBudgets();
@@ -1118,7 +1268,7 @@ export class TravelPage implements OnInit {
   getCategoryOverspend(key: string): number {
     const planned = this.simulatorPlan[key] || 0;
     const actual = this.transactions
-      .filter(t => t.category === key)
+      .filter((t) => t.category === key)
       .reduce((sum, t) => sum + t.amount, 0);
     return actual - planned;
   }
@@ -1137,14 +1287,18 @@ export class TravelPage implements OnInit {
         this.categoryBudgets = {};
       }
     }
-  } saveCategoryBudgets() {
-    localStorage.setItem(`nets_category_budgets_${this.userId}`, JSON.stringify(this.categoryBudgets));
+  }
+  saveCategoryBudgets() {
+    localStorage.setItem(
+      `nets_category_budgets_${this.userId}`,
+      JSON.stringify(this.categoryBudgets),
+    );
   }
 
   // Get spent per category
   getSpentInCategory(key: string): number {
     return this.transactions
-      .filter(t => t.category === key)
+      .filter((t) => t.category === key)
       .reduce((sum, t) => sum + t.amount, 0);
   }
 
@@ -1169,10 +1323,55 @@ export class TravelPage implements OnInit {
   // Infer category from card (reuse your existing logic)
   getCategoryFromCard(card: RecommendationCard): string {
     const n = card.venueName.toLowerCase();
-    if (n.includes('cafe') || n.includes('kopitiam') || n.includes('restaurant') || n.includes('food') || n.includes('eats') || n.includes('dining') || n.includes('bakery') || n.includes('hawker') || n.includes('kitchen') || n.includes('noodle')) return 'food';
-    if (n.includes('mall') || n.includes('shop') || n.includes('store') || n.includes('market') || n.includes('plaza') || n.includes('boutique') || n.includes('retail')) return 'shopping';
-    if (n.includes('museum') || n.includes('park') || n.includes('temple') || n.includes('garden') || n.includes('attraction') || n.includes('zoo') || n.includes('gallery') || n.includes('theme') || n.includes('adventure') || n.includes('beach') || n.includes('landmark')) return 'activities';
-    if (n.includes('bus') || n.includes('taxi') || n.includes('train') || n.includes('ferry') || n.includes('transport') || n.includes('mrt') || n.includes('rail') || n.includes('transit') || n.includes('terminal')) return 'transport';
+    if (
+      n.includes('cafe') ||
+      n.includes('kopitiam') ||
+      n.includes('restaurant') ||
+      n.includes('food') ||
+      n.includes('eats') ||
+      n.includes('dining') ||
+      n.includes('bakery') ||
+      n.includes('hawker') ||
+      n.includes('kitchen') ||
+      n.includes('noodle')
+    )
+      return 'food';
+    if (
+      n.includes('mall') ||
+      n.includes('shop') ||
+      n.includes('store') ||
+      n.includes('market') ||
+      n.includes('plaza') ||
+      n.includes('boutique') ||
+      n.includes('retail')
+    )
+      return 'shopping';
+    if (
+      n.includes('museum') ||
+      n.includes('park') ||
+      n.includes('temple') ||
+      n.includes('garden') ||
+      n.includes('attraction') ||
+      n.includes('zoo') ||
+      n.includes('gallery') ||
+      n.includes('theme') ||
+      n.includes('adventure') ||
+      n.includes('beach') ||
+      n.includes('landmark')
+    )
+      return 'activities';
+    if (
+      n.includes('bus') ||
+      n.includes('taxi') ||
+      n.includes('train') ||
+      n.includes('ferry') ||
+      n.includes('transport') ||
+      n.includes('mrt') ||
+      n.includes('rail') ||
+      n.includes('transit') ||
+      n.includes('terminal')
+    )
+      return 'transport';
     return 'food';
   }
 
@@ -1185,10 +1384,55 @@ export class TravelPage implements OnInit {
 
   getBudgetKeyFromCategoryTitle(title: string): string {
     const lower = title.toLowerCase();
-    if (lower.includes('coffee') || lower.includes('eat') || lower.includes('food') || lower.includes('dining') || lower.includes('hawker') || lower.includes('bakery') || lower.includes('kitchen') || lower.includes('noodle')) return 'food';
-    if (lower.includes('shop') || lower.includes('mall') || lower.includes('retail') || lower.includes('boutique') || lower.includes('market') || lower.includes('plaza')) return 'shopping';
-    if (lower.includes('transport') || lower.includes('bus') || lower.includes('taxi') || lower.includes('train') || lower.includes('ferry') || lower.includes('mrt') || lower.includes('rail') || lower.includes('transit') || lower.includes('terminal')) return 'transport';
-    if (lower.includes('culture') || lower.includes('museum') || lower.includes('park') || lower.includes('temple') || lower.includes('garden') || lower.includes('attraction') || lower.includes('zoo') || lower.includes('gallery') || lower.includes('theme') || lower.includes('adventure') || lower.includes('beach') || lower.includes('landmark') || lower.includes('must-see') || lower.includes('sight')) return 'activities';
+    if (
+      lower.includes('coffee') ||
+      lower.includes('eat') ||
+      lower.includes('food') ||
+      lower.includes('dining') ||
+      lower.includes('hawker') ||
+      lower.includes('bakery') ||
+      lower.includes('kitchen') ||
+      lower.includes('noodle')
+    )
+      return 'food';
+    if (
+      lower.includes('shop') ||
+      lower.includes('mall') ||
+      lower.includes('retail') ||
+      lower.includes('boutique') ||
+      lower.includes('market') ||
+      lower.includes('plaza')
+    )
+      return 'shopping';
+    if (
+      lower.includes('transport') ||
+      lower.includes('bus') ||
+      lower.includes('taxi') ||
+      lower.includes('train') ||
+      lower.includes('ferry') ||
+      lower.includes('mrt') ||
+      lower.includes('rail') ||
+      lower.includes('transit') ||
+      lower.includes('terminal')
+    )
+      return 'transport';
+    if (
+      lower.includes('culture') ||
+      lower.includes('museum') ||
+      lower.includes('park') ||
+      lower.includes('temple') ||
+      lower.includes('garden') ||
+      lower.includes('attraction') ||
+      lower.includes('zoo') ||
+      lower.includes('gallery') ||
+      lower.includes('theme') ||
+      lower.includes('adventure') ||
+      lower.includes('beach') ||
+      lower.includes('landmark') ||
+      lower.includes('must-see') ||
+      lower.includes('sight')
+    )
+      return 'activities';
     return 'food'; // default
   }
 
@@ -1223,13 +1467,16 @@ export class TravelPage implements OnInit {
 
   // Call this after places load
   buildWeatherItinerary() {
-    this.itinerary = this.weatherService.buildItinerary(this.places, this.forecast);
+    this.itinerary = this.weatherService.buildItinerary(
+      this.places,
+      this.forecast,
+    );
 
     // Also create a weather-sorted version of all places for the "Things to Do" tab
     if (this.forecast.length > 0) {
       this.weatherSortedPlaces = this.weatherService.sortPlacesByWeather(
         this.places,
-        this.forecast[0] // sort by today's weather
+        this.forecast[0], // sort by today's weather
       );
     }
   }
@@ -1251,7 +1498,9 @@ export class TravelPage implements OnInit {
     // 🔒 TRIP LOCK CHECK
     if (this.isTripLocked && destId !== this.currentTripCountry) {
       // Show alert or silently prevent — using alert for clarity
-      alert(`🔒 You're currently on a trip in ${this.currentDestination.name}!\n\nClick "Arrive Home" to end your trip before visiting another country.`);
+      alert(
+        `🔒 You're currently on a trip in ${this.currentDestination.name}!\n\nClick "Arrive Home" to end your trip before visiting another country.`,
+      );
       this.destinationDropdownOpen = false;
       return;
     }
@@ -1303,14 +1552,23 @@ export class TravelPage implements OnInit {
       fxPair: ['SGD', country.currencyCode], // ← MUST be array for FX service
       flag: country.flag,
       region: country.region,
-      categories: ['restaurant', 'tourist_attraction', 'shopping_mall', 'cafe', 'park'],
+      categories: [
+        'restaurant',
+        'tourist_attraction',
+        'shopping_mall',
+        'cafe',
+        'park',
+      ],
       packingExtras: this.getRegionPacking(country.region),
-      newsQuery: `${country.country} tourism`
+      newsQuery: `${country.country} tourism`,
     };
 
     this.currentDestination = dynamicDest;
     this.loadPlan();
-    localStorage.setItem('nets_selected_destination', JSON.stringify(dynamicDest));
+    localStorage.setItem(
+      'nets_selected_destination',
+      JSON.stringify(dynamicDest),
+    );
 
     // Clear and reload
     this.recommendations = [];
@@ -1327,11 +1585,36 @@ export class TravelPage implements OnInit {
 
   private getRegionPacking(region: string): string[] {
     const map: { [key: string]: string[] } = {
-      'Asia': ['Light breathable clothing', 'Mosquito repellent', 'Sunscreen', 'Comfortable sandals'],
-      'Europe': ['Layered clothing', 'Umbrella', 'Comfortable walking shoes', 'Universal power adapter'],
-      'Americas': ['Layered clothing', 'Sunscreen', 'Comfortable shoes', 'Reusable water bottle'],
-      'Africa': ['Light cotton clothing', 'Sun hat', 'Insect repellent', 'Sturdy walking shoes'],
-      'Oceania': ['Swimwear', 'Sunscreen', 'Light clothing', 'Reusable water bottle'],
+      Asia: [
+        'Light breathable clothing',
+        'Mosquito repellent',
+        'Sunscreen',
+        'Comfortable sandals',
+      ],
+      Europe: [
+        'Layered clothing',
+        'Umbrella',
+        'Comfortable walking shoes',
+        'Universal power adapter',
+      ],
+      Americas: [
+        'Layered clothing',
+        'Sunscreen',
+        'Comfortable shoes',
+        'Reusable water bottle',
+      ],
+      Africa: [
+        'Light cotton clothing',
+        'Sun hat',
+        'Insect repellent',
+        'Sturdy walking shoes',
+      ],
+      Oceania: [
+        'Swimwear',
+        'Sunscreen',
+        'Light clothing',
+        'Reusable water bottle',
+      ],
     };
     return map[region] || map['Asia'];
   }
@@ -1341,7 +1624,7 @@ export class TravelPage implements OnInit {
     const modal = await this.modalCtrl.create({
       component: CountryGlobeComponent,
       cssClass: 'globe-modal-fullscreen',
-      backdropDismiss: true
+      backdropDismiss: true,
     });
     await modal.present();
     const { data } = await modal.onWillDismiss();
@@ -1362,11 +1645,14 @@ export class TravelPage implements OnInit {
     this.weatherService.getForecast(this.currentDestination).subscribe({
       next: (forecast) => {
         this.forecast = forecast;
-        this.packingList = this.weatherService.getPackingList(forecast, this.currentDestination);
+        this.packingList = this.weatherService.getPackingList(
+          forecast,
+          this.currentDestination,
+        );
 
         // Try to build itinerary — places might already be loaded from cache
         this.tryBuildWeatherItinerary();
-      }
+      },
     });
   }
 
@@ -1394,35 +1680,53 @@ export class TravelPage implements OnInit {
     // FIX: Read from the same Firestore endpoint that fx-tracker writes to
     this.cardsService.getCardWallet(userId, this.activeCard.id).subscribe({
       next: (multiWallet: MultiCurrencyWallet) => {
-        this.multiCurrencyBalances = multiWallet.currencies.map(currency => ({
+        this.multiCurrencyBalances = multiWallet.currencies.map((currency) => ({
           currency,
           amount: multiWallet.balances[currency] || 0,
-          flag: this.getCurrencyFlag(currency) // ← ADD THIS
+          flag: this.getCurrencyFlag(currency), // ← ADD THIS
         }));
       },
       error: () => {
         // Fallback: just SGD from the card itself
         const sgdBalance = getCardFundsAmount(this.activeCard);
-        this.multiCurrencyBalances = [{
-          currency: 'SGD',
-          amount: sgdBalance,
-          flag: this.getCurrencyFlag('SGD') // ← ADD THIS
-        }];
-      }
+        this.multiCurrencyBalances = [
+          {
+            currency: 'SGD',
+            amount: sgdBalance,
+            flag: this.getCurrencyFlag('SGD'), // ← ADD THIS
+          },
+        ];
+      },
     });
   }
   private getCurrencyFlag(currency: string): string {
     const flags: Record<string, string> = {
-      SGD: '🇸🇬', MYR: '🇲🇾', THB: '🇹🇭', JPY: '🇯🇵', KRW: '🇰🇷',
-      AUD: '🇦🇺', USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', CNY: '🇨🇳',
-      HKD: '🇭🇰', CAD: '🇨🇦', CHF: '🇨🇭', INR: '🇮🇳', IDR: '🇮🇩',
-      PHP: '🇵🇭', VND: '🇻🇳', NZD: '🇳🇿'
+      SGD: '🇸🇬',
+      MYR: '🇲🇾',
+      THB: '🇹🇭',
+      JPY: '🇯🇵',
+      KRW: '🇰🇷',
+      AUD: '🇦🇺',
+      USD: '🇺🇸',
+      EUR: '🇪🇺',
+      GBP: '🇬🇧',
+      CNY: '🇨🇳',
+      HKD: '🇭🇰',
+      CAD: '🇨🇦',
+      CHF: '🇨🇭',
+      INR: '🇮🇳',
+      IDR: '🇮🇩',
+      PHP: '🇵🇭',
+      VND: '🇻🇳',
+      NZD: '🇳🇿',
     };
     return flags[currency] || '💱';
   }
 
   getCurrencyBalance(currency: string): number {
-    const balance = this.multiCurrencyBalances.find(b => b.currency === currency);
+    const balance = this.multiCurrencyBalances.find(
+      (b) => b.currency === currency,
+    );
     return balance?.amount || 0;
   }
 
@@ -1444,12 +1748,15 @@ export class TravelPage implements OnInit {
     const estimatedSgd = this.estimateAmount(venue.priceLevel);
     if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
       // Convert SGD estimate to foreign currency
-      this.paymentAmount = Math.round(estimatedSgd * this.fxInsight.currentRate);
+      this.paymentAmount = Math.round(
+        estimatedSgd * this.fxInsight.currentRate,
+      );
     } else {
       this.paymentAmount = estimatedSgd;
     }
 
-    this.paymentAmountText = this.paymentAmount > 0 ? String(this.paymentAmount) : '';
+    this.paymentAmountText =
+      this.paymentAmount > 0 ? String(this.paymentAmount) : '';
 
     // Load latest balances before showing modal
     this.loadMultiCurrencyBalances();
@@ -1458,13 +1765,16 @@ export class TravelPage implements OnInit {
   }
 
   confirmPayment() {
-    if (!this.budget || !this.selectedVenue || this.paymentAmount < 0.01) return;
+    if (!this.budget || !this.selectedVenue || this.paymentAmount < 0.01)
+      return;
 
     // Check balance in the correct currency
     if (!this.hasSufficientBalance(this.paymentAmount, this.paymentCurrency)) {
       const bal = this.getCurrencyBalance(this.paymentCurrency);
       const sym = this.paymentCurrencySymbol;
-      alert(`Insufficient ${this.paymentCurrency} balance.\n\nAvailable: ${sym}${bal.toFixed(2)}\nNeed: ${sym}${this.paymentAmount.toFixed(2)}\n\nPlease exchange currency in FX Tracker first.`);
+      alert(
+        `Insufficient ${this.paymentCurrency} balance.\n\nAvailable: ${sym}${bal.toFixed(2)}\nNeed: ${sym}${this.paymentAmount.toFixed(2)}\n\nPlease exchange currency in FX Tracker first.`,
+      );
       return;
     }
 
@@ -1474,74 +1784,85 @@ export class TravelPage implements OnInit {
     const userId = this.auth.userId ?? 'user_1';
 
     // ─── CALL BACKEND TO DEDUCT ───
-    this.cardsService.deductCurrency(userId, cardId, {
-      currency: this.paymentCurrency,
-      amount: this.paymentAmount
-    }).subscribe({
-      next: (result) => {
-        this.isPaying = false;
+    this.cardsService
+      .deductCurrency(userId, cardId, {
+        currency: this.paymentCurrency,
+        amount: this.paymentAmount,
+      })
+      .subscribe({
+        next: (result) => {
+          this.isPaying = false;
 
-        if (!result.success) {
-          alert(result.message);
-          return;
-        }
-
-        // Calculate SGD equivalent for budget tracking
-        let sgdEquivalent: number;
-        if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
-          sgdEquivalent = this.paymentAmount / this.fxInsight.currentRate;
-        } else {
-          sgdEquivalent = this.paymentAmount;
-        }
-
-        // Update travel budget
-        this.budget!.spentSoFar += sgdEquivalent;
-        this.budget!.remaining = Math.max(0, this.budget!.typicalTripSpend - this.budget!.spentSoFar);
-        this.budget!.percentage = Math.min(
-          100,
-          (this.budget!.spentSoFar / this.budget!.typicalTripSpend) * 100
-        );
-
-        // Record transaction
-        this.transactions.unshift({
-          id: Date.now().toString(),
-          venueName: this.selectedVenue!.venueName,
-          amount: sgdEquivalent,
-          timestamp: new Date().toISOString(),
-          cardLabel: this.activeCard ? formatCardPaymentLabel(this.activeCard) : 'NETS Card',
-          category,
-        });
-
-        if (this.transactions.length > 5) {
-          this.transactions = this.transactions.slice(0, 5);
-        }
-
-        this.saveBudget();
-        this.plannedVenues = this.plannedVenues.filter(v => v.venueName !== this.selectedVenue?.venueName);
-        this.savePlan();
-
-        window.dispatchEvent(new CustomEvent('nets:travelPaymentCompleted', {
-          detail: {
-            cardId: cardId,
-            currency: this.paymentCurrency,
-            amount: this.paymentAmount,
-            sgdEquivalent: sgdEquivalent,        // ← Rewards use this
-            venue: this.selectedVenue?.venueName,
-            category: category,                  // ← 'food', 'shopping', etc.
-            timestamp: new Date().toISOString(),
-            newBalances: result.newBalances
+          if (!result.success) {
+            alert(result.message);
+            return;
           }
-        }));
 
-        // Reload balances to reflect deduction
-        this.loadMultiCurrencyBalances();
-        this.closePaymentModal();
-      },
-      error: () => {
-        this.isPaying = false;
-        alert('Payment failed. Please try again.');
-      }
-    });
+          // Calculate SGD equivalent for budget tracking
+          let sgdEquivalent: number;
+          if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
+            sgdEquivalent = this.paymentAmount / this.fxInsight.currentRate;
+          } else {
+            sgdEquivalent = this.paymentAmount;
+          }
+
+          // Update travel budget
+          this.budget!.spentSoFar += sgdEquivalent;
+          this.budget!.remaining = Math.max(
+            0,
+            this.budget!.typicalTripSpend - this.budget!.spentSoFar,
+          );
+          this.budget!.percentage = Math.min(
+            100,
+            (this.budget!.spentSoFar / this.budget!.typicalTripSpend) * 100,
+          );
+
+          // Record transaction
+          this.transactions.unshift({
+            id: Date.now().toString(),
+            venueName: this.selectedVenue!.venueName,
+            amount: sgdEquivalent,
+            timestamp: new Date().toISOString(),
+            cardLabel: this.activeCard
+              ? formatCardPaymentLabel(this.activeCard)
+              : 'NETS Card',
+            category,
+          });
+
+          if (this.transactions.length > 5) {
+            this.transactions = this.transactions.slice(0, 5);
+          }
+
+          this.saveBudget();
+          this.plannedVenues = this.plannedVenues.filter(
+            (v) => v.venueName !== this.selectedVenue?.venueName,
+          );
+          this.savePlan();
+
+          window.dispatchEvent(
+            new CustomEvent('nets:travelPaymentCompleted', {
+              detail: {
+                cardId: cardId,
+                currency: this.paymentCurrency,
+                amount: this.paymentAmount,
+                sgdEquivalent: sgdEquivalent, // ← Rewards use this
+                venue: this.selectedVenue?.venueName,
+                category: category, // ← 'food', 'shopping', etc.
+                timestamp: new Date().toISOString(),
+                newBalances: result.newBalances,
+              },
+            }),
+          );
+
+          // Reload balances to reflect deduction
+          this.loadMultiCurrencyBalances();
+          this.closePaymentModal();
+        },
+        error: () => {
+          this.isPaying = false;
+          alert('Payment failed. Please try again.');
+        },
+      });
   }
 
   getCurrencySymbol(currency: string): string {
@@ -1574,7 +1895,9 @@ export class TravelPage implements OnInit {
             this.tripDay = parsed.day || 1;
             this.tripTotalDays = parsed.duration || 4;
             this.selectedTripDuration = parsed.duration || 4;
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
       }
 
@@ -1583,7 +1906,10 @@ export class TravelPage implements OnInit {
         const lockedDest = DESTINATIONS[this.currentTripCountry];
         if (lockedDest) {
           this.currentDestination = lockedDest;
-          localStorage.setItem('nets_selected_destination', this.currentTripCountry);
+          localStorage.setItem(
+            'nets_selected_destination',
+            this.currentTripCountry,
+          );
         }
       }
     }
@@ -1600,7 +1926,9 @@ export class TravelPage implements OnInit {
           localStorage.setItem(newKey, oldPlan);
         }
         localStorage.removeItem(oldKey); // Remove old key
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -1610,28 +1938,31 @@ export class TravelPage implements OnInit {
       return;
     }
 
+    // LOCK: Prevent double-clicks
+    if (this.isGeneratingPlans) return;
+
     this.isGeneratingPlans = true;
+    this.generationCount++; // Bump for variation
 
     try {
       const center = this.getDestinationCenter();
-      const venues = this.smartPlanner.convertPlannedVenues(this.plannedVenues, center);
+      const venues = this.smartPlanner.convertPlannedVenues(
+        this.plannedVenues,
+        center,
+      );
 
       this.dayPlans = await this.smartPlanner.buildItinerary(
         venues,
         this.searchNearbyPoint.bind(this),
         this.numTripDays,
-        this.recommendations  // ← Pass DNA picks
+        this.recommendations,
+        this.generationCount, // ← PASS variation seed
       );
 
-      // DON'T overwrite numTripDays — keep the original estimate
-      // If buildItinerary returned fewer days, that's fine, we just show fewer
-      // If it tried to return more, it was capped by numTripDays
-
-      // Load routes for each day
       for (let i = 0; i < this.dayPlans.length; i++) {
         await this.loadDayRoute(this.dayPlans[i], i);
       }
-
+      this.precomputeNearbySuggestions();
     } finally {
       this.isGeneratingPlans = false;
     }
@@ -1640,15 +1971,23 @@ export class TravelPage implements OnInit {
   getDestinationCenter(): { lat: number; lng: number } {
     const centers: Record<string, { lat: number; lng: number }> = {
       'johor-bahru': { lat: 1.4927, lng: 103.7414 },
-      'tokyo': { lat: 35.6762, lng: 139.6503 },
-      'bangkok': { lat: 13.7563, lng: 100.5018 },
-      'seoul': { lat: 37.5665, lng: 126.9780 },
-      'kuala-lumpur': { lat: 3.1390, lng: 101.6869 },
-      'sydney': { lat: -33.8688, lng: 151.2093 },
+      tokyo: { lat: 35.6762, lng: 139.6503 },
+      bangkok: { lat: 13.7563, lng: 100.5018 },
+      seoul: { lat: 37.5665, lng: 126.978 },
+      'kuala-lumpur': { lat: 3.139, lng: 101.6869 },
+      sydney: { lat: -33.8688, lng: 151.2093 },
     };
 
-    const result = centers[this.currentDestination.id] || { lat: 1.35, lng: 103.8 };
-    console.log('Destination center for', this.currentDestination.id, ':', result);
+    const result = centers[this.currentDestination.id] || {
+      lat: 1.35,
+      lng: 103.8,
+    };
+    console.log(
+      'Destination center for',
+      this.currentDestination.id,
+      ':',
+      result,
+    );
     return result;
   }
 
@@ -1677,7 +2016,7 @@ export class TravelPage implements OnInit {
       if (place.geometry?.location) {
         placeCoords.set(key, {
           lat: place.geometry.location.lat,
-          lng: place.geometry.location.lng
+          lng: place.geometry.location.lng,
         });
       }
     }
@@ -1685,10 +2024,11 @@ export class TravelPage implements OnInit {
     // Attach to recommendations
     for (const rec of this.recommendations) {
       // Try to find matching place by name
-      const match = this.places.find(p =>
-        p.name === rec.venueName ||
-        p.vicinity?.includes(rec.venueName) ||
-        rec.venueName.includes(p.name)
+      const match = this.places.find(
+        (p) =>
+          p.name === rec.venueName ||
+          p.vicinity?.includes(rec.venueName) ||
+          rec.venueName.includes(p.name),
       );
 
       if (match?.geometry?.location) {
@@ -1696,7 +2036,7 @@ export class TravelPage implements OnInit {
         rec.lng = match.geometry.location.lng;
         rec.location = {
           latitude: match.geometry.location.lat,
-          longitude: match.geometry.location.lng
+          longitude: match.geometry.location.lng,
         };
       }
     }
@@ -1704,10 +2044,11 @@ export class TravelPage implements OnInit {
     // Also attach to category cards
     for (const cat of this.categories) {
       for (const card of cat.cards) {
-        const match = this.places.find(p =>
-          p.name === card.venueName ||
-          p.vicinity?.includes(card.venueName) ||
-          card.venueName.includes(p.name)
+        const match = this.places.find(
+          (p) =>
+            p.name === card.venueName ||
+            p.vicinity?.includes(card.venueName) ||
+            card.venueName.includes(p.name),
         );
 
         if (match?.geometry?.location) {
@@ -1715,21 +2056,29 @@ export class TravelPage implements OnInit {
           card.lng = match.geometry.location.lng;
           card.location = {
             latitude: match.geometry.location.lat,
-            longitude: match.geometry.location.lng
+            longitude: match.geometry.location.lng,
           };
         }
       }
     }
 
-    console.log('Attached coordinates to',
-      this.recommendations.filter(r => r.lat).length, 'recommendations and',
-      this.categories.reduce((sum, c) => sum + c.cards.filter(c => c.lat).length, 0), 'category cards'
+    console.log(
+      'Attached coordinates to',
+      this.recommendations.filter((r) => r.lat).length,
+      'recommendations and',
+      this.categories.reduce(
+        (sum, c) => sum + c.cards.filter((c) => c.lat).length,
+        0,
+      ),
+      'category cards',
     );
   }
 
   async showLockTimePicker(venue: PlannedVenue) {
     // Simple prompt for demo — replace with proper time picker later
-    const time = prompt(`Lock "${venue.name}" at what time? (HH:MM, e.g., 14:00)`);
+    const time = prompt(
+      `Lock "${venue.name}" at what time? (HH:MM, e.g., 14:00)`,
+    );
     if (time && /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time)) {
       venue.locked = true;
       venue.lockedTime = time;
@@ -1749,10 +2098,39 @@ export class TravelPage implements OnInit {
 
   // Add these methods to travel.page.ts
 
-  regenerateDay(day: DayPlan) {
-    console.log('Regenerating day', day.day);
-    // Just re-run generateDayPlans for now
-    this.generateDayPlans();
+  async regenerateDay(day: DayPlan) {
+    if (this.isGeneratingPlans) return;
+
+    const dayIndex = this.dayPlans.findIndex((d) => d.day === day.day);
+    if (dayIndex === -1) return;
+
+    this.isGeneratingPlans = true;
+    this.generationCount++;
+
+    try {
+      const center = this.getDestinationCenter();
+      const venues = this.smartPlanner.convertPlannedVenues(
+        this.plannedVenues,
+        center,
+      );
+
+      // Build fresh itinerary with variation
+      const freshPlans = await this.smartPlanner.buildItinerary(
+        venues,
+        this.searchNearbyPoint.bind(this),
+        this.numTripDays,
+        this.recommendations,
+        this.generationCount,
+      );
+
+      // Replace only this day, keep others
+      if (freshPlans[dayIndex]) {
+        this.dayPlans[dayIndex] = freshPlans[dayIndex];
+        await this.loadDayRoute(this.dayPlans[dayIndex], dayIndex);
+      }
+    } finally {
+      this.isGeneratingPlans = false;
+    }
   }
 
   openDayMap(day: DayPlan) {
@@ -1761,8 +2139,9 @@ export class TravelPage implements OnInit {
     const origin = `${day.venues[0].lat},${day.venues[0].lng}`;
     const destination = `${day.venues[day.venues.length - 1].lat},${day.venues[day.venues.length - 1].lng}`;
 
-    const waypoints = day.venues.slice(1, -1)
-      .map(v => `${v.lat},${v.lng}`)
+    const waypoints = day.venues
+      .slice(1, -1)
+      .map((v) => `${v.lat},${v.lng}`)
       .join('|');
 
     let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
@@ -1778,18 +2157,22 @@ export class TravelPage implements OnInit {
 
     console.log(`=== loadDayRoute Day ${day.day} ===`);
     console.log(`Venues: ${day.venues.length}`);
-    console.log(`First: ${day.venues[0]?.name}, Last: ${day.venues[day.venues.length - 1]?.name}`);
+    console.log(
+      `First: ${day.venues[0]?.name}, Last: ${day.venues[day.venues.length - 1]?.name}`,
+    );
 
     try {
       const updatedDay = await this.smartPlanner.assignTimeSlotsWithDirections(
         day,
         async (origin, destination, waypoints) => {
-          console.log(`Calling Directions API: origin=${JSON.stringify(origin)}, dest=${JSON.stringify(destination)}, waypoints=${waypoints.length}`);
+          console.log(
+            `Calling Directions API: origin=${JSON.stringify(origin)}, dest=${JSON.stringify(destination)}, waypoints=${waypoints.length}`,
+          );
 
           try {
-            const route = await this.routeService.getOptimizedRoute(
-              origin, destination, waypoints, 'driving'
-            ).toPromise() as any;
+            const route = (await this.routeService
+              .getOptimizedRoute(origin, destination, waypoints, 'driving')
+              .toPromise()) as any;
 
             console.log(`Directions response status:`, route?.status);
             console.log(`Directions legs count:`, route?.legs?.length);
@@ -1799,7 +2182,7 @@ export class TravelPage implements OnInit {
             console.error(`Directions API call failed:`, err);
             return null;
           }
-        }
+        },
       );
 
       // Copy updated properties back
@@ -1810,58 +2193,78 @@ export class TravelPage implements OnInit {
       day.totalDurationMinutes = updatedDay.totalDurationMinutes;
       day.routeDetails = updatedDay.routeDetails;
 
-      console.log(`Day ${day.day} routeDetails set:`, day.routeDetails ? 'YES' : 'NO');
-      console.log(`Day ${day.day} routeDetails status:`, day.routeDetails?.status);
-
+      console.log(
+        `Day ${day.day} routeDetails set:`,
+        day.routeDetails ? 'YES' : 'NO',
+      );
+      console.log(
+        `Day ${day.day} routeDetails status:`,
+        day.routeDetails?.status,
+      );
     } catch (err) {
       console.error(`loadDayRoute Day ${day.day} FAILED:`, err);
     }
 
     // Generate static map URL (moved outside try so it always runs)
-    const allPoints = day.venues.map(v => ({ lat: v.lat, lng: v.lng }));
+    const allPoints = day.venues.map((v) => ({ lat: v.lat, lng: v.lng }));
     const routePolyline = day.routeDetails?.polyline;
 
-    day.routeImageUrl = this.routeService.getStaticMapUrl(
-      this.getCenter(allPoints),
-      allPoints,
-      undefined,
-      routePolyline,
-      14, 600, 180
-    ) + `&_cb=${Date.now()}`;
+    day.routeImageUrl =
+      this.routeService.getStaticMapUrl(
+        this.getCenter(allPoints),
+        allPoints,
+        undefined,
+        routePolyline,
+        14,
+        600,
+        180,
+      ) + `&_cb=${Date.now()}`;
 
     // ENSURE routeDetails always exists for map rendering
     if (!day.routeDetails) {
-      const allPoints = day.venues.map(v => ({ lat: v.lat, lng: v.lng }));
+      const allPoints = day.venues.map((v) => ({ lat: v.lat, lng: v.lng }));
       day.routeDetails = {
         status: 'FALLBACK',
         optimizedOrder: [],
         totalDistance: 0,
         totalDuration: 0,
         polyline: '',
-        decodedPath: allPoints,  // ← ALL venues, not just non-meal
+        decodedPath: allPoints, // ← ALL venues, not just non-meal
         legs: [],
-        bounds: this.calculateBounds(allPoints)
+        bounds: this.calculateBounds(allPoints),
       } as DirectionsResponse;
     } else if (day.routeDetails.status === 'OK') {
       // If API succeeded, ensure decodedPath includes ALL venues (meals + activities)
       // The API only returns path for waypoints, but we need pins for meals too
-      const allPoints = day.venues.map(v => ({ lat: v.lat, lng: v.lng }));
+      const allPoints = day.venues.map((v) => ({ lat: v.lat, lng: v.lng }));
       day.routeDetails.decodedPath = allPoints;
     }
 
-    console.log(`Day ${day.day} complete:`, day.venues.map(v =>
-      `${v.startTime}-${v.endTime} ${v.name} (${v.type})`
-    ));
+    console.log(
+      `Day ${day.day} complete:`,
+      day.venues.map(
+        (v) => `${v.startTime}-${v.endTime} ${v.name} (${v.type})`,
+      ),
+    );
   }
 
-
-  private async searchNearbyPoint(lat: number, lng: number, keyword: string): Promise<import('../../services/smart-planner.service').PlannedVenue | null> {
+  private async searchNearbyPoint(
+    lat: number,
+    lng: number,
+    keyword: string,
+  ): Promise<
+    import('../../services/smart-planner.service').PlannedVenue | null
+  > {
     try {
-      const result: any = await this.routeService.searchNearbyPoint(lat, lng, keyword).toPromise();
+      const result: any = await this.routeService
+        .searchNearbyPoint(lat, lng, keyword)
+        .toPromise();
 
       // DEFENSIVE: Handle undefined/null result
       if (!result) {
-        console.log(`Nearby search returned null for ${keyword} at ${lat},${lng}`);
+        console.log(
+          `Nearby search returned null for ${keyword} at ${lat},${lng}`,
+        );
         return null;
       }
 
@@ -1903,14 +2306,16 @@ export class TravelPage implements OnInit {
     }
   }
 
-  private mapKeywordToType(keyword: string): import('../../services/smart-planner.service').PlannedVenue['type'] {
+  private mapKeywordToType(
+    keyword: string,
+  ): import('../../services/smart-planner.service').PlannedVenue['type'] {
     const map: Record<string, any> = {
-      'cafe': 'cafe',
-      'restaurant': 'restaurant',
-      'attraction': 'attraction',
-      'shopping': 'shopping',
-      'nightlife': 'nightlife',
-      'activity': 'activity',
+      cafe: 'cafe',
+      restaurant: 'restaurant',
+      attraction: 'attraction',
+      shopping: 'shopping',
+      nightlife: 'nightlife',
+      activity: 'activity',
     };
     return map[keyword] || 'attraction';
   }
@@ -1937,19 +2342,25 @@ export class TravelPage implements OnInit {
     return totalSeconds || 600; // fallback 10 min = 600s
   }
 
-  private applyOptimizedOrder(venues: PlannedVenue[], order: number[]): PlannedVenue[] {
-    if (venues.length <= 2 || order.length === 0) return venues;  // ← Fixed: order, not waypointOrder
+  private applyOptimizedOrder(
+    venues: PlannedVenue[],
+    order: number[],
+  ): PlannedVenue[] {
+    if (venues.length <= 2 || order.length === 0) return venues; // ← Fixed: order, not waypointOrder
 
     const origin = venues[0];
     const waypoints = venues.slice(1, -1);
     const destination = venues[venues.length - 1];
 
-    const reorderedWaypoints = order.map(idx => waypoints[idx]);  // ← Fixed: order, not waypointOrder
+    const reorderedWaypoints = order.map((idx) => waypoints[idx]); // ← Fixed: order, not waypointOrder
 
     return [origin, ...reorderedWaypoints, destination];
   }
 
-  private getCenter(points: { lat: number; lng: number }[]): { lat: number; lng: number } {
+  private getCenter(points: { lat: number; lng: number }[]): {
+    lat: number;
+    lng: number;
+  } {
     const avgLat = points.reduce((s, p) => s + p.lat, 0) / points.length;
     const avgLng = points.reduce((s, p) => s + p.lng, 0) / points.length;
     return { lat: avgLat, lng: avgLng };
@@ -1958,19 +2369,23 @@ export class TravelPage implements OnInit {
   openRouteInMaps(day: DayPlan) {
     if (!day.routeDetails) return;
 
-    const venues = day.venues.filter(v => !v.isMeal);
+    const venues = day.venues.filter((v) => !v.isMeal);
     if (venues.length < 2) return;
 
     const origin = { lat: venues[0].lat, lng: venues[0].lng };
     const destination = {
       lat: venues[venues.length - 1].lat,
-      lng: venues[venues.length - 1].lng
+      lng: venues[venues.length - 1].lng,
     };
-    const waypoints = venues.slice(1, -1).map(v => ({ lat: v.lat, lng: v.lng }));
+    const waypoints = venues
+      .slice(1, -1)
+      .map((v) => ({ lat: v.lat, lng: v.lng }));
 
-    this.routeService.getDirectionsUrl(origin, destination, waypoints).subscribe(res => {
-      window.open(res.url, '_blank');
-    });
+    this.routeService
+      .getDirectionsUrl(origin, destination, waypoints)
+      .subscribe((res) => {
+        window.open(res.url, '_blank');
+      });
   }
 
   async optimizeDayRoute(day: DayPlan, index: number) {
@@ -2009,39 +2424,52 @@ export class TravelPage implements OnInit {
     const newEndMinutes = newStartMinutes + venue.durationMinutes;
 
     // Validate time range
-    if (newStartMinutes < this.timeToMinutes('06:00') || newEndMinutes > this.timeToMinutes('23:00')) {
+    if (
+      newStartMinutes < this.timeToMinutes('06:00') ||
+      newEndMinutes > this.timeToMinutes('23:00')
+    ) {
       alert('Please choose a time between 06:00 and 23:00');
       return;
     }
 
     // Validate: check for overlapping locks in same day (NEW)
     const day = this.dayPlans[this.activeDayIndex];
-    const overlap = day.venues.find(v =>
-      v.id !== venue.id &&
-      v.locked &&
-      v.lockedTime &&
-      this.timesOverlap(newStartMinutes, newEndMinutes,
-        this.timeToMinutes(v.lockedTime!),
-        this.timeToMinutes(v.lockedTime!) + v.durationMinutes)
+    const overlap = day.venues.find(
+      (v) =>
+        v.id !== venue.id &&
+        v.locked &&
+        v.lockedTime &&
+        this.timesOverlap(
+          newStartMinutes,
+          newEndMinutes,
+          this.timeToMinutes(v.lockedTime!),
+          this.timeToMinutes(v.lockedTime!) + v.durationMinutes,
+        ),
     );
 
     if (overlap) {
-      alert(`Time conflict! "${overlap.name}" is already locked from ${overlap.startTime} to ${overlap.endTime}. Please choose a different time.`);
+      alert(
+        `Time conflict! "${overlap.name}" is already locked from ${overlap.startTime} to ${overlap.endTime}. Please choose a different time.`,
+      );
       return;
     }
 
     // Validate: check if travel time is impossible (NEW)
-    const venueIndex = day.venues.findIndex(v => v.id === venue.id);
+    const venueIndex = day.venues.findIndex((v) => v.id === venue.id);
     const prevVenue = venueIndex > 0 ? day.venues[venueIndex - 1] : null;
-    const nextVenue = venueIndex < day.venues.length - 1 ? day.venues[venueIndex + 1] : null;
+    const nextVenue =
+      venueIndex < day.venues.length - 1 ? day.venues[venueIndex + 1] : null;
 
     if (prevVenue && prevVenue.locked && prevVenue.lockedTime) {
-      const prevEnd = this.timeToMinutes(prevVenue.lockedTime!) + prevVenue.durationMinutes;
+      const prevEnd =
+        this.timeToMinutes(prevVenue.lockedTime!) + prevVenue.durationMinutes;
       const travelFromPrev = this.estimateTravelMinutes(prevVenue, venue);
       const minStart = prevEnd + travelFromPrev;
 
       if (newStartMinutes < minStart) {
-        alert(`Cannot start at ${this.selectedTime} — "${prevVenue.name}" ends at ${prevVenue.endTime} with ${travelFromPrev} min travel. Earliest start: ${this.minutesToTime(minStart)}`);
+        alert(
+          `Cannot start at ${this.selectedTime} — "${prevVenue.name}" ends at ${prevVenue.endTime} with ${travelFromPrev} min travel. Earliest start: ${this.minutesToTime(minStart)}`,
+        );
         return;
       }
     }
@@ -2052,7 +2480,9 @@ export class TravelPage implements OnInit {
       const maxEnd = nextStart - travelToNext;
 
       if (newEndMinutes > maxEnd) {
-        alert(`Cannot end at ${this.minutesToTime(newEndMinutes)} — "${nextVenue.name}" starts at ${nextVenue.startTime} with ${travelToNext} min travel. Latest end: ${this.minutesToTime(maxEnd)}`);
+        alert(
+          `Cannot end at ${this.minutesToTime(newEndMinutes)} — "${nextVenue.name}" starts at ${nextVenue.startTime} with ${travelToNext} min travel. Latest end: ${this.minutesToTime(maxEnd)}`,
+        );
         return;
       }
     }
@@ -2064,7 +2494,9 @@ export class TravelPage implements OnInit {
     // Just mark as locked, then regenerate the day's schedule
 
     // Update in plannedVenues too
-    const planned = this.plannedVenues.find((v: any) => v.venueName === venue.name);
+    const planned = this.plannedVenues.find(
+      (v: any) => v.venueName === venue.name,
+    );
     if (planned) {
       planned.locked = true;
       planned.lockedTime = this.selectedTime;
@@ -2101,8 +2533,11 @@ export class TravelPage implements OnInit {
 
   openDetailForVenue(venue: PlannedVenue) {
     // Find matching recommendation card
-    const card = this.recommendations.find(r => r.venueName === venue.name) ||
-      this.categories.flatMap(c => c.cards).find(c => c.venueName === venue.name);
+    const card =
+      this.recommendations.find((r) => r.venueName === venue.name) ||
+      this.categories
+        .flatMap((c) => c.cards)
+        .find((c) => c.venueName === venue.name);
     if (card) {
       this.openDetailModal(card);
     }
@@ -2130,8 +2565,12 @@ export class TravelPage implements OnInit {
           if (v.startTime && v.endTime && !v.locked) {
             const [sh, sm] = v.startTime.split(':').map(Number);
             const [eh, em] = v.endTime.split(':').map(Number);
-            v.startTime = this.smartPlanner['minutesToTime'](sh * 60 + sm + shift);
-            v.endTime = this.smartPlanner['minutesToTime'](eh * 60 + em + shift);
+            v.startTime = this.smartPlanner['minutesToTime'](
+              sh * 60 + sm + shift,
+            );
+            v.endTime = this.smartPlanner['minutesToTime'](
+              eh * 60 + em + shift,
+            );
           }
         }
         break;
@@ -2160,7 +2599,6 @@ export class TravelPage implements OnInit {
     this.showMenu(venue);
   }
 
-
   scrollToMap() {
     document.getElementById('day-map')?.scrollIntoView({ behavior: 'smooth' });
   }
@@ -2183,10 +2621,12 @@ export class TravelPage implements OnInit {
 
   browseNearby(day: DayPlan) {
     // Get center of current day's venues and open Google Maps explore
-    const venues = day.venues.filter(v => !v.isMeal);
+    const venues = day.venues.filter((v) => !v.isMeal);
     if (venues.length === 0) return;
 
-    const center = this.getCenter(venues.map(v => ({ lat: v.lat, lng: v.lng })));
+    const center = this.getCenter(
+      venues.map((v) => ({ lat: v.lat, lng: v.lng })),
+    );
     const url = `https://www.google.com/maps/search/nearby/@${center.lat},${center.lng},15z`;
     window.open(url, '_blank');
   }
@@ -2194,16 +2634,25 @@ export class TravelPage implements OnInit {
   switchDay(index: number) {
     this.activeDayIndex = index;
     // Don't clear routeDetails — it causes the map to show "Generating"
-    console.log(`Switched to day ${index}, routeDetails:`, this.dayPlans[index]?.routeDetails ? 'present' : 'missing');
+    console.log(
+      `Switched to day ${index}, routeDetails:`,
+      this.dayPlans[index]?.routeDetails ? 'present' : 'missing',
+    );
   }
 
-  private estimateTravelTimeMinutes(from: { lat: number, lng: number }, to: { lat: number, lng: number }): number {
+  private estimateTravelTimeMinutes(
+    from: { lat: number; lng: number },
+    to: { lat: number; lng: number },
+  ): number {
     const R = 6371000;
-    const dLat = (to.lat - from.lat) * Math.PI / 180;
-    const dLng = (to.lng - from.lng) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(from.lat * Math.PI / 180) * Math.cos(to.lat * Math.PI / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const dLat = ((to.lat - from.lat) * Math.PI) / 180;
+    const dLng = ((to.lng - from.lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((from.lat * Math.PI) / 180) *
+        Math.cos((to.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distanceMeters = R * c;
     const distanceKm = distanceMeters / 1000;
@@ -2225,7 +2674,7 @@ export class TravelPage implements OnInit {
       // Longer: ~2.5 min per km + 2 min pickup
       minutes = 2 + distanceKm * 2.5;
     } else {
-      // Far: highway speed ~2 min per km 
+      // Far: highway speed ~2 min per km
       minutes = 2 + distanceKm * 2;
     }
 
@@ -2233,12 +2682,15 @@ export class TravelPage implements OnInit {
     return Math.max(2, Math.round(minutes));
   }
 
-  private calculateBounds(points: { lat: number; lng: number }[]): { northeast: { lat: number; lng: number }; southwest: { lat: number; lng: number } } {
-    const lats = points.map(p => p.lat);
-    const lngs = points.map(p => p.lng);
+  private calculateBounds(points: { lat: number; lng: number }[]): {
+    northeast: { lat: number; lng: number };
+    southwest: { lat: number; lng: number };
+  } {
+    const lats = points.map((p) => p.lat);
+    const lngs = points.map((p) => p.lng);
     return {
       northeast: { lat: Math.max(...lats), lng: Math.max(...lngs) },
-      southwest: { lat: Math.min(...lats), lng: Math.min(...lngs) }
+      southwest: { lat: Math.min(...lats), lng: Math.min(...lngs) },
     };
   }
 
@@ -2247,7 +2699,9 @@ export class TravelPage implements OnInit {
     delete venue.lockedTime;
 
     // Update in plannedVenues too
-    const planned = this.plannedVenues.find((v: any) => v.venueName === venue.name);
+    const planned = this.plannedVenues.find(
+      (v: any) => v.venueName === venue.name,
+    );
     if (planned) {
       planned.locked = false;
       delete planned.lockedTime;
@@ -2267,7 +2721,12 @@ export class TravelPage implements OnInit {
     return Math.max(0, gap);
   }
 
-  private timesOverlap(start1: number, end1: number, start2: number, end2: number): boolean {
+  private timesOverlap(
+    start1: number,
+    end1: number,
+    start2: number,
+    end2: number,
+  ): boolean {
     return start1 < end2 && end1 > start2;
   }
 
@@ -2279,17 +2738,28 @@ export class TravelPage implements OnInit {
     return Math.round(2 + distKm * 2);
   }
 
-  private haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  private haversine(
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number,
+  ): number {
     const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   async findAlternatives(venue: PlannedVenue) {
     if (!venue.isDnaSuggestion && !venue.isPlaceholder) {
-      console.log('Only DNA recommendations and placeholders can have alternatives');
+      console.log(
+        'Only DNA recommendations and placeholders can have alternatives',
+      );
       return;
     }
 
@@ -2299,17 +2769,24 @@ export class TravelPage implements OnInit {
     this.alternativeOptions = [];
 
     try {
-      const keyword = venue.type === 'cafe' ? 'cafe' :
-        venue.type === 'restaurant' ? 'restaurant' :
-          venue.type === 'nightlife' ? 'nightlife' : 'attraction';
+      const keyword =
+        venue.type === 'cafe'
+          ? 'cafe'
+          : venue.type === 'restaurant'
+            ? 'restaurant'
+            : venue.type === 'nightlife'
+              ? 'nightlife'
+              : 'attraction';
 
       // Call the HTTP method directly, not your wrapper
-      const result: any = await this.routeService.searchNearbyPoint(
-        venue.lat,
-        venue.lng,
-        keyword,
-        3000  // radius
-      ).toPromise();
+      const result: any = await this.routeService
+        .searchNearbyPoint(
+          venue.lat,
+          venue.lng,
+          keyword,
+          3000, // radius
+        )
+        .toPromise();
 
       // Handle the response shape from your backend
       const places = result?.places || [];
@@ -2333,7 +2810,6 @@ export class TravelPage implements OnInit {
           priceLevel: this.mapPriceLevel(p.priceLevel),
           whyThisTime: `📍 Alternative near ${venue.name}`,
         }));
-
     } catch (err) {
       console.error('Failed to load alternatives:', err);
     } finally {
@@ -2345,7 +2821,9 @@ export class TravelPage implements OnInit {
     if (!this.alternativesForVenue) return;
 
     const day = this.dayPlans[this.activeDayIndex];
-    const index = day.venues.findIndex(v => v.id === this.alternativesForVenue!.id);
+    const index = day.venues.findIndex(
+      (v) => v.id === this.alternativesForVenue!.id,
+    );
 
     if (index >= 0) {
       // Preserve locked status and time if exists
@@ -2374,12 +2852,209 @@ export class TravelPage implements OnInit {
   // Helper if not already present
   private mapPriceLevel(level: string): number {
     const map: Record<string, number> = {
-      'PRICE_LEVEL_FREE': 0,
-      'PRICE_LEVEL_INEXPENSIVE': 1,
-      'PRICE_LEVEL_MODERATE': 2,
-      'PRICE_LEVEL_EXPENSIVE': 3,
-      'PRICE_LEVEL_VERY_EXPENSIVE': 4,
+      PRICE_LEVEL_FREE: 0,
+      PRICE_LEVEL_INEXPENSIVE: 1,
+      PRICE_LEVEL_MODERATE: 2,
+      PRICE_LEVEL_EXPENSIVE: 3,
+      PRICE_LEVEL_VERY_EXPENSIVE: 4,
     };
     return map[level] ?? 2;
+  }
+
+  getVenueTimeStatus(
+    venue: PlannedVenue,
+  ): 'past' | 'current' | 'upcoming' | 'future' {
+    if (!venue.startTime || !venue.endTime) return 'future';
+
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const start = this.timeToMinutes(venue.startTime);
+    const end = this.timeToMinutes(venue.endTime);
+
+    // "Current" = within the time slot, or up to 15 min before start
+    if (currentMinutes >= start - 15 && currentMinutes <= end) return 'current';
+    if (currentMinutes > end) return 'past';
+
+    // "Upcoming" = next venue after current time (only one venue gets this)
+    return 'upcoming';
+  }
+
+  /** True if this venue is the first upcoming one */
+  isNextUp(venue: PlannedVenue, day: DayPlan): boolean {
+    const status = this.getVenueTimeStatus(venue);
+    if (status !== 'upcoming') return false;
+
+    // Check if any earlier venue is also upcoming (shouldn't happen, but safety)
+    const venueIndex = day.venues.findIndex((v) => v.id === venue.id);
+    for (let i = 0; i < venueIndex; i++) {
+      if (this.getVenueTimeStatus(day.venues[i]) === 'upcoming') return false;
+    }
+    return true;
+  }
+
+  /** Minutes until this venue starts */
+  getMinutesUntil(venue: PlannedVenue): number | null {
+    if (!venue.startTime) return null;
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const start = this.timeToMinutes(venue.startTime);
+    const diff = start - currentMinutes;
+    return diff > 0 ? diff : null;
+  }
+
+  // ═══ TIME FORMATTING ═══
+
+  formatMinutes(minutes: number | null): string {
+    if (minutes === null || minutes <= 0) return '';
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+  }
+
+  // ═══ NEARBY SUGGESTIONS ═══
+  getNearbySuggestions(
+    venue: PlannedVenue,
+  ): Array<{ name: string; distance: number; type: string; isDna: boolean }> {
+    const key = `${venue.name}|${venue.lat.toFixed(5)}|${venue.lng.toFixed(5)}`;
+
+    // Return cached if exists
+    const cached = this.nearbyCache.get(key);
+    if (cached) return cached;
+
+    // Build fresh
+    const nearby: Array<{
+      name: string;
+      distance: number;
+      type: string;
+      isDna: boolean;
+    }> = [];
+    const seen = new Set<string>(); // ← FIX: dedupe by normalized name
+
+    const addIfNew = (
+      name: string,
+      distance: number,
+      type: string,
+      isDna: boolean,
+    ) => {
+      const normalized = name.toLowerCase().trim();
+      if (seen.has(normalized)) return;
+      if (normalized === venue.name.toLowerCase().trim()) return; // skip self
+      seen.add(normalized);
+      nearby.push({ name, distance, type, isDna });
+    };
+
+    // DNA picks within 200m
+    for (const dna of this.recommendations) {
+      if (!dna.lat || !dna.lng) continue;
+      const dist = this.haversine(venue.lat, venue.lng, dna.lat, dna.lng);
+      if (dist <= 0.2) {
+        addIfNew(dna.venueName, dist, this.inferCategory(dna.venueName), true);
+      }
+    }
+
+    // Places from API within 200m
+    for (const place of this.places) {
+      if (!place.geometry?.location) continue;
+      const dist = this.haversine(
+        venue.lat,
+        venue.lng,
+        place.geometry.location.lat,
+        place.geometry.location.lng,
+      );
+      if (dist <= 0.2) {
+        addIfNew(place.name, dist, place.types?.[0] || 'place', false);
+      }
+    }
+
+    const result = nearby.sort((a, b) => a.distance - b.distance).slice(0, 3);
+    this.nearbyCache.set(key, result); // ← cache it
+    return result;
+  }
+  /** Quick check if venue is a pay-able spot */
+  isPayableVenue(venue: PlannedVenue): boolean {
+    return venue.type === 'restaurant' || venue.type === 'cafe';
+  }
+
+  openPaymentModalFromVenue(venue: PlannedVenue) {
+    // Find matching recommendation card or build one
+    const card =
+      this.recommendations.find((r) => r.venueName === venue.name) ||
+      ({
+        venueName: venue.name,
+        address: '',
+        lat: venue.lat,
+        lng: venue.lng,
+        priceLevel: venue.priceLevel,
+        rating: venue.rating,
+      } as RecommendationCard);
+
+    this.openPaymentModal(card);
+  }
+
+  precomputeNearbySuggestions() {
+    this.nearbyCache.clear();
+    for (const day of this.dayPlans) {
+      for (const venue of day.venues) {
+        const key = `${venue.name}|${venue.lat.toFixed(5)}|${venue.lng.toFixed(5)}`;
+        this.nearbyCache.set(key, this.computeNearbyForVenue(venue));
+      }
+    }
+  }
+
+  private computeNearbyForVenue(
+    venue: PlannedVenue,
+  ): Array<{ name: string; distance: number; type: string; isDna: boolean }> {
+    const nearby: Array<{
+      name: string;
+      distance: number;
+      type: string;
+      isDna: boolean;
+    }> = [];
+    const seenNames = new Set<string>();
+
+    const addIfUnique = (
+      name: string,
+      distance: number,
+      type: string,
+      isDna: boolean,
+    ) => {
+      const normalized = name.toLowerCase().trim();
+      if (seenNames.has(normalized)) return;
+      if (normalized === venue.name.toLowerCase().trim()) return;
+      seenNames.add(normalized);
+      nearby.push({ name, distance, type, isDna });
+    };
+
+    // DNA picks within 200m
+    for (const dna of this.recommendations) {
+      if (!dna.lat || !dna.lng) continue;
+      const dist = this.haversine(venue.lat, venue.lng, dna.lat, dna.lng);
+      if (dist <= 0.2) {
+        addIfUnique(
+          dna.venueName,
+          dist,
+          this.inferCategory(dna.venueName),
+          true,
+        );
+      }
+    }
+
+    // Places from API within 200m
+    for (const place of this.places) {
+      if (!place.geometry?.location) continue;
+      const dist = this.haversine(
+        venue.lat,
+        venue.lng,
+        place.geometry.location.lat,
+        place.geometry.location.lng,
+      );
+      if (dist <= 0.2) {
+        addIfUnique(place.name, dist, place.types?.[0] || 'place', false);
+      }
+    }
+
+    return nearby.sort((a, b) => a.distance - b.distance).slice(0, 3);
   }
 }

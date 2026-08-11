@@ -387,6 +387,34 @@ async function updateCardBalance(cardId, delta) {
   return syncAutoTopUpPreference(cardFromDoc(updated));
 }
 
+async function deductFromMultiCurrency(cardId, currency, amount) {
+  const cardDoc = await findCardDocById(cardId);
+  if (!cardDoc) return { ok: false, error: "Card not found" };
+
+  const data = cardDoc.data();
+  const db = getFirestore();
+  const currentMulti = data.multi_currency || {};
+  const current = currentMulti[currency] || 0;
+
+  if (current < amount) {
+    return {
+      ok: false,
+      error: `Insufficient ${currency} balance. Available: ${current.toFixed(2)}, needed: ${amount.toFixed(2)}`,
+    };
+  }
+
+  const newMulti = { ...currentMulti, [currency]: current - amount };
+  const ref = userCardsRef(db, data.user_id).doc(cardId);
+  await ref.update({ multi_currency: newMulti });
+
+  const updated = await ref.get();
+  return {
+    ok: true,
+    card: cardFromDoc(updated),
+    newBalances: newMulti,
+  };
+}
+
 async function setCardBalance(cardId, balance) {
   const cardDoc = await findCardDocById(cardId);
   if (!cardDoc) {
@@ -673,6 +701,8 @@ async function savePayogotchiPet(userId, pet) {
 }
 
 module.exports = {
+  deductFromMultiCurrency,
+  findCardDocById,
   initialize,
   readDb,
   getUsers,
