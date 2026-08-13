@@ -72,7 +72,7 @@ function buildRegistryCard(
   cardNumber: string,
   balance: number,
   cardholderName: string | null = null,
-  creditLimit?: number
+  creditLimit?: number,
 ): RegistryCard {
   const inferred = cardType === 'others' ? inferRegistryMeta(label) : {};
   return {
@@ -117,10 +117,15 @@ const BANK_DISPLAY_NAMES: Record<string, string> = {
   mastercard: 'Mastercard',
 };
 
-function inferRegistryMeta(label: string): { bankName?: string; accountKind?: AccountKind } {
+function inferRegistryMeta(label: string): {
+  bankName?: string;
+  accountKind?: AccountKind;
+} {
   const text = label.toLowerCase();
   const accountKind: AccountKind = text.includes('credit') ? 'credit' : 'debit';
-  const hit = Object.keys(BANK_DISPLAY_NAMES).find((bank) => text.includes(bank));
+  const hit = Object.keys(BANK_DISPLAY_NAMES).find((bank) =>
+    text.includes(bank),
+  );
   return {
     bankName: hit ? BANK_DISPLAY_NAMES[hit] : 'Bank',
     accountKind,
@@ -158,6 +163,9 @@ export interface ExchangeCurrencyRequest {
 export interface DeductCurrencyRequest {
   currency: string;
   amount: number;
+  sgdEquivalent?: number; // ← ADD
+  venue?: string; // ← ADD
+  category?: string;
 }
 
 export interface ExchangeCurrencyResponse {
@@ -165,6 +173,8 @@ export interface ExchangeCurrencyResponse {
   message: string;
   newBalances: Record<string, number>;
   card: WalletCard;
+  transaction?: any;
+  pointsAwarded?: number; 
 }
 
 @Injectable({
@@ -174,135 +184,169 @@ export class CardsService {
   constructor(private http: HttpClient) {}
 
   getWallet(userId: string): Observable<CardsByType> {
-    return this.http.get<{ cardsByType: CardsByType }>(`${API_BASE_URL}/users/${userId}/cards/wallet`).pipe(
-      map((response) => response.cardsByType)
-    );
+    return this.http
+      .get<{
+        cardsByType: CardsByType;
+      }>(`${API_BASE_URL}/users/${userId}/cards/wallet`)
+      .pipe(map((response) => response.cardsByType));
   }
 
-  linkCard(userId: string, payload: LinkCardRequest): Observable<LinkCardResponse> {
-    return this.http.post<LinkCardResponse>(`${API_BASE_URL}/users/${userId}/cards/link`, payload);
+  linkCard(
+    userId: string,
+    payload: LinkCardRequest,
+  ): Observable<LinkCardResponse> {
+    return this.http.post<LinkCardResponse>(
+      `${API_BASE_URL}/users/${userId}/cards/link`,
+      payload,
+    );
   }
 
   generateCardNumber(
     userId: string,
-    cardType: 'prepaid' | 'cashcard'
+    cardType: 'prepaid' | 'cashcard',
   ): Observable<{ success: boolean; cardNumber: string }> {
     return this.http.post<{ success: boolean; cardNumber: string }>(
       `${API_BASE_URL}/users/${userId}/cards/generate-number`,
-      { cardType }
+      { cardType },
     );
   }
 
   getPayableCards(userId: string): Observable<WalletCard[]> {
     return this.http
-      .get<{ cards: WalletCard[] }>(`${API_BASE_URL}/users/${userId}/payable-cards`)
+      .get<{
+        cards: WalletCard[];
+      }>(`${API_BASE_URL}/users/${userId}/payable-cards`)
       .pipe(
         map((response) => response.cards),
-        catchError(() => of([]))
+        catchError(() => of([])),
       );
   }
 
-  topUpCard(userId: string, cardId: string, payload: TopUpRequest): Observable<TopUpResponse> {
+  topUpCard(
+    userId: string,
+    cardId: string,
+    payload: TopUpRequest,
+  ): Observable<TopUpResponse> {
     return this.http.post<TopUpResponse>(
       `${API_BASE_URL}/users/${userId}/cards/${cardId}/top-up`,
-      payload
+      payload,
     );
   }
 
   getRegistry(): Observable<RegistryCard[]> {
     return this.http
-      .get<{ cards: Partial<RegistryCard>[] }>(`${API_BASE_URL}/nets-simulator/registry`)
+      .get<{
+        cards: Partial<RegistryCard>[];
+      }>(`${API_BASE_URL}/nets-simulator/registry`)
       .pipe(
-        map((response) => response.cards.map((card) => normalizeRegistryCard(card))),
-        catchError(() => of(FALLBACK_REGISTRY))
+        map((response) =>
+          response.cards.map((card) => normalizeRegistryCard(card)),
+        ),
+        catchError(() => of(FALLBACK_REGISTRY)),
       );
   }
 
-  unlinkCard(userId: string, cardId: string): Observable<{ success: boolean; message: string }> {
+  unlinkCard(
+    userId: string,
+    cardId: string,
+  ): Observable<{ success: boolean; message: string }> {
     return this.http.delete<{ success: boolean; message: string }>(
-      `${API_BASE_URL}/users/${userId}/cards/${cardId}`
+      `${API_BASE_URL}/users/${userId}/cards/${cardId}`,
     );
   }
 
   setDefaultReceive(
     userId: string,
-    cardId: string
+    cardId: string,
   ): Observable<{ success: boolean; message: string; card: WalletCard }> {
-    return this.http.patch<{ success: boolean; message: string; card: WalletCard }>(
-      `${API_BASE_URL}/users/${userId}/cards/${cardId}/default-receive`,
-      {}
-    );
+    return this.http.patch<{
+      success: boolean;
+      message: string;
+      card: WalletCard;
+    }>(`${API_BASE_URL}/users/${userId}/cards/${cardId}/default-receive`, {});
   }
 
   setTopUpPreference(
     userId: string,
     cardId: string,
-    enabled: boolean
+    enabled: boolean,
   ): Observable<{ success: boolean; message: string; card: WalletCard }> {
-    return this.http.patch<{ success: boolean; message: string; card: WalletCard }>(
-      `${API_BASE_URL}/users/${userId}/cards/${cardId}/top-up-preference`,
-      { enabled }
-    );
+    return this.http.patch<{
+      success: boolean;
+      message: string;
+      card: WalletCard;
+    }>(`${API_BASE_URL}/users/${userId}/cards/${cardId}/top-up-preference`, {
+      enabled,
+    });
   }
 
   getReceiveSettings(userId: string): Observable<ReceiveSettings> {
-    return this.http.get<ReceiveSettings>(`${API_BASE_URL}/users/${userId}/receive-settings`);
+    return this.http.get<ReceiveSettings>(
+      `${API_BASE_URL}/users/${userId}/receive-settings`,
+    );
   }
   // For Multi-currency
-  getCardWallet(userId: string, cardId: string): Observable<MultiCurrencyWallet> {
-  return this.http.get<MultiCurrencyWallet>(
-    `${API_BASE_URL}/users/${userId}/cards/${cardId}/wallet`
-  ).pipe(
-    catchError(err => {
-      console.error('Wallet load failed:', err);
-      return of({ cardId, balances: { SGD: 500 }, currencies: ['SGD'] });
-    })
-  );
-}
- // For Multi-currency
-exchangeCurrency(
-  userId: string,
-  cardId: string,
-  payload: ExchangeCurrencyRequest
-): Observable<ExchangeCurrencyResponse> {
-  const url = `${API_BASE_URL}/users/${userId}/cards/${cardId}/exchange`;
-  console.log('POST URL:', url);
-  console.log('POST payload:', payload);
-  
-  return this.http.post<ExchangeCurrencyResponse>(url, payload).pipe(
-    tap(response => console.log('POST response:', response)),
-    catchError(err => {
-      console.error('POST error:', err.status, err.statusText, err.error);
-      return of({
-        success: false,
-        message: err.error?.error || 'Exchange failed. Please try again.',
-        newBalances: {},
-        card: {} as WalletCard
-      });
-    })
-  );
-}
+  getCardWallet(
+    userId: string,
+    cardId: string,
+  ): Observable<MultiCurrencyWallet> {
+    return this.http
+      .get<MultiCurrencyWallet>(
+        `${API_BASE_URL}/users/${userId}/cards/${cardId}/wallet`,
+      )
+      .pipe(
+        catchError((err) => {
+          console.error('Wallet load failed:', err);
+          return of({ cardId, balances: { SGD: 500 }, currencies: ['SGD'] });
+        }),
+      );
+  }
+  // For Multi-currency
+  exchangeCurrency(
+    userId: string,
+    cardId: string,
+    payload: ExchangeCurrencyRequest,
+  ): Observable<ExchangeCurrencyResponse> {
+    const url = `${API_BASE_URL}/users/${userId}/cards/${cardId}/exchange`;
+    console.log('POST URL:', url);
+    console.log('POST payload:', payload);
 
-deductCurrency(
-  userId: string,
-  cardId: string,
-  payload: DeductCurrencyRequest
-): Observable<ExchangeCurrencyResponse> {
-  return this.http.post<ExchangeCurrencyResponse>(
-    `${API_BASE_URL}/users/${userId}/cards/${cardId}/deduct`,
-    payload
-  ).pipe(
-    catchError(err => {
-      console.error('Deduct failed:', err);
-      return of({
-        success: false,
-        message: err.error?.error || 'Payment failed. Please try again.',
-        newBalances: {},
-        card: {} as WalletCard
-      });
-    })
-  );
-}
+    return this.http.post<ExchangeCurrencyResponse>(url, payload).pipe(
+      tap((response) => console.log('POST response:', response)),
+      catchError((err) => {
+        console.error('POST error:', err.status, err.statusText, err.error);
+        return of({
+          success: false,
+          message: err.error?.error || 'Exchange failed. Please try again.',
+          newBalances: {},
+          card: {} as WalletCard,
+        });
+      }),
+    );
+  }
+
+  deductCurrency(
+    userId: string,
+    cardId: string,
+    payload: DeductCurrencyRequest,
+  ): Observable<ExchangeCurrencyResponse> {
+    return this.http
+      .post<ExchangeCurrencyResponse>(
+        `${API_BASE_URL}/users/${userId}/cards/${cardId}/deduct`,
+        payload,
+      )
+      .pipe(
+        catchError((err) => {
+          console.error('Deduct failed:', err);
+          return of({
+            success: false,
+            message: err.error?.error || 'Payment failed. Please try again.',
+            newBalances: {},
+            card: {} as WalletCard,
+          });
+        }),
+      );
+  }
 }
 
 export interface ReceiveSettings {
@@ -380,7 +424,9 @@ export function getCardFundsAmount(
   return (card as any).multi_currency?.SGD ?? card.balance ?? 0;
 }
 
-export function getCardFundsSubtext(card: WalletCard | null | undefined): string | null {
+export function getCardFundsSubtext(
+  card: WalletCard | null | undefined,
+): string | null {
   if (!card || card.cardType !== 'others' || card.accountKind !== 'credit') {
     return null;
   }
@@ -407,7 +453,10 @@ export function firstPayableCard(wallet: CardsByType): WalletCard | null {
 export function resolveActivePayCard(
   selected: WalletCard | null,
   wallet: CardsByType,
-  findInWallet: (card: WalletCard | null, wallet: CardsByType) => WalletCard | null
+  findInWallet: (
+    card: WalletCard | null,
+    wallet: CardsByType,
+  ) => WalletCard | null,
 ): WalletCard | null {
   const refreshed = findInWallet(selected, wallet);
   if (isPayableCard(refreshed)) {
@@ -424,15 +473,34 @@ export function resolveActivePayCard(
 
 export const FALLBACK_REGISTRY: RegistryCard[] = [
   buildRegistryCard('prepaid', 'NETS Prepaid', '5990 8990 6778 6689', 125.5),
-  buildRegistryCard('cashcard', 'NETS CashCard (Transit)', '6250 1234 5678 9012', 28.9),
-  buildRegistryCard('others', 'Linked DBS Debit', '4532 0151 1283 0366', 245.8, 'ALEX TAN'),
-  buildRegistryCard('others', 'Linked Mastercard Credit', '5500 0000 0000 0004', 156.4, 'BELINDA HO', 3000),
+  buildRegistryCard(
+    'cashcard',
+    'NETS CashCard (Transit)',
+    '6250 1234 5678 9012',
+    28.9,
+  ),
+  buildRegistryCard(
+    'others',
+    'Linked DBS Debit',
+    '4532 0151 1283 0366',
+    245.8,
+    'ALEX TAN',
+  ),
+  buildRegistryCard(
+    'others',
+    'Linked Mastercard Credit',
+    '5500 0000 0000 0004',
+    156.4,
+    'BELINDA HO',
+    3000,
+  ),
 ];
 
 function normalizeRegistryCard(card: Partial<RegistryCard>): RegistryCard {
   const cardNumber = card.cardNumber ?? '';
   const fallback = FALLBACK_REGISTRY.find(
-    (entry) => entry.cardNumber.replace(/\D/g, '') === cardNumber.replace(/\D/g, '')
+    (entry) =>
+      entry.cardNumber.replace(/\D/g, '') === cardNumber.replace(/\D/g, ''),
   );
   const cardType = card.cardType ?? fallback?.cardType ?? 'prepaid';
 
@@ -446,9 +514,9 @@ function normalizeRegistryCard(card: Partial<RegistryCard>): RegistryCard {
     cardholderName: card.cardholderName ?? fallback?.cardholderName ?? null,
     requiresCardholder: card.requiresCardholder ?? cardType === 'others',
     bankName: card.bankName ?? fallback?.bankName,
-    accountKind: (card.accountKind ?? fallback?.accountKind) as AccountKind | undefined,
+    accountKind: (card.accountKind ?? fallback?.accountKind) as
+      | AccountKind
+      | undefined,
     creditLimit: card.creditLimit ?? fallback?.creditLimit,
   };
 }
-
-

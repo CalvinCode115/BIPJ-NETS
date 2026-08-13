@@ -4,7 +4,10 @@ const asyncHandler = require("../utils/async-handler");
 const authRouter = require("./auth");
 const questsRouter = require("./quests");
 const pointsRouter = require("./points");
-const { findCardDocById,deductFromMultiCurrency } = require("../db/firestore-store");
+const {
+  findCardDocById,
+  deductFromMultiCurrency,
+} = require("../db/firestore-store");
 
 const {
   buildDnaProfile,
@@ -544,11 +547,9 @@ router.get(
 
     const cardType = req.query.type;
     if (cardType && !["prepaid", "cashcard", "others"].includes(cardType)) {
-      return res
-        .status(400)
-        .json({
-          error: "Invalid card type. Use prepaid, cashcard, or others.",
-        });
+      return res.status(400).json({
+        error: "Invalid card type. Use prepaid, cashcard, or others.",
+      });
     }
 
     const view = req.query.view || "summary";
@@ -728,11 +729,9 @@ router.patch(
       normalized.card_type !== "others" ||
       normalized.account_kind === "credit"
     ) {
-      return res
-        .status(400)
-        .json({
-          error: "Only linked debit cards can receive incoming transfers.",
-        });
+      return res.status(400).json({
+        error: "Only linked debit cards can receive incoming transfers.",
+      });
     }
 
     await db.setDefaultReceiveCard(req.params.userId, req.params.cardId);
@@ -1380,11 +1379,9 @@ router.post(
 
     const { fromCurrency, toCurrency, amount, rate } = req.body;
     if (!fromCurrency || !toCurrency || !amount || !rate) {
-      return res
-        .status(400)
-        .json({
-          error: "fromCurrency, toCurrency, amount, and rate are required.",
-        });
+      return res.status(400).json({
+        error: "fromCurrency, toCurrency, amount, and rate are required.",
+      });
     }
 
     const result = await db.exchangeCurrency(
@@ -1434,7 +1431,7 @@ router.post(
       return res.status(404).json({ error: "User not found" });
     }
 
-    const { currency, amount } = req.body;
+    const { currency, amount, sgdEquivalent, venue, category } = req.body;
     if (!currency || amount === undefined || amount === null) {
       return res
         .status(400)
@@ -1446,7 +1443,6 @@ router.post(
       return res.status(400).json({ error: "Invalid amount." });
     }
 
-    // FIX: Use findCardDocById instead of db.getCard
     const cardDoc = await findCardDocById(req.params.cardId);
     if (!cardDoc) {
       return res.status(404).json({ error: "Card not found" });
@@ -1481,11 +1477,47 @@ router.post(
       return res.status(400).json({ error: result.error });
     }
 
-    res.json({
+    // Create transaction
+    const now = period.nowSingaporeIso();
+    const sgdAmount = Number(sgdEquivalent) || deductAmount;
+
+    const saved = await db.addTransaction({
+      id: `txn_${Date.now()}_travel`,
+      user_id: req.params.userId,
+      card_id: req.params.cardId,
+      merchant: venue || "Travel Payment",
+      category: category || "Travel",
+      subtitle: `${currency} ${deductAmount.toLocaleString()}`,
+      amount: -sgdAmount,
+      txn_type: "debit",
+      icon: "airplane",
+      icon_color: "#d71920",
+      occurred_at: now,
+    });
+
+    // ═══ DEBUG: Log here after saved is defined ═══
+    console.log("=== DEDUCT DEBUG ===");
+    console.log("userId:", req.params.userId);
+    console.log("saved transaction:", JSON.stringify(saved));
+    console.log("saved.amount:", saved?.amount);
+    console.log("saved.merchant:", saved?.merchant);
+
+    // Award points
+    const rewards = await transactionRewards.awardTransactionRewards(
+      req.params.userId,
+      saved,
+    );
+
+    console.log("awardTransactionRewards returned:", JSON.stringify(rewards));
+    console.log("=== END DEDUCT DEBUG ===");
+
+    res.status(201).json({
       success: true,
       message: `Paid ${deductAmount} ${currency}`,
       newBalances: result.newBalances,
       card: mapCard(result.card, "wallet"),
+      transaction: formatTransaction(saved),
+      pointsAwarded: rewards.pointsAwarded ?? 0,
     });
   }),
 );

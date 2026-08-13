@@ -22,7 +22,6 @@ const PREVIEW_LIMIT = 8;
   standalone: false,
 })
 export class NetsPointsPage {
-
   loading = true;
   error: string | null = null;
 
@@ -53,14 +52,29 @@ export class NetsPointsPage {
     private weeklyQuestsService: WeeklyQuestsService,
     private partnerChallengesService: PartnerChallengesService,
     private myVouchersService: MyVouchersService,
-    private pointsBudgetService: PointsBudgetService
+    private pointsBudgetService: PointsBudgetService,
   ) {}
+
+  private pointsRefreshListener?: () => void;
 
   ionViewWillEnter(): void {
     this.load();
     this.loadCheckinStatus();
     this.loadNavBadges();
     this.checkDailyCapStatus();
+
+    // Listen for points updates from other pages
+    this.pointsRefreshListener = () => this.load();
+    window.addEventListener('nets:pointsUpdated', this.pointsRefreshListener);
+  }
+
+  ionViewWillLeave(): void {
+    if (this.pointsRefreshListener) {
+      window.removeEventListener(
+        'nets:pointsUpdated',
+        this.pointsRefreshListener,
+      );
+    }
   }
 
   /**
@@ -73,7 +87,8 @@ export class NetsPointsPage {
       next: async (res) => {
         if (res.pointsCapped) {
           const toast = await this.toastController.create({
-            message: "You've reached today's 300-point earning limit \u2014 more points resume tomorrow!",
+            message:
+              "You've reached today's 300-point earning limit \u2014 more points resume tomorrow!",
             duration: 3000,
             position: 'top',
             color: 'warning',
@@ -81,7 +96,8 @@ export class NetsPointsPage {
           await toast.present();
         } else if (res.transactionCapReached) {
           const toast = await this.toastController.create({
-            message: "You've reached today's transaction limit for earning points.",
+            message:
+              "You've reached today's transaction limit for earning points.",
             duration: 3000,
             position: 'top',
             color: 'warning',
@@ -112,7 +128,7 @@ export class NetsPointsPage {
     this.dailyQuestsService.getDailyQuests(userId).subscribe({
       next: (res) => {
         this.dailyQuestsBadge = res.incompleteQuests.filter(
-          (q) => q.progress?.completed && !q.progress?.claimed
+          (q) => q.progress?.completed && !q.progress?.claimed,
         ).length;
       },
       error: (err) => console.error('Failed to load daily quests badge', err),
@@ -121,7 +137,7 @@ export class NetsPointsPage {
     this.weeklyQuestsService.getWeeklyQuests(userId).subscribe({
       next: (res) => {
         this.weeklyQuestsBadge = res.inProgressQuests.filter(
-          (q) => q.progress?.completed && !q.progress?.claimed
+          (q) => q.progress?.completed && !q.progress?.claimed,
         ).length;
       },
       error: (err) => console.error('Failed to load weekly quests badge', err),
@@ -130,7 +146,7 @@ export class NetsPointsPage {
     this.partnerChallengesService.getChallenges(userId).subscribe({
       next: (res) => {
         this.challengesBadge = res.activeChallenges.filter(
-          (c) => c.progress?.completed && !c.progress?.claimed
+          (c) => c.progress?.completed && !c.progress?.claimed,
         ).length;
       },
       error: (err) => console.error('Failed to load challenges badge', err),
@@ -140,7 +156,9 @@ export class NetsPointsPage {
       next: (res) => {
         const now = Date.now();
         this.vouchersBadge = res.available.filter((v) => {
-          const daysLeft = Math.ceil((new Date(v.expiresAt).getTime() - now) / (24 * 60 * 60 * 1000));
+          const daysLeft = Math.ceil(
+            (new Date(v.expiresAt).getTime() - now) / (24 * 60 * 60 * 1000),
+          );
           return daysLeft <= 7;
         }).length;
       },

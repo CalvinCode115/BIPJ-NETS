@@ -53,6 +53,8 @@ import {
   DayPlan,
 } from '../../services/smart-planner.service';
 import { RouteService, DirectionsResponse } from '../../services/route.service';
+import { PetBridgeService } from 'src/app/services/pet-bridge.service';
+import { TransactionsService } from 'src/app/services/transactions.service';
 @Component({
   selector: 'app-travel',
   templateUrl: './travel.page.html',
@@ -72,7 +74,9 @@ export class TravelPage implements OnInit {
   categories: CategorySection[] = [];
   isLoading = false;
   error: string | null = null;
-  userId = 'user_1';
+  get userId(): string {
+    return this.auth.userId ?? 'user_1';
+  }
   destination = 'Johor Bahru, Malaysia';
 
   // Weather
@@ -106,8 +110,12 @@ export class TravelPage implements OnInit {
   tripStartDate: string | null = null;
   isTripLocked = false;
   currentTripCountry: string | null = null;
-  readonly TRIP_LOCK_KEY = 'nets_trip_locked';
-  readonly TRIP_COUNTRY_KEY = 'nets_trip_country';
+  get TRIP_LOCK_KEY(): string {
+    return `nets_trip_locked_${this.userId}`;
+  }
+  get TRIP_COUNTRY_KEY(): string {
+    return `nets_trip_country_${this.userId}`;
+  }
 
   // DNA Profile
   dnaProfile: any = null;
@@ -190,10 +198,17 @@ export class TravelPage implements OnInit {
     private smartPlanner: SmartPlannerService,
     private routeService: RouteService,
     private cdr: ChangeDetectorRef,
+    private petBridge: PetBridgeService,
+    private transactionsService: TransactionsService,
   ) {}
 
   ngOnInit() {
-    const savedDest = localStorage.getItem('nets_selected_destination');
+    console.log('=== AUTH USER ID ===', this.auth.userId);
+    console.log('=== HARD CODED USER ID ===', this.userId);
+    console.log('=== CURRENT USER ===', this.auth.currentUser);
+    const savedDest = localStorage.getItem(
+      `nets_selected_destination_${this.userId}`,
+    );
     if (savedDest) {
       if (DESTINATIONS[savedDest]) {
         this.currentDestination = DESTINATIONS[savedDest];
@@ -748,7 +763,7 @@ export class TravelPage implements OnInit {
     localStorage.setItem(this.TRIP_COUNTRY_KEY, this.currentDestination.id);
 
     localStorage.setItem(
-      'nets_trip_mode',
+      `nets_trip_mode_${this.userId}`,
       JSON.stringify({
         active: true,
         startDate: this.tripStartDate,
@@ -773,7 +788,7 @@ export class TravelPage implements OnInit {
     this.isConfirmingEndTrip = false;
     this.generateTripReport();
 
-    localStorage.removeItem('nets_trip_mode');
+    localStorage.removeItem(`nets_trip_mode_${this.userId}`);
     localStorage.removeItem(`nets_travel_budget_${this.userId}`);
 
     // 🔓 CLEAR TRIP LOCK
@@ -824,7 +839,7 @@ export class TravelPage implements OnInit {
   }
   // Updated loadTripMode to restore saved budget
   loadTripMode() {
-    const saved = localStorage.getItem('nets_trip_mode');
+    const saved = localStorage.getItem(`nets_trip_mode_${this.userId}`);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -1512,7 +1527,7 @@ export class TravelPage implements OnInit {
 
     this.currentDestination = DESTINATIONS[destId];
     this.loadPlan();
-    localStorage.setItem('nets_selected_destination', destId);
+    localStorage.setItem(`nets_selected_destination_${this.userId}`, destId);
     this.destinationDropdownOpen = false;
 
     // Clear in-memory data for fresh load
@@ -1566,7 +1581,7 @@ export class TravelPage implements OnInit {
     this.currentDestination = dynamicDest;
     this.loadPlan();
     localStorage.setItem(
-      'nets_selected_destination',
+      `nets_selected_destination_${this.userId}`,
       JSON.stringify(dynamicDest),
     );
 
@@ -1783,30 +1798,32 @@ export class TravelPage implements OnInit {
     const cardId = this.activeCard?.id || 'default';
     const userId = this.auth.userId ?? 'user_1';
 
+    // Calculate SGD equivalent ONCE before the API call
+    let sgdEquivalent: number;
+    if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
+      sgdEquivalent = this.paymentAmount / this.fxInsight.currentRate;
+    } else {
+      sgdEquivalent = this.paymentAmount;
+    }
+
     // ─── CALL BACKEND TO DEDUCT ───
     this.cardsService
       .deductCurrency(userId, cardId, {
         currency: this.paymentCurrency,
         amount: this.paymentAmount,
+        sgdEquivalent: sgdEquivalent,
+        venue: this.selectedVenue?.venueName,
+        category: category,
       })
       .subscribe({
         next: (result) => {
           this.isPaying = false;
-
           if (!result.success) {
             alert(result.message);
             return;
           }
 
-          // Calculate SGD equivalent for budget tracking
-          let sgdEquivalent: number;
-          if (this.paymentInForeignCurrency && this.fxInsight?.currentRate) {
-            sgdEquivalent = this.paymentAmount / this.fxInsight.currentRate;
-          } else {
-            sgdEquivalent = this.paymentAmount;
-          }
-
-          // Update travel budget
+          // Budget tracking (your existing code)
           this.budget!.spentSoFar += sgdEquivalent;
           this.budget!.remaining = Math.max(
             0,
@@ -1839,22 +1856,48 @@ export class TravelPage implements OnInit {
           );
           this.savePlan();
 
+          // ═══ NEW: Feed pet & persist XP (same as QrPaymentsService) ═══
+          const pet = this.petBridge.record(
+            sgdEquivalent,
+            category,
+            this.selectedVenue?.venueName || 'Travel Payment',
+          );
+
+          // Persist XP to backend using the transaction ID from backend
+          if (result.transaction?.id && pet) {
+            this.transactionsService
+              .recordTxnRewards(userId, result.transaction.id, {
+                xpGained: pet.xpGained,
+                xpCapped: pet.xpCapped,
+              })
+              .subscribe();
+          }
+
+          // Dispatch event with pet data so home page can display points/XP
           window.dispatchEvent(
             new CustomEvent('nets:travelPaymentCompleted', {
               detail: {
                 cardId: cardId,
                 currency: this.paymentCurrency,
                 amount: this.paymentAmount,
-                sgdEquivalent: sgdEquivalent, // ← Rewards use this
+                sgdEquivalent: sgdEquivalent,
                 venue: this.selectedVenue?.venueName,
-                category: category, // ← 'food', 'shopping', etc.
+                category: category,
                 timestamp: new Date().toISOString(),
                 newBalances: result.newBalances,
+                pointsAwarded: result.pointsAwarded ?? 0,
+                transactionId: result.transaction?.id,
+                pet: pet
+                  ? {
+                      // ← ADD: pet data for home page display
+                      xpGained: pet.xpGained,
+                      pointsEarned: pet.pointsEarned,
+                      xpCapped: pet.xpCapped,
+                    }
+                  : null,
               },
             }),
           );
-
-          // Reload balances to reflect deduction
           this.loadMultiCurrencyBalances();
           this.closePaymentModal();
         },
@@ -1878,15 +1921,15 @@ export class TravelPage implements OnInit {
   }
 
   private loadTripLockState(): void {
-    const locked = localStorage.getItem(this.TRIP_LOCK_KEY);
-    const country = localStorage.getItem(this.TRIP_COUNTRY_KEY);
+    const locked = localStorage.getItem(`nets_trip_locked_${this.userId}`);
+    const country = localStorage.getItem(`nets_trip_country_${this.userId}`);
     this.isTripLocked = locked === 'true';
     this.currentTripCountry = country;
 
     if (this.isTripLocked && this.currentTripCountry) {
       // If locked but not in trip mode, restore trip mode (app restart case)
       if (!this.isTripMode) {
-        const saved = localStorage.getItem('nets_trip_mode');
+        const saved = localStorage.getItem(`nets_trip_mode_${this.userId}`);
         if (saved) {
           try {
             const parsed = JSON.parse(saved);

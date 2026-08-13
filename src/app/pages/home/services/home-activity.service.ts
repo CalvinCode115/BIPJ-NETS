@@ -6,6 +6,7 @@ import { formatTransactionMeta } from '../../../utils/transfer-display';
 import { resolveTxnRewardsDisplay } from '../../../utils/txn-rewards-display';
 
 export interface HomeRecentTransaction {
+  id?: string;
   merchant: string;
   subtitle: string;
   displayAmount?: string | null;

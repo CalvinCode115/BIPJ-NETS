@@ -1,9 +1,9 @@
-const { getFirestore } = require('../firebase/admin');
-const { userPointsLedgerRef } = require('../db/firestore-paths');
-const { getTodaysPointsBudget } = require('./points-budget');
-const { capBalanceAward } = require('./points-balance-cap');
-const quests = require('./quests');
-const db = require('../db');
+const { getFirestore } = require("../firebase/admin");
+const { userPointsLedgerRef } = require("../db/firestore-paths");
+const { getTodaysPointsBudget } = require("./points-budget");
+const { capBalanceAward } = require("./points-balance-cap");
+const quests = require("./quests");
+const db = require("../db");
 
 const POINTS_PER_DOLLAR = 1;
 
@@ -17,10 +17,10 @@ const POINTS_PER_DOLLAR = 1;
  * `const { normalizeMerchant } = require('./merchant-tags');`.
  */
 function normalizeMerchant(name) {
-  return String(name || '')
+  return String(name || "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, ' ');
+    .replace(/\s+/g, " ");
 }
 
 /**
@@ -37,6 +37,11 @@ function normalizeMerchant(name) {
  * succeeding, since the money has already moved. Errors are logged instead.
  */
 async function awardTransactionRewards(userId, transaction) {
+  console.log("=== AWARD POINTS DEBUG ===");
+  console.log("userId:", userId);
+  console.log("transaction:", JSON.stringify(transaction));
+  console.log("transaction.amount:", transaction?.amount);
+  console.log("spendAmount:", Math.abs(transaction?.amount || 0));
   try {
     const spendAmount = Math.abs(transaction.amount);
     if (!(spendAmount > 0)) {
@@ -44,7 +49,7 @@ async function awardTransactionRewards(userId, transaction) {
     }
 
     const firestoreDb = getFirestore();
-    const userRef = firestoreDb.collection('users').doc(userId);
+    const userRef = firestoreDb.collection("users").doc(userId);
 
     // ---- Everything that reads-then-decides-then-writes the cap and the
     // points balance MUST be atomic, or two near-simultaneous calls (e.g.
@@ -53,7 +58,8 @@ async function awardTransactionRewards(userId, transaction) {
     // letting the real daily total slip past the cap. ----
     const result = await firestoreDb.runTransaction(async (tx) => {
       // ---- reads first ----
-      const { pointsRemaining, transactionCapReached } = await getTodaysPointsBudget(firestoreDb, userId, tx);
+      const { pointsRemaining, transactionCapReached } =
+        await getTodaysPointsBudget(firestoreDb, userId, tx);
       const userSnap = await tx.get(userRef);
 
       if (transactionCapReached) {
@@ -61,22 +67,30 @@ async function awardTransactionRewards(userId, transaction) {
         // quest either — this is what actually prevents someone from
         // spamming small transactions to farm quest progress once points
         // alone are capped.
-        return { pointsAwarded: 0, capped: true, capReason: 'daily_transaction_cap' };
+        return {
+          pointsAwarded: 0,
+          capped: true,
+          capReason: "daily_transaction_cap",
+        };
       }
 
       const uncappedPoints = Math.round(spendAmount * POINTS_PER_DOLLAR);
-      const currentPoints = userSnap.exists ? userSnap.data().points ?? 0 : 0;
-      const pointsAwarded = capBalanceAward(currentPoints, Math.min(uncappedPoints, pointsRemaining));
+      const currentPoints = userSnap.exists ? (userSnap.data().points ?? 0) : 0;
+      const pointsAwarded = capBalanceAward(
+        currentPoints,
+        Math.min(uncappedPoints, pointsRemaining),
+      );
 
       // ---- then writes ----
       if (pointsAwarded > 0) {
         tx.update(userRef, { points: currentPoints + pointsAwarded });
+
         tx.set(userPointsLedgerRef(firestoreDb, userId).doc(), {
           title: `Purchase at ${transaction.merchant}`,
           amount: pointsAwarded,
-          type: 'transaction',
-          tag: 'Transaction',
-          icon: 'card-outline',
+          type: "transaction",
+          tag: "Transaction",
+          icon: "card-outline",
           timestamp: new Date().toISOString(),
         });
       }
@@ -88,7 +102,9 @@ async function awardTransactionRewards(userId, transaction) {
     const normalizedMerchant = normalizeMerchant(transaction.merchant);
     const priorTransactions = await db.getTransactions(userId);
     const isNewMerchant = !priorTransactions.some(
-      (t) => t.id !== transaction.id && normalizeMerchant(t.merchant) === normalizedMerchant
+      (t) =>
+        t.id !== transaction.id &&
+        normalizeMerchant(t.merchant) === normalizedMerchant,
     );
 
     // ---- Advance any matching daily quest / weekly quest / started
@@ -97,7 +113,7 @@ async function awardTransactionRewards(userId, transaction) {
     // quest progress entirely). Kept outside the transaction above since
     // it doesn't touch the points cap or balance at all. ----
     await quests.recordQuestEvent(userId, {
-      eventType: 'transaction',
+      eventType: "transaction",
       amount: spendAmount,
       merchantId: normalizedMerchant,
       merchantCategory: transaction.category,
@@ -112,13 +128,16 @@ async function awardTransactionRewards(userId, transaction) {
           points_recorded: true,
         });
       } catch (persistErr) {
-        console.error('persist points on transaction failed:', persistErr);
+        console.error("persist points on transaction failed:", persistErr);
       }
     }
 
     return result;
+    console.log("result:", JSON.stringify(result));
+    console.log("=== END AWARD POINTS DEBUG ===");
+    return result;
   } catch (err) {
-    console.error('awardTransactionRewards failed (payment itself still succeeded):', err);
+    console.error("awardTransactionRewards failed:", err);
     return { pointsAwarded: 0, error: true };
   }
 }

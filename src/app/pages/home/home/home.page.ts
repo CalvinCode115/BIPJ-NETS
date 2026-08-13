@@ -13,7 +13,10 @@ import {
   HomeRecentTransaction,
   HomeSpendingCategory,
 } from '../services/home-activity.service';
-import { EMPTY_CARDS_BY_TYPE, HomeWalletService } from '../services/home-wallet.service';
+import {
+  EMPTY_CARDS_BY_TYPE,
+  HomeWalletService,
+} from '../services/home-wallet.service';
 import { HomeAlertsService } from '../services/home-alerts.service';
 import { resolveTxnRewardsDisplay } from '../../../utils/txn-rewards-display';
 import {
@@ -85,15 +88,45 @@ export class HomePage {
   quickActions: HomeQuickAction[] = [
     { label: 'Pay', icon: 'paper-plane', color: '#d71920', route: '/tabs/pay' },
     { label: 'Top Up', icon: 'add', color: '#27ae60', action: 'top-up' },
-    { label: 'QR Code', icon: 'qr-code', color: '#3498db', route: '/tabs/home/home-qr-code' },
-    { label: 'More', icon: 'grid', color: '#9b59b6', route: '/tabs/home/home-more' },
+    {
+      label: 'QR Code',
+      icon: 'qr-code',
+      color: '#3498db',
+      route: '/tabs/home/home-qr-code',
+    },
+    {
+      label: 'More',
+      icon: 'grid',
+      color: '#9b59b6',
+      route: '/tabs/home/home-more',
+    },
   ];
 
   secondaryActions: HomeSecondaryAction[] = [
-    { label: 'Payogotchi', icon: 'gift', color: '#f2994a', route: '/tabs/payogotchi/payogotchi-home' },
-    { label: 'Tx History', icon: 'card', color: '#2f80ed', route: '/tabs/home/home-all-transactions' },
-    { label: 'Rewards', icon: 'ribbon', color: '#f2c94c', route: '/tabs/rewards' },
-    { label: 'Exchange', icon: 'swap-horizontal', color: '#9b51e0', route: '/tabs/fx-tracker' },
+    {
+      label: 'Payogotchi',
+      icon: 'gift',
+      color: '#f2994a',
+      route: '/tabs/payogotchi/payogotchi-home',
+    },
+    {
+      label: 'Tx History',
+      icon: 'card',
+      color: '#2f80ed',
+      route: '/tabs/home/home-all-transactions',
+    },
+    {
+      label: 'Rewards',
+      icon: 'ribbon',
+      color: '#f2c94c',
+      route: '/tabs/rewards',
+    },
+    {
+      label: 'Exchange',
+      icon: 'swap-horizontal',
+      color: '#9b51e0',
+      route: '/tabs/fx-tracker',
+    },
   ];
 
   insight = {
@@ -158,11 +191,8 @@ export class HomePage {
     }
 
     const exchangeTime = localStorage.getItem('nets_exchange_applied_at');
-    const skipReload = exchangeTime && Date.now() - parseInt(exchangeTime, 10) < 30000;
-
-    window.addEventListener('nets:travelPaymentCompleted', () => {
-      this.loadMultiCurrencyBalances();
-    });
+    const skipReload =
+      exchangeTime && Date.now() - parseInt(exchangeTime, 10) < 30000;
 
     if (!skipReload) {
       this.loadCardsForUser(user?.id ?? 'user_1');
@@ -261,11 +291,15 @@ export class HomePage {
     if (!this.currentCard) {
       return 'This card';
     }
-    return this.currentCard.cardType === 'cashcard' ? 'CashCard' : 'Prepaid card';
+    return this.currentCard.cardType === 'cashcard'
+      ? 'CashCard'
+      : 'Prepaid card';
   }
 
   get canUsePayAndQr(): boolean {
-    return Boolean(this.currentCard && this.currentCard.cardType !== 'cashcard');
+    return Boolean(
+      this.currentCard && this.currentCard.cardType !== 'cashcard',
+    );
   }
 
   get payFeatureDisabledReason(): string {
@@ -332,7 +366,9 @@ export class HomePage {
 
   openAllTransactions(): void {
     const card = this.currentCard;
-    const query = card ? this.homeActivity.buildCardQuery(card, this.cardsByType) : {};
+    const query = card
+      ? this.homeActivity.buildCardQuery(card, this.cardsByType)
+      : {};
     this.router.navigate(['/tabs/home/home-all-transactions'], {
       queryParams: {
         cardId: query.cardId || null,
@@ -360,7 +396,10 @@ export class HomePage {
       this.topUpError = this.topUpDisabledReason;
       return;
     }
-    if ((action.label === 'Pay' || action.label === 'QR Code') && !this.canUsePayAndQr) {
+    if (
+      (action.label === 'Pay' || action.label === 'QR Code') &&
+      !this.canUsePayAndQr
+    ) {
       this.topUpError = this.payFeatureDisabledReason;
       return;
     }
@@ -392,7 +431,10 @@ export class HomePage {
   }
 
   onCardLinked(event: HomeCardLinkedEvent): void {
-    this.cardsByType[event.cardType] = [...this.cardsByType[event.cardType], event.card];
+    this.cardsByType[event.cardType] = [
+      ...this.cardsByType[event.cardType],
+      event.card,
+    ];
     if (this.activeAccountTab !== event.cardType) {
       this.activeAccountTab = event.cardType;
     }
@@ -446,7 +488,10 @@ export class HomePage {
     this.homeAlerts.markAllRead(userId).subscribe({
       next: (response) => {
         this.notificationUnreadCount = response.unreadCount;
-        this.notifications = this.notifications.map((entry) => ({ ...entry, read: true }));
+        this.notifications = this.notifications.map((entry) => ({
+          ...entry,
+          read: true,
+        }));
       },
     });
   }
@@ -493,7 +538,9 @@ export class HomePage {
         this.notifications = response.notifications;
         this.notificationUnreadCount = response.unreadCount;
         if (showLoginAlerts) {
-          this.homeAlerts.queueLoginAlerts(response.notifications.filter((entry) => !entry.read));
+          this.homeAlerts.queueLoginAlerts(
+            response.notifications.filter((entry) => !entry.read),
+          );
         }
       },
     });
@@ -526,7 +573,10 @@ export class HomePage {
       next: (wallet) => {
         this.cardsByType = wallet;
         this.homeWallet.persistWalletSgdSnapshot(userId, wallet);
-        if (this.activeCardSlide >= this.activeCards.length && this.activeCards.length > 0) {
+        if (
+          this.activeCardSlide >= this.activeCards.length &&
+          this.activeCards.length > 0
+        ) {
           this.activeCardSlide = this.activeCards.length - 1;
         }
         this.syncSelectedCard();
@@ -546,11 +596,18 @@ export class HomePage {
     this.topUpError = '';
     if (this.currentCard) {
       this.cardContext.selectCard(this.currentCard);
-      this.homeWallet.clearLowBalanceDismissIfRecovered(this.auth.userId, this.currentCard);
+      this.homeWallet.clearLowBalanceDismissIfRecovered(
+        this.auth.userId,
+        this.currentCard,
+      );
     }
     const userId = this.auth.userId;
     if (this.currentCard && userId) {
-      this.homeWallet.persistCurrentCardSelection(userId, this.currentCard, this.cardFundsAmount);
+      this.homeWallet.persistCurrentCardSelection(
+        userId,
+        this.currentCard,
+        this.cardFundsAmount,
+      );
     }
     this.loadMultiCurrencyBalances();
   }
@@ -628,8 +685,14 @@ export class HomePage {
   }
 
   private updateWalletCard(updatedCard: WalletCard): void {
-    this.cardsByType = this.homeWallet.replaceCardInWallet(this.cardsByType, updatedCard);
-    this.homeWallet.clearLowBalanceDismissIfRecovered(this.auth.userId, updatedCard);
+    this.cardsByType = this.homeWallet.replaceCardInWallet(
+      this.cardsByType,
+      updatedCard,
+    );
+    this.homeWallet.clearLowBalanceDismissIfRecovered(
+      this.auth.userId,
+      updatedCard,
+    );
     this.loadMultiCurrencyBalances();
   }
 
@@ -640,14 +703,21 @@ export class HomePage {
       this.cardCurrencyBalances = [];
       return;
     }
-    this.homeWallet.loadCurrencyBalances(userId, card.id, this.cardFundsAmount).subscribe({
-      next: (balances) => {
-        this.cardCurrencyBalances = balances;
-      },
-    });
+    this.homeWallet
+      .loadCurrencyBalances(userId, card.id, this.cardFundsAmount)
+      .subscribe({
+        next: (balances) => {
+          this.cardCurrencyBalances = balances;
+        },
+      });
   }
 
+  private exchangeListenersSetup = false;
+
   private setupExchangeListener(): void {
+    if (this.exchangeListenersSetup) return; // ← Prevent duplicates
+    this.exchangeListenersSetup = true;
+
     window.addEventListener('nets:exchangeCompleted', () => {
       this.loadMultiCurrencyBalances();
       this.loadCardsForUser(this.auth.userId ?? 'user_1');
@@ -657,43 +727,16 @@ export class HomePage {
       const detail = event.detail;
       if (!detail) return;
 
+      // Just refresh from backend — transaction is already saved there
       this.loadMultiCurrencyBalances();
       this.loadCardsForUser(this.auth.userId ?? 'user_1');
+      this.reloadCardActivity();
 
-      const pet =
-        detail.sgdEquivalent && detail.category
-          ? this.petBridge.record(detail.sgdEquivalent, detail.category, detail.venue || 'Travel Payment')
-          : null;
-      if (pet?.pointsEarned) {
-        this.rewards.currentPoints += pet.pointsEarned;
+      // Immediate points feedback
+      if (detail.pointsEarned) {
+        this.refreshPointsBalance(this.auth.userId ?? 'user_1');
+        this.rewards.currentPoints += detail.pointsEarned;
       }
-
-      const spendAmount = -Math.abs(detail.sgdEquivalent || 0);
-      const rewards = resolveTxnRewardsDisplay({
-        amount: spendAmount,
-        type: 'debit',
-        category: detail.category,
-        xpGained: pet?.xpGained ?? null,
-        xpCapped: Boolean(pet?.xpCapped),
-        xpRecorded: Boolean(pet),
-      });
-      const newTxn: HomeRecentTransaction = {
-        merchant: detail.venue || 'Travel Payment',
-        subtitle: `${detail.currency} ${detail.amount.toLocaleString()} · ${detail.category}`,
-        displayAmount: `-$${detail.sgdEquivalent.toFixed(2)}`,
-        amount: spendAmount,
-        date: new Date().toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }),
-        time: new Date().toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' }),
-        icon: 'airplane',
-        iconColor: '#d71920',
-        type: 'debit',
-        category: detail.category,
-        displayPoints: rewards.points,
-        displayXp: rewards.xp,
-        rewardsLimitLabel: rewards.limitLabel,
-      };
-      this.recentTransactions = [newTxn, ...this.recentTransactions].slice(0, 5);
-      this.saveLocalTransaction(newTxn);
     });
   }
 

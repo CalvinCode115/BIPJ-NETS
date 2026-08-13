@@ -4,7 +4,7 @@
 </div>
 
 <div class="transactions-list">
-  @for (tx of transactions; track tx.merchant + tx.date + tx.time) {
+  @for (tx of transactions; track tx.id || tx.merchant + tx.date + tx.time + $index) {
   <div class="transaction-card">
     <div class="tx-icon" [style.background]="tx.iconColor + '18'" [style.color]="tx.iconColor">
       <ion-icon [name]="tx.icon"></ion-icon>
