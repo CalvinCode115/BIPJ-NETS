@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject } from 'rxjs';
 import { API_BASE_URL } from '../core/api.config';
 import { AuthService } from './auth.service';
 import {
@@ -9,6 +9,8 @@ import {
   TxnCategory,
   TapatchiMood,
   TransactionResult,
+  PendingPetReward,
+  MilestoneConfirmation,
 } from '../models/pet.model';
 
 // base key we save the pet under in localStorage. The real cache key is
@@ -34,26 +36,50 @@ const PER_TXN_XP_CAP = 250;
 // anything below 50 cents earns nothing
 const MIN_TXN_AMOUNT = 0.5;
 
+const ONE_DAY_MS = 86_400_000;
+
+// how much hunger drains per day with no food. Bigger pets get hungrier
+// faster, so caring for an Adult takes more attention than a Baby.
+const DAILY_HUNGER_DECAY: Record<PetStage, number> = {
+  Baby: 10,
+  Teen: 15,
+  Adult: 20,
+};
+
+// happiness drains at the same rate whatever the stage
+const DAILY_HAPPINESS_DECAY = 5;
+
+// hunger has to sit at 0 for this many straight days before the pet faints
+const FAINT_AFTER_DAYS = 3;
+
+// hunger a revived pet wakes up with, so it isn't instantly starving again
+const REVIVE_HUNGER_FLOOR = 50;
+
 // NETS Points bonus for reaching a given pet level. Mirrors
 // backend/services/payogotchi-rewards.js's levelUpBonus() exactly — keep
-// both in sync if either changes. Deliberately much smaller than the real
+// both in sync if either changes, or the UI will promise a different number
+// than the backend actually grants. Deliberately much smaller than the real
 // 1-point-per-dollar transaction rate (see transaction-rewards.js on the
-// backend): these are meant to be hard to earn, a rare milestone reward,
-// not a second way to farm the points economy. Level 50 is the current
-// final level, so it (and anything past it) gets the top bonus.
+// backend): a rare milestone reward, not a second way to farm points.
+//
+// Rebalanced 2026-08-16 — halved (floor 3) after Yunen's economy change took
+// spending from 10 points per dollar down to 1, which had quietly made these
+// bonuses ~10x more significant than they were designed to be. A full
+// level-1-to-50 run is now worth 602 points against ~12,250 from the spending
+// needed to get there (~4.7%). See the backend copy for the full reasoning.
 function levelUpBonus(level: number): number {
-  if (level <= 10) return 5;
-  if (level <= 20) return 10;
-  if (level <= 25) return 15;
-  if (level <= 30) return 20;
-  if (level <= 35) return 30;
-  if (level <= 40) return 40;
-  if (level <= 49) return 50;
-  return 100; // level 50+
+  if (level <= 10) return 3;
+  if (level <= 20) return 5;
+  if (level <= 25) return 6;
+  if (level <= 30) return 8;
+  if (level <= 35) return 12;
+  if (level <= 40) return 15;
+  if (level <= 49) return 20;
+  return 40; // level 50+
 }
 
 // NETS Points bonus for a stage evolution (Baby -> Teen -> Adult).
-const EVOLVE_MILESTONE_BONUS = 100;
+const EVOLVE_MILESTONE_BONUS = 50;
 
 // This service holds the pet's state and all the game logic.
 // Every Payogotchi screen reads/updates the pet through here so
@@ -70,6 +96,23 @@ const EVOLVE_MILESTONE_BONUS = 100;
 export class PetService {
   readonly state: PetState = PetService.freshState();
 
+  // ---- Milestone bonus reconciliation ----
+  //
+  // The pet shows its own optimistic bonus figure the moment it levels up,
+  // because waiting on the network would kill the celebration. But only the
+  // backend knows how much of today's shared 300-point budget is left, so
+  // what it actually credits can be less (see awardPetMilestone on the
+  // backend). These two carry the real figure back to the UI:
+  //
+  //  - milestoneBonusConfirmed fires for a screen that's already open, so an
+  //    in-flight level-up modal can correct its number in place.
+  //  - consumeMilestoneConfirmation() covers the queued case — a payment made
+  //    on the Pay tab whose celebration doesn't play until the user opens
+  //    Payogotchi, by which time the reply already came and went.
+  private readonly milestoneConfirmed = new Subject<MilestoneConfirmation>();
+  readonly milestoneBonusConfirmed = this.milestoneConfirmed.asObservable();
+  private pendingConfirmation: MilestoneConfirmation | null = null;
+
   // which user the in-memory state currently belongs to, so we can detect
   // an account switch and reload the right pet instead of bleeding across users
   private loadedOwner: string | null = null;
@@ -81,6 +124,7 @@ export class PetService {
     // guard calls syncFromCloud() to reconcile with Firestore before routing
     this.loadLocalFor(this.ownerId);
     this.migrateLegacyFields();
+    this.applyDecay();
   }
 
   // the account the pet belongs to: the logged-in user, or the demo
@@ -104,6 +148,7 @@ export class PetService {
       selectedEgg: '',
       lastFedAt: null,
       faintedAt: null,
+      hungerZeroSince: null,
       lastDecayAt: Date.now(),
       dailyXpEarned: 0,
       dailyXpDate: '',
@@ -143,6 +188,7 @@ export class PetService {
       selectedEgg: 'pink',
       lastFedAt: Date.now(),
       faintedAt: null,
+      hungerZeroSince: null,
       lastDecayAt: Date.now(),
       dailyXpEarned: 200, // baby cap is 200 so no more XP today
       dailyXpDate: this.todayStr(),
@@ -166,6 +212,10 @@ export class PetService {
     if (this.state.createdAt === null) {
       this.state.createdAt = Date.now();
     }
+    // start the decay clock from the hatch, not from whenever the app was
+    // first installed — otherwise a user who sat on the egg screen for a
+    // week would meet an already-starving pet
+    this.state.lastDecayAt = Date.now();
     this.save();
   }
 
@@ -199,8 +249,27 @@ export class PetService {
     return this.state.xpMax > 0 ? Math.min(this.state.xp / this.state.xpMax, 1) : 0;
   }
 
+  // true once hunger has been at 0 for FAINT_AFTER_DAYS straight. The home
+  // page uses this to swap in the fainted layout instead of the normal one.
+  get isFainted(): boolean {
+    return this.state.faintedAt !== null;
+  }
+
+  // whole days the pet has been starving (hunger at 0), 0 if it isn't
+  get daysStarving(): number {
+    if (this.state.hungerZeroSince === null) {
+      return 0;
+    }
+    return Math.floor((Date.now() - this.state.hungerZeroSince) / ONE_DAY_MS);
+  }
+
   // work out the pet's mood from hunger + happiness
   get mood(): TapatchiMood {
+    // a fainted pet outranks every other mood - it isn't sad or hungry,
+    // it's out cold until it gets fed
+    if (this.isFainted) {
+      return 'fainted';
+    }
     if (this.state.hunger <= 15) {
       return 'starving';
     }
@@ -217,6 +286,8 @@ export class PetService {
   get statusText(): string {
     const name = this.state.name;
     switch (this.mood) {
+      case 'fainted':
+        return `${name} has fainted... feed it! 💔`;
       case 'starving':
         return `${name} is hungry! 🍔`;
       case 'happy':
@@ -254,10 +325,7 @@ export class PetService {
     this.state.hunger = this.clamp(this.state.hunger + amount);
     this.state.happiness = this.clamp(this.state.happiness + 5);
     this.state.lastFedAt = Date.now();
-    if (this.state.faintedAt !== null) {
-      this.state.faintedAt = null;
-      this.state.hunger = Math.max(this.state.hunger, 50);
-    }
+    this.revive();
     this.save();
   }
 
@@ -265,6 +333,102 @@ export class PetService {
   play(amount = 15): void {
     this.state.happiness = this.clamp(this.state.happiness + amount);
     this.save();
+  }
+
+  // ---- Time-based decay (the care loop) ----
+
+  // Applies however much hunger/happiness decay is owed since the last time
+  // we checked, then works out whether the pet has fainted.
+  //
+  // This runs retroactively rather than on a timer: the app isn't open most
+  // of the time, so on load we look at how many WHOLE days have passed since
+  // lastDecayAt and apply that many days of decay at once. Only whole days
+  // are consumed - the leftover hours stay on the clock for next time, so
+  // opening the app twice in one day doesn't decay the pet twice, and
+  // opening it every 23 hours doesn't decay it never.
+  applyDecay(): void {
+    // an un-hatched pet has no meters to drain yet
+    if (!this.state.onboarded) {
+      return;
+    }
+
+    const now = Date.now();
+    const elapsedDays = Math.floor((now - this.state.lastDecayAt) / ONE_DAY_MS);
+    if (elapsedDays <= 0) {
+      return;
+    }
+
+    const hungerBefore = this.state.hunger;
+    const hungerRate = DAILY_HUNGER_DECAY[this.state.stage];
+
+    this.state.hunger = this.clamp(hungerBefore - hungerRate * elapsedDays);
+    this.state.happiness = this.clamp(
+      this.state.happiness - DAILY_HAPPINESS_DECAY * elapsedDays
+    );
+
+    // If hunger bottomed out somewhere inside that window, the pet has been
+    // starving since THAT day - not since now. Getting this right is what
+    // lets a user who was away for a week come back to an already-fainted
+    // pet, instead of one that only starts its 3-day countdown on return.
+    if (this.state.hunger === 0 && hungerBefore > 0) {
+      const daysToZero = Math.ceil(hungerBefore / hungerRate);
+      this.state.hungerZeroSince = this.state.lastDecayAt + daysToZero * ONE_DAY_MS;
+    }
+
+    this.state.lastDecayAt += elapsedDays * ONE_DAY_MS;
+    this.refreshFaint(now);
+    this.save();
+  }
+
+  // Decides whether the pet is fainted, given how long hunger has been at 0.
+  // Only ever puts the pet TO sleep - waking it up is revive()'s job, since
+  // that only ever happens by feeding it.
+  private refreshFaint(now: number): void {
+    if (this.state.hunger > 0) {
+      this.state.hungerZeroSince = null;
+      return;
+    }
+
+    // hunger is 0 but we never stamped when that started (e.g. a pet saved
+    // before this feature existed) - start the clock now
+    if (this.state.hungerZeroSince === null) {
+      this.state.hungerZeroSince = now;
+    }
+
+    const starvedFor = now - this.state.hungerZeroSince;
+    if (this.state.faintedAt === null && starvedFor >= FAINT_AFTER_DAYS * ONE_DAY_MS) {
+      this.state.faintedAt = now;
+    }
+  }
+
+  // Wakes a fainted pet back up and clears the starvation clock. Returns
+  // true only if it actually revived something, so applyTransaction can
+  // report it and the home page can show the Welcome Back screen.
+  private revive(): boolean {
+    this.state.hungerZeroSince = null;
+    if (this.state.faintedAt === null) {
+      return false;
+    }
+    this.state.faintedAt = null;
+    this.state.hunger = Math.max(this.state.hunger, REVIVE_HUNGER_FLOOR);
+    return true;
+  }
+
+  // Demo helper: pretend N days went by. Rewinds the decay clock (and the
+  // fed/starving timestamps with it, so they stay the same distance apart)
+  // then immediately applies the decay that is now owed. Lets the whole
+  // care loop - hunger draining, pet saddening, fainting - be shown in
+  // seconds instead of over three real days.
+  simulateDaysPassing(days = 1): void {
+    const shift = days * ONE_DAY_MS;
+    this.state.lastDecayAt -= shift;
+    if (this.state.lastFedAt !== null) {
+      this.state.lastFedAt -= shift;
+    }
+    if (this.state.hungerZeroSince !== null) {
+      this.state.hungerZeroSince -= shift;
+    }
+    this.applyDecay();
   }
 
   // The main game logic: apply a NETS transaction to the pet.
@@ -281,6 +445,11 @@ export class PetService {
       evolved: false,
       revived: false,
     };
+
+    // 0. settle any decay owed first, so a payment after a long gap acts on
+    // the pet's real current state (and can revive it) rather than on a
+    // stale snapshot from whenever the app was last opened
+    this.applyDecay();
 
     // 1. too small to count, nothing happens
     if (amount < MIN_TXN_AMOUNT) {
@@ -311,11 +480,7 @@ export class PetService {
     if (category === 'food') {
       const hungerBefore = this.state.hunger;
       this.state.hunger = this.clamp(this.state.hunger + Math.min(amount * 2, 40));
-      if (this.state.faintedAt !== null) {
-        this.state.faintedAt = null;
-        this.state.hunger = Math.max(this.state.hunger, 50);
-        result.revived = true;
-      }
+      result.revived = this.revive();
       result.hungerRestored = this.state.hunger - hungerBefore;
       this.state.lastFedAt = Date.now();
     }
@@ -370,16 +535,40 @@ export class PetService {
       bonus += EVOLVE_MILESTONE_BONUS;
     }
     if (bonus > 0) {
+      // any confirmation still sitting here belongs to an earlier milestone —
+      // drop it so it can't be mistaken for this one's
+      this.pendingConfirmation = null;
+
       this.http
-        .post(`${API_BASE_URL}/users/${this.ownerId}/payogotchi/milestone-bonus`, {
-          fromLevel,
-          toLevel,
-          evolved,
-          newStage,
-        })
-        .subscribe({ next: () => {}, error: () => {} });
+        .post<Partial<MilestoneConfirmation>>(
+          `${API_BASE_URL}/users/${this.ownerId}/payogotchi/milestone-bonus`,
+          { fromLevel, toLevel, evolved, newStage }
+        )
+        .subscribe({
+          next: (res) => {
+            const confirmation: MilestoneConfirmation = {
+              pointsAwarded: res?.pointsAwarded ?? bonus,
+              requested: res?.requested ?? bonus,
+              capped: res?.capped === true,
+            };
+            this.pendingConfirmation = confirmation;
+            this.milestoneConfirmed.next(confirmation);
+          },
+          // offline: keep showing the optimistic figure. We genuinely don't
+          // know what landed, and guessing "0" would be worse than guessing high.
+          error: () => {},
+        });
     }
     return bonus;
+  }
+
+  // Takes the confirmation for the most recent milestone, if the reply has
+  // already arrived. Clears it on read so an old figure can never be applied
+  // to a later, unrelated milestone.
+  consumeMilestoneConfirmation(): MilestoneConfirmation | null {
+    const confirmation = this.pendingConfirmation;
+    this.pendingConfirmation = null;
+    return confirmation;
   }
 
   // tally the merchant name towards the favourite-merchant stat
@@ -456,6 +645,91 @@ export class PetService {
     };
     this.save();
     return result;
+  }
+
+  // ---- Rewards -> pet (Yunen's quest/challenge XP) ----
+
+  // Applies one external XP/happiness grant — from a claimed quest or
+  // challenge — the same way a real transaction would, so a grant that
+  // crosses a level still reports it and the home page can celebrate it.
+  //
+  // Deliberately NOT subject to the daily XP cap: that cap exists to stop
+  // spending being farmed for XP, and a quest claim is already one-time per
+  // quest per day. Capping it here would silently shrink a reward the user
+  // was explicitly promised on the card they just tapped.
+  awardPetProgress(grant: { xp?: number; happiness?: number }): TransactionResult {
+    const xp = Math.max(0, Math.round(grant.xp ?? 0));
+    const happiness = Math.max(0, Math.round(grant.happiness ?? 0));
+
+    const levelBefore = this.state.level;
+    const stageBefore = this.state.stage;
+
+    const happinessBefore = this.state.happiness;
+    if (happiness > 0) {
+      this.state.happiness = this.clamp(this.state.happiness + happiness);
+    }
+    if (xp > 0) {
+      this.addXp(xp);
+    }
+
+    const evolved = this.state.stage !== stageBefore;
+    const newStage = evolved ? this.state.stage : undefined;
+    const leveledUp = this.state.level > levelBefore;
+
+    const result: TransactionResult = {
+      xpGained: xp,
+      xpCapped: false,
+      hungerRestored: 0,
+      happinessGained: this.state.happiness - happinessBefore,
+      pointsEarned: this.awardMilestoneBonus(levelBefore, this.state.level, evolved, newStage),
+      leveledUp,
+      newLevel: leveledUp ? this.state.level : undefined,
+      evolved,
+      newStage,
+      revived: false,
+    };
+
+    this.save();
+    return result;
+  }
+
+  // Pulls everything the pet is owed from claimed quests/challenges, applies
+  // each grant, and acks them so they aren't granted twice. Returns one
+  // result per grant so the caller can run the celebration chain.
+  //
+  // Acks only AFTER applying: if this dies halfway, the un-acked grants stay
+  // queued and arrive next time rather than being silently lost.
+  async drainPendingRewards(): Promise<TransactionResult[]> {
+    const owner = this.ownerId;
+
+    try {
+      const res = await firstValueFrom(
+        this.http.get<{ pending: PendingPetReward[] }>(
+          `${API_BASE_URL}/users/${owner}/payogotchi/pending-rewards`
+        )
+      );
+
+      const pending = res?.pending ?? [];
+      if (pending.length === 0) {
+        return [];
+      }
+
+      const results = pending.map((grant) =>
+        this.awardPetProgress({ xp: grant.xp, happiness: grant.happiness })
+      );
+
+      await firstValueFrom(
+        this.http.post(`${API_BASE_URL}/users/${owner}/payogotchi/pending-rewards/ack`, {
+          ids: pending.map((grant) => grant.id),
+        })
+      );
+
+      return results;
+    } catch {
+      // offline or backend down — the queue is still on the server, so
+      // whatever was owed simply arrives on a later open
+      return [];
+    }
   }
 
   // happier pet earns more XP, sad pet earns less
@@ -561,6 +835,9 @@ export class PetService {
         // cloud is the source of truth on load
         Object.assign(this.state, res.pet);
         this.migrateLegacyFields();
+        // the cloud pet carries its own lastDecayAt, so settle whatever
+        // decay is owed against THAT before any screen reads the meters
+        this.applyDecay();
         this.writeLocal();
       } else {
         // no cloud pet yet: promote whatever we have locally (first save /

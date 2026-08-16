@@ -1,0 +1,228 @@
+.xp-toolbar {
+  --background: var(--payogotchi-cream);
+  --color: var(--nets-text);
+}
+
+.xp-content {
+  --background: linear-gradient(
+    180deg,
+    var(--payogotchi-cream) 0%,
+    var(--payogotchi-light-blue-accent) 100%
+  );
+  padding: 0 16px 32px;
+}
+
+/* ---- Totals ---- */
+.xp-totals {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0 4px;
+}
+
+.xp-total-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 16px 12px;
+  background: #fff;
+  border-radius: var(--radius-large);
+  box-shadow: var(--nets-card-shadow);
+}
+
+.xp-total-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--nets-red);
+  line-height: 1.1;
+}
+
+.xp-total-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nets-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Reconciles "from payments" against the pet's lifetime total */
+.xp-reconcile {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--nets-text);
+  background: var(--nets-insight-bg);
+  border: 1px solid var(--nets-insight-border);
+  border-radius: var(--radius-large);
+
+  strong {
+    color: var(--nets-red);
+  }
+}
+
+/* ---- Day stepper ---- */
+.xp-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: var(--radius-large);
+  box-shadow: var(--nets-card-shadow);
+}
+
+.xp-step {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  color: var(--nets-red);
+  background: var(--payogotchi-light-blue-accent);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+}
+
+.xp-day-head {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.xp-day-label {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--nets-text);
+}
+
+.xp-day-total {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--happiness-color);
+}
+
+.xp-day-position {
+  font-size: 11px;
+  color: var(--nets-muted);
+}
+
+/* ---- Entry list ---- */
+.xp-list {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.xp-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  border-radius: var(--radius-large);
+  box-shadow: var(--nets-card-shadow);
+}
+
+.xp-entry-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  color: var(--nets-red);
+  background: var(--payogotchi-mint);
+  border-radius: 50%;
+}
+
+.xp-entry-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xp-entry-merchant {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--nets-text);
+  /* long merchant names shouldn't push the XP column off the row */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xp-entry-meta {
+  font-size: 12px;
+  color: var(--nets-muted);
+}
+
+.xp-entry-xp {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+}
+
+.xp-entry-value {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--happiness-color);
+}
+
+.xp-entry-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--nets-muted);
+}
+
+.xp-entry-capped {
+  margin-top: 2px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--nets-muted);
+  background: var(--payogotchi-lemon);
+  border-radius: var(--radius-pill);
+}
+
+/* ---- States + footnote ---- */
+.xp-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 40px;
+  padding: 0 24px;
+  text-align: center;
+  color: var(--nets-muted);
+}
+
+.xp-state-emoji {
+  font-size: 34px;
+}
+
+.xp-note {
+  margin-top: 16px;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nets-muted);
+  text-align: center;
+}

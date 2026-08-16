@@ -25,6 +25,10 @@ export interface PetState {
   lastFedAt: number | null;
   // when the pet fainted (timestamp), null if it's fine
   faintedAt: number | null;
+  // when hunger first hit 0 (timestamp), null whenever hunger > 0. The pet
+  // faints once hunger has been at 0 for FAINT_AFTER_DAYS straight — this
+  // is what makes that "consecutive days" check possible across app restarts.
+  hungerZeroSince: number | null;
   // last time we applied the daily hunger/happiness decay
   lastDecayAt: number;
   // XP earned today (there's a daily cap)
@@ -69,12 +73,50 @@ export interface TransactionResult {
   // backend/services/transaction-rewards.js), so Payogotchi doesn't award
   // separate points for every transaction, only for these rarer milestones.
   pointsEarned: number;
+  // Real NETS Points the SPEND itself earned (1pt/$1), credited server-side by
+  // backend/services/transaction-rewards.js — a completely separate award from
+  // `pointsEarned` above. The pet doesn't calculate or grant this; the payment
+  // service already has the post-cap figure in its response and passes it to
+  // PetBridgeService.record() purely so the pet's own feedback popup can report
+  // the whole payment rather than just the milestone half.
+  //
+  // Absent when there was no spend to speak of — a P2P transfer (XP only, by
+  // product rule), the tutorial bonus, or a quest/challenge XP grant.
+  spendPointsEarned?: number;
   leveledUp: boolean;
   newLevel?: number;
   evolved: boolean;
   newStage?: PetStage;
   // true if the pet was fainted and this transaction woke it up
   revived: boolean;
+}
+
+// What the backend ACTUALLY credited for a milestone bonus, once it has
+// applied the shared daily points cap and the 5000 max-balance ceiling.
+//
+// The pet shows its own optimistic figure the instant a level-up happens
+// (no network wait), but only the backend knows how much of today's 300-point
+// budget is left — so that figure is an estimate until this comes back.
+// `requested` is what the pet promised; `pointsAwarded` is what landed.
+export interface MilestoneConfirmation {
+  pointsAwarded: number;
+  requested: number;
+  capped: boolean;
+}
+
+// A pet reward earned on the backend (a claimed quest or challenge) that the
+// pet hasn't applied yet. Queued server-side because PetService — not the
+// backend — owns levelling and evolution; see backend/services/
+// payogotchi-progress.js for the full reasoning.
+export interface PendingPetReward {
+  id: string;
+  xp: number;
+  happiness: number;
+  // 'daily' | 'weekly' | 'challenge' — which reward source it came from
+  sourceType: string;
+  // the quest/challenge name, so the celebration can say where it came from
+  sourceLabel: string;
+  queuedAt: string;
 }
 
 export { TapatchiMood };

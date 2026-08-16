@@ -59,8 +59,7 @@
       </div>
     </div>
 
-    <!-- Happiness gained: while playing show the score so far, once the
-         game ends show how much the meter really went up -->
+    <!-- Score while playing, actual meter gain once the game ends -->
     <p class="mini-happiness" *ngIf="phase !== 'ended'">Happiness gained: +{{ score }}</p>
     <p class="mini-happiness" *ngIf="phase === 'ended'">
       Happiness gained: +{{ happinessGained }} 😊

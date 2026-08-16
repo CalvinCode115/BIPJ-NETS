@@ -4,8 +4,7 @@ import { PayogotchiPage } from './payogotchi.page';
 import { payogotchiEntryGuard } from './payogotchi-entry.guard';
 
 const routes: Routes = [
-  // Tab landing: the guard redirects to Home (returning user) or Intro (new
-  // user) based on pet state — it never actually renders PayogotchiPage.
+  // Tab landing: the guard always redirects, so PayogotchiPage never renders.
   { path: '', canActivate: [payogotchiEntryGuard], component: PayogotchiPage },
 
   // Tapatchi component test page (kept for development).
@@ -124,6 +123,11 @@ const routes: Routes = [
       import('./tapatchi-tutorial/tapatchi-tutorial.module').then(
         (m) => m.TapatchiTutorialPageModule
       ),
+  },
+  {
+    path: 'xp-history',
+    loadChildren: () =>
+      import('./xp-history/xp-history.module').then((m) => m.XpHistoryPageModule),
   },
   {
     path: 'cosmetics-dressup', // 16

@@ -1,6 +1,5 @@
-<!-- Same header as the Home / Pay / Travel / Rewards tabs.
-     No 'ion-no-border' here on purpose — that class strips the toolbar's
-     bottom border, which is what separates it from the content on Rewards. -->
+<!-- Shared tab header. 'ion-no-border' is omitted on purpose — it would strip
+     the bottom border that separates the toolbar from the content. -->
 <ion-header class="nets-page-header">
   <ion-toolbar class="nets-page-toolbar">
     <ion-title>
@@ -94,10 +93,6 @@
         <span class="home-action-icon icon-snacks">🍪</span>
         <span class="home-action-label">Snacks</span>
       </button>
-      <button type="button" class="home-action" (click)="openDressUp()">
-        <span class="home-action-icon icon-dress">👕</span>
-        <span class="home-action-label">Dress</span>
-      </button>
     </section>
 
     <!-- ===== Total activity ===== -->
@@ -138,7 +133,7 @@
   </div>
 </ion-content>
 
-<!-- ============ Phase 2: celebration chain ============ -->
+<!-- ===== Celebration chain ===== -->
 
 <!-- 06 Transaction Feedback -->
 <ion-modal
@@ -166,9 +161,15 @@
           <span class="fb-reward-icon">😊</span>
           <span class="fb-reward-value">+{{ result.happinessGained }} Happiness</span>
         </div>
-        <div class="fb-reward" *ngIf="result.pointsEarned > 0">
+        <!-- Points the spend earned, 1pt/$1 -->
+        <div class="fb-reward" *ngIf="result.spendPointsEarned">
           <span class="fb-reward-icon">🎁</span>
-          <span class="fb-reward-value">+{{ result.pointsEarned }} NETS Points</span>
+          <span class="fb-reward-value">+{{ result.spendPointsEarned }} NETS Points</span>
+        </div>
+        <!-- Separate award, labelled so it doesn't read as the payment's points -->
+        <div class="fb-reward" *ngIf="result.pointsEarned > 0">
+          <span class="fb-reward-icon">⭐</span>
+          <span class="fb-reward-value">+{{ result.pointsEarned }} Level-up bonus</span>
         </div>
       </div>
 

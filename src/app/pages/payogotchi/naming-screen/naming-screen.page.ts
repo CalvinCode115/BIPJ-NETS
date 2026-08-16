@@ -60,8 +60,7 @@ export class NamingScreenPage {
     if (!this.hasName) {
       return;
     }
-    // save the name and mark onboarding done, so next time the
-    // payogotchi tab goes straight to Home
+    // marks onboarding done, so the tab lands on Home next time
     this.petService.setName(this.trimmedName);
     this.petService.completeOnboarding();
     this.router.navigate([this.nextRoute], {

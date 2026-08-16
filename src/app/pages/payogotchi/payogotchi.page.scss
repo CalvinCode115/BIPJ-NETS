@@ -34,9 +34,7 @@ h2, h3 {
   color: var(--text-primary);
   margin: 20px 0;
 }
-// ============================================================
-// Character test grid — every variant against every mood.
-// ============================================================
+// ---- Character test grid: every variant against every mood ----
 .pet-caption {
   text-align: center;
   font-size: 13px;
@@ -66,8 +64,7 @@ h2, h3 {
   margin: 4px 0 10px;
 }
 
-// The table is wider than a phone, so it scrolls on its own rather than
-// making the whole page scroll sideways.
+// Scrolls on its own so the page doesn't scroll sideways.
 .char-grid-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

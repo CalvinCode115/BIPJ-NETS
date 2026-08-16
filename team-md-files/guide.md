@@ -70,7 +70,7 @@ cd backend
 npm run db:seed        # merge
 npm run db:seed:reset  # full reset (careful)
 ```
-
+=> back end:::::::::     .\.venv\Scripts\python.exe -m uvicorn main:app --reload --port 8000
 **There is no `dna_profiles` table.** DNA is **recomputed on every API call** from transactions. When the user pays or scans a receipt, a new transaction is saved → next API call reflects updated DNA.
 
 ---

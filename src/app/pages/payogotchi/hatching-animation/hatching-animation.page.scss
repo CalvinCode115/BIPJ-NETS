@@ -1,5 +1,5 @@
 .hatch-anim-content {
-  // Soft radial cream → pink glow from the Figma frame (4781:2878).
+  // Radial cream → pink glow, from Figma 4781:2878.
   --background: radial-gradient(
     120% 60% at 50% 40%,
     #ffffff 0%,
@@ -264,9 +264,7 @@
   }
 }
 
-/* ============================================================= */
-/* Keyframes                                                      */
-/* ============================================================= */
+/* ---- Keyframes ---- */
 @keyframes egg-wobble {
   0%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(-6deg); }

@@ -16,6 +16,10 @@ const {
 } = require('../db/firestore-paths');
 const { getTodaysPointsBudget } = require('./points-budget');
 const { capBalanceAward } = require('./points-balance-cap');
+// Payogotchi-owned (Calvin). Queues the pet half of a reward — "+100 XP",
+// "+5 Pet Happiness" — for PetService to apply on next open. Pure writes,
+// same contract as grantBadges() below.
+const { queuePetReward } = require('./payogotchi-progress');
 
 const TIMEZONE = 'Asia/Singapore';
 const DAILY_ROTATION_MIN = 4;
@@ -443,6 +447,7 @@ async function claimDailyQuestReward(userId, templateId) {
       });
     }
     grantBadges(tx, db, userId, template.rewards, 'daily', template.title);
+    queuePetReward(tx, db, userId, template.rewards, 'daily', template.title);
 
     return { ok: true, pointsAwarded };
   });
@@ -491,6 +496,7 @@ async function claimWeeklyQuestReward(userId, templateId) {
       });
     }
     grantBadges(tx, db, userId, template.rewards, 'weekly', template.title);
+    queuePetReward(tx, db, userId, template.rewards, 'weekly', template.title);
 
     return { ok: true, pointsAwarded };
   });
@@ -574,6 +580,7 @@ async function claimChallengeReward(userId, challengeId) {
     }
 
     grantBadges(tx, db, userId, challenge.rewards, 'challenge', challenge.merchantName);
+    queuePetReward(tx, db, userId, challenge.rewards, 'challenge', challenge.merchantName);
 
     return { ok: true, pointsAwarded, voucherGranted };
   });

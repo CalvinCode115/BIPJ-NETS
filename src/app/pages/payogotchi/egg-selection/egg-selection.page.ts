@@ -60,10 +60,7 @@ export class EggSelectionPage {
     if (!this.selectedEgg) {
       return;
     }
-    // save the choice so other screens know which egg was picked
-    // Store the character, not the egg's label — the label ('Mystery #3')
-    // says nothing about which Tapatchi hatched. Old saves that still hold a
-    // label are handled by resolveVariant() when the character is rendered.
+    // store the character, not the label — resolveVariant() handles old saves
     this.petService.setSelectedEgg(variantForEggId(this.selectedEgg.id));
     this.router.navigate([this.nextRoute], { state: { egg: this.selectedEgg } });
   }

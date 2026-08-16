@@ -42,6 +42,7 @@ const USER_SUBCOLLECTIONS = [
   'pointsLedger',
   'vouchers',
   'badges',
+  'petRewardQueue',
 ];
 
 function userRef(db, userId) {
@@ -70,6 +71,16 @@ function userPayogotchiRef(db, userId) {
 
 function userTravelRef(db, userId) {
   return userRef(db, userId).collection('travel');
+}
+
+// Pet rewards (XP / happiness) earned on the BACKEND — from a quest or
+// challenge claim — that the Payogotchi client hasn't applied yet. The pet
+// is client-authoritative (PetService owns levelling and evolution), so the
+// backend can't just add XP to the pet doc: it queues the grant here and
+// PetService drains it on next open, running it through the normal
+// addXp() path so level-ups and evolutions still celebrate properly.
+function userPetRewardQueueRef(db, userId) {
+  return userRef(db, userId).collection('petRewardQueue');
 }
 
 function appMetaRef(db) {
@@ -142,6 +153,7 @@ module.exports = {
   userNotificationsRef,
   userRewardsRef,
   userPayogotchiRef,
+  userPetRewardQueueRef,
   userTravelRef,
   appMetaRef,
   dailyQuestTemplatesRef,

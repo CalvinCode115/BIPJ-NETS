@@ -137,7 +137,12 @@ export class QrPaymentsService {
           if (!res?.success || !res.payment) {
             return res;
           }
-          const pet = this.petBridge.record(res.payment.amount, res.payment.category, res.payment.merchant);
+          const pet = this.petBridge.record(
+            res.payment.amount,
+            res.payment.category,
+            res.payment.merchant,
+            res.pointsAwarded,
+          );
           return { ...res, pet, petName: this.petBridge.petName };
         }),
         tap((res) => this.persistPetXp(userId, res?.transaction?.id, res?.pet))

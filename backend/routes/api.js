@@ -38,6 +38,7 @@ const { clampCreditLimit } = require("../services/credit-config");
 const { formatBalanceLeft } = require("../services/balance-message");
 const transactionRewards = require("../services/transaction-rewards");
 const payogotchiRewards = require("../services/payogotchi-rewards");
+const payogotchiProgress = require("../services/payogotchi-progress");
 const marketplaceRouter = require("./marketplace");
 const myVouchersRouter = require("./my-vouchers");
 const myVouchers = require("../services/my-vouchers");
@@ -867,6 +868,32 @@ router.post(
         evolved,
         newStage,
       },
+    );
+    res.json(result);
+  }),
+);
+
+// Pet XP/happiness owed from a claimed quest or challenge but not yet
+// applied — see payogotchi-progress.js for why these are queued rather than
+// written straight to the pet. The client drains this on open, applies each
+// grant through PetService (so level-ups still celebrate), then acks the ids.
+router.get(
+  "/users/:userId/payogotchi/pending-rewards",
+  asyncHandler(async (req, res) => {
+    const pending = await payogotchiProgress.listPendingPetRewards(
+      req.params.userId,
+    );
+    res.json({ pending });
+  }),
+);
+
+router.post(
+  "/users/:userId/payogotchi/pending-rewards/ack",
+  asyncHandler(async (req, res) => {
+    const { ids } = req.body || {};
+    const result = await payogotchiProgress.ackPetRewards(
+      req.params.userId,
+      ids,
     );
     res.json(result);
   }),

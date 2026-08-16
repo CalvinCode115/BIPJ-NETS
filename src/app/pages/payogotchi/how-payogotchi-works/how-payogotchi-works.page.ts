@@ -24,8 +24,7 @@ export class HowPayogotchiWorksPage {
     { icon: '📊', title: 'Understanding the Meters', subtitle: 'XP, Hunger, and Happiness explained', slide: 1 },
     { icon: '🍔', title: 'Feeding Your Pet', subtitle: 'How food transactions work', slide: 2 },
     { icon: '⭐', title: 'Levels & Evolution', subtitle: 'Watch your pet grow', slide: 3 },
-    { icon: '🎮', title: 'Quests & Rewards', subtitle: 'Earn NETS Points and cosmetics', slide: 4 },
-    { icon: '👕', title: 'Dressing Up Your Pet', subtitle: "Customize your Tapatchi's look", slide: 5 },
+    { icon: '🎮', title: 'Quests & Rewards', subtitle: 'Earn bonus XP and NETS Points', slide: 4 },
   ];
 
   constructor(private router: Router, private location: Location) {}

@@ -58,15 +58,8 @@ export class TapatchiTutorialPage implements OnInit {
       emoji: '🎮',
       heading: 'Quests & Rewards',
       body:
-        'Complete daily quests to earn bonus XP and NETS Points! Use Points to buy cosmetics, unlock special ' +
-        'items, and customize your Tapatchi.',
-    },
-    {
-      emoji: '🕶️',
-      heading: 'Cosmetics & Customization',
-      body:
-        'Dress up your Tapatchi with hats, accessories, and backgrounds! Collect rare items from special ' +
-        'events and show off your unique style.',
+        'Complete daily quests to earn bonus XP and NETS Points! Levelling up and evolving your Tapatchi ' +
+        'earns Points too — spend them on real vouchers over in the Rewards tab.',
     },
   ];
 
@@ -121,12 +114,7 @@ export class TapatchiTutorialPage implements OnInit {
     this.location.back();
   }
 
-  /**
-   * Award the one-time completion XP (if not already claimed), queue the
-   * level-up/evolution celebration for Home to play, then return there.
-   * Re-reading the tutorial after claiming it once is still allowed — it
-   * just won't pay out XP again.
-   */
+  /** Awards the one-time completion XP, queues the celebration, returns to Home. */
   private async finish(): Promise<void> {
     const result = this.pet.awardTutorialCompletion(COMPLETION_XP);
 
@@ -141,8 +129,7 @@ export class TapatchiTutorialPage implements OnInit {
     await toast.present();
 
     if (result) {
-      // no merchant: Home skips the "you paid X" step and, if this pushed
-      // the pet over a level threshold, opens the Level Up modal directly
+      // no merchant: Home skips the feedback step and goes straight to Level Up
       this.bridge.queueResult(result);
     }
     this.router.navigate(['/tabs/payogotchi/payogotchi-home']);

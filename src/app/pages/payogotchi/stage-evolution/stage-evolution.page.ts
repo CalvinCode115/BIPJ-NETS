@@ -45,11 +45,12 @@ export class StageEvolutionPage {
     return stage === 'Baby' ? 'Teen' : 'Adult';
   }
 
+  /** Perks listed on the evolution popup. Mirrored in payogotchi-home.page.ts. */
   private unlocksFor(stage: PetStage): string[] {
     if (stage === 'Adult') {
-      return ['Extra cosmetic slots', 'Max XP cap (600 / day)', 'Prestige features'];
+      return ['Max XP cap (600 / day)', 'Prestige features'];
     }
-    return ['Cosmetic slot opened', 'Bigger XP cap (400 / day)', 'New mini-games'];
+    return ['Bigger XP cap (400 / day)', 'New mini-games'];
   }
 
   private buildParticles(): Particle[] {

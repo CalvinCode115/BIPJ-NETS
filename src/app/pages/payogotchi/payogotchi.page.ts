@@ -25,8 +25,7 @@ export class PayogotchiPage implements OnInit {
   variants: TapatchiVariant[] = TAPATCHI_VARIANTS;
   variantNames = VARIANT_DISPLAY_NAMES;
 
-  // Whether the grid animates. Eight characters x seven moods is 56 running
-  // animations, so it's off by default and can be switched on to spot-check.
+  // Off by default — 8 characters x 7 moods is 56 running animations.
   gridAnimated = false;
 
   constructor(private router: Router, private petService: PetService) {}

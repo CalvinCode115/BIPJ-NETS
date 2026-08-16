@@ -16,8 +16,7 @@ interface Shape {
   popped: boolean;
 }
 
-// the shapes you can tap: emoji, circle colour theme, and points given.
-// points are kept small (1-3) since happiness only goes up to 100
+// Tappable shapes. Points stay small (1-3) since happiness caps at 100.
 const SHAPE_TYPES: { emoji: string; theme: ShapeTheme; points: number }[] = [
   { emoji: '💕', theme: 'heart', points: 2 },
   { emoji: '⭐', theme: 'star', points: 3 },
@@ -39,8 +38,7 @@ export class MiniGamePage implements OnDestroy {
   timeLeft = this.gameLength;
   playsToday = 1;
   shapes: Shape[] = [];
-  // how much happiness the pet actually got (can be less than the
-  // score if the meter was already close to 100)
+  // happiness actually gained, which can be less than the score
   happinessGained = 0;
 
   private nextId = 0;
@@ -82,8 +80,7 @@ export class MiniGamePage implements OnDestroy {
     this.startGame();
   }
 
-  // leave the mini game and go back to Home.
-  // if the player quits halfway, still give the happiness earned so far
+  // quitting halfway still awards the happiness earned so far
   exit(): void {
     this.stopTimers();
     if (this.phase === 'playing' && this.score > 0) {
@@ -145,8 +142,7 @@ export class MiniGamePage implements OnDestroy {
     this.awardHappiness();
   }
 
-  // give the score to the pet as happiness (service caps it at 100),
-  // and remember how much it really went up so we can show it
+  // the service caps happiness at 100, so record what actually landed
   private awardHappiness(): void {
     const before = this.petService.state.happiness;
     this.petService.play(this.score);

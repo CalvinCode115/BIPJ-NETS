@@ -1,0 +1,94 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="xp-toolbar">
+    <ion-buttons slot="start">
+      <ion-button (click)="back()" aria-label="Back">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>XP History</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="xp-content">
+  <!-- ===== Totals ===== -->
+  <section class="xp-totals">
+    <div class="xp-total-card">
+      <span class="xp-total-value">{{ itemisedXp | number }}</span>
+      <span class="xp-total-label">From payments</span>
+    </div>
+    <div class="xp-total-card">
+      <span class="xp-total-value">{{ lifetimeXp | number }}</span>
+      <span class="xp-total-label">XP all time</span>
+    </div>
+  </section>
+
+  <!-- Reconciles the two numbers above so a gap never looks like lost data -->
+  <p class="xp-reconcile" *ngIf="!loading && !loadFailed && hasUnattributed">
+    <strong>{{ unattributedXp | number }} XP</strong> isn't listed below — it came from the
+    tutorial bonus, quests, or payments made before XP was recorded on transactions.
+  </p>
+
+  <!-- ===== Loading / empty / error ===== -->
+  <div class="xp-state" *ngIf="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading XP history…</p>
+  </div>
+
+  <div class="xp-state" *ngIf="!loading && loadFailed">
+    <span class="xp-state-emoji">📡</span>
+    <p>Couldn't load your XP history. Check your connection and try again.</p>
+  </div>
+
+  <div class="xp-state" *ngIf="!loading && !loadFailed && days.length === 0">
+    <span class="xp-state-emoji">🌱</span>
+    <p>No XP from payments yet. Pay with NETS to feed your Tapatchi!</p>
+  </div>
+
+  <!-- ===== A day's records ===== -->
+  <ng-container *ngIf="!loading && !loadFailed && currentDay as day">
+    <section class="xp-day">
+      <button
+        type="button"
+        class="xp-step"
+        (click)="previousDay()"
+        [disabled]="!hasOlder"
+        aria-label="Older day"
+      >
+        <ion-icon name="chevron-back-outline"></ion-icon>
+      </button>
+
+      <div class="xp-day-head">
+        <span class="xp-day-label">{{ day.label }}</span>
+        <span class="xp-day-total">+{{ day.totalXp | number }} XP</span>
+        <span class="xp-day-position">{{ dayPosition }}</span>
+      </div>
+
+      <button
+        type="button"
+        class="xp-step"
+        (click)="nextDay()"
+        [disabled]="!hasNewer"
+        aria-label="More recent day"
+      >
+        <ion-icon name="chevron-forward-outline"></ion-icon>
+      </button>
+    </section>
+
+    <section class="xp-list">
+      <div class="xp-entry" *ngFor="let entry of day.entries">
+        <div class="xp-entry-icon">
+          <ion-icon [name]="entry.icon"></ion-icon>
+        </div>
+        <div class="xp-entry-main">
+          <span class="xp-entry-merchant">{{ entry.merchant }}</span>
+          <span class="xp-entry-meta">{{ entry.time }} · {{ entry.category }}</span>
+        </div>
+        <div class="xp-entry-xp">
+          <span class="xp-entry-value">+{{ entry.xp | number }}</span>
+          <span class="xp-entry-unit">XP</span>
+          <span class="xp-entry-capped" *ngIf="entry.capped">daily cap</span>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</ion-content>

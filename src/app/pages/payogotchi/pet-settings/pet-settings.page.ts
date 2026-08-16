@@ -80,6 +80,12 @@ export class PetSettingsPage {
             danger: true,
             screen: 'egg-reselection-trial',
           },
+          {
+            icon: '📈',
+            title: 'XP History',
+            subtitle: 'Where your XP came from, day by day',
+            screen: 'xp-history',
+          },
         ],
       },
       {
@@ -124,8 +130,7 @@ export class PetSettingsPage {
       this.go(row.screen);
       return;
     }
-    // Demo-only rows: no dedicated screen yet.
-    // TODO: wire notifications toggle, break mode, and native share.
+    // Demo-only rows. TODO: wire notifications, break mode, native share.
   }
 
   back(): void {
