@@ -77,7 +77,17 @@ export class FxTrackerPage implements OnInit {
   ) { }
 
   ngOnInit() {
-    const savedDest = localStorage.getItem('nets_selected_destination');
+    const userId = this.auth.userId;
+
+    if (!userId) {
+      this.error = 'Please log in to use currency exchange.';
+      return;
+    }
+
+    // Now use userId here (no redeclaration)
+    const savedDest = localStorage.getItem(
+      `nets_selected_destination_${userId}`,
+    );
     if (savedDest) {
       if (DESTINATIONS[savedDest]) {
         this.currentDestination = DESTINATIONS[savedDest];
@@ -87,10 +97,11 @@ export class FxTrackerPage implements OnInit {
           if (parsed && parsed.id) {
             this.currentDestination = {
               ...parsed,
-              // Ensure these are always set
               homeCurrencyCode: parsed.homeCurrencyCode || 'SGD',
               currencyCode: parsed.currencyCode || parsed.fxPair?.[1] || 'USD',
-              fxPair: Array.isArray(parsed.fxPair) ? parsed.fxPair : ['SGD', parsed.currencyCode || 'USD']
+              fxPair: Array.isArray(parsed.fxPair)
+                ? parsed.fxPair
+                : ['SGD', parsed.currencyCode || 'USD'],
             };
           }
         } catch {
@@ -98,10 +109,6 @@ export class FxTrackerPage implements OnInit {
         }
       }
     }
-
-
-    // Get card ID from localStorage (set by home page when card is selected)
-    const userId = this.auth.userId;
 
     if (!userId) {
       this.error = 'Please log in to use currency exchange.';

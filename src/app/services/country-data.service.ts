@@ -197,14 +197,6 @@ export class CountryDataService {
       });
     }
 
-    // Add featured destinations if not already present
-    for (const featured of FEATURED_DESTINATIONS) {
-      if (!seen.has(featured.id)) {
-        countries.unshift(featured);
-        seen.add(featured.id);
-      }
-    }
-
     console.log('[CountryData] Total transformed:', countries.length);
     return countries;
   }
