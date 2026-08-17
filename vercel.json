@@ -6,11 +6,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://REPLACE-ME-node.onrender.com/api/:path*"
+      "destination": "https://bipj-nets-api.onrender.com/api/:path*"
     },
     {
       "source": "/pyapi/:path*",
-      "destination": "https://REPLACE-ME-python.onrender.com/api/:path*"
+      "destination": "https://bipj-nets-python-service.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
