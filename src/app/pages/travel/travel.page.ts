@@ -202,28 +202,33 @@ export class TravelPage implements OnInit {
     private transactionsService: TransactionsService,
   ) {}
 
-  ngOnInit() {
-    console.log('=== AUTH USER ID ===', this.auth.userId);
-    console.log('=== HARD CODED USER ID ===', this.userId);
-    console.log('=== CURRENT USER ===', this.auth.currentUser);
+ngOnInit() {
+    const userId = this.auth.userId;
+
+    if (!userId) {
+      this.error = 'Please log in to use currency exchange.';
+      return;
+    }
+
+    // Now use userId here (no redeclaration)
     const savedDest = localStorage.getItem(
-      `nets_selected_destination_${this.userId}`,
+      `nets_selected_destination_${userId}`,
     );
     if (savedDest) {
       if (DESTINATIONS[savedDest]) {
         this.currentDestination = DESTINATIONS[savedDest];
       } else {
-        // Try to parse as dynamic destination
         try {
           const parsed = JSON.parse(savedDest);
           if (parsed && parsed.id) {
-            // Ensure fxPair is always an array (fix for legacy stored data)
-            if (typeof parsed.fxPair === 'string') {
-              parsed.fxPair = ['SGD', parsed.fxPair];
-            } else if (!parsed.fxPair) {
-              parsed.fxPair = ['SGD', parsed.currencyCode || 'USD'];
-            }
-            this.currentDestination = parsed;
+            this.currentDestination = {
+              ...parsed,
+              homeCurrencyCode: parsed.homeCurrencyCode || 'SGD',
+              currencyCode: parsed.currencyCode || parsed.fxPair?.[1] || 'USD',
+              fxPair: Array.isArray(parsed.fxPair)
+                ? parsed.fxPair
+                : ['SGD', parsed.currencyCode || 'USD'],
+            };
           }
         } catch {
           // fallback to default
