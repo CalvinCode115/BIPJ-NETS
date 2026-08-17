@@ -1550,12 +1550,21 @@ export class TravelPage implements OnInit {
     }
   }
 
-  selectAnyCountry(country: CountryInfo) {
-    const richConfig = this.countryData.getRichConfig(country.id);
+selectAnyCountry(country: CountryInfo) {
+    // Map ISO code back to destination config key
+    const isoToDestKey: Record<string, string> = {
+      my: 'malaysia',
+      th: 'thailand',
+      jp: 'japan',
+      kr: 'korea',
+      au: 'australia',
+    };
 
-    if (richConfig) {
-      // Rich destination — use existing config
-      this.selectDestination(richConfig.id);
+    const destKey = isoToDestKey[country.id];
+
+    if (destKey && DESTINATIONS[destKey]) {
+      // Rich destination — use existing config with proper key
+      this.selectDestination(destKey);
       return;
     }
 

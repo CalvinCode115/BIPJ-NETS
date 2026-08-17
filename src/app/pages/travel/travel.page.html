@@ -98,17 +98,6 @@
       <h3>🗓️ Smart Day Planner</h3>
     </div>
 
-    <div class="days-input">
-      <label>Trip duration:</label>
-      <ion-segment [value]="numTripDays" (ionChange)="onDaysChange($event)">
-        <ion-segment-button value="1">1 day</ion-segment-button>
-        <ion-segment-button value="2">2 days</ion-segment-button>
-        <ion-segment-button value="3">3 days</ion-segment-button>
-        <ion-segment-button value="4">4 days</ion-segment-button>
-        <ion-segment-button value="5">5 days</ion-segment-button>
-      </ion-segment>
-    </div>
-
     <ion-button
       expand="block"
       (click)="generateDayPlans()"
