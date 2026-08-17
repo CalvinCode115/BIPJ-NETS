@@ -7,7 +7,9 @@ import { PetService } from '../../services/pet.service';
 export const payogotchiEntryGuard: CanActivateFn = async (): Promise<UrlTree> => {
   const router = inject(Router);
   const pet = inject(PetService);
+
   await pet.syncFromCloud();
+
   const target = pet.state.onboarded
     ? '/tabs/payogotchi/payogotchi-home'
     : '/tabs/payogotchi/intro';

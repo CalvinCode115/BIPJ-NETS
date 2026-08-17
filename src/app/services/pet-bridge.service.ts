@@ -2,47 +2,23 @@ import { Injectable } from '@angular/core';
 import { PetService } from './pet.service';
 import { TransactionResult, TxnCategory } from '../models/pet.model';
 
-// A celebration waiting to be shown on the Payogotchi Home screen.
-// Real payments happen on the Pay tab, so the pet reacts immediately
-// (state + Firestore) but the feedback/level-up popups are queued here
-// and played the next time the user opens the Payogotchi tab.
+
 export interface PendingCelebration {
   result: TransactionResult;
-  // absent for a celebration that didn't come from a purchase (e.g. the
-  // tutorial completion bonus) — Home uses this to skip the "you paid X"
-  // feedback step and go straight to level up / evolution.
   merchant?: string;
 }
 
 // Bridges REAL NETS payments (QR pay, P2P transfers) into the pet.
-// The payment services call record() after a successful payment; this
-// maps the payment into the pet's game logic (applyTransaction, which
-// also persists to Firestore) and queues the celebration for Home.
-//
-// This is the single seam between the payment feature (JunJie) and
-// Payogotchi (Calvin): payment services depend only on record(), and
-// none of the pay UI needs to know the pet exists.
 @Injectable({ providedIn: 'root' })
 export class PetBridgeService {
   private pending: PendingCelebration | null = null;
 
   constructor(private pet: PetService) {}
 
-  // The pet's display name, for messages shown outside the Payogotchi tab.
-  // Exposed here so payment services keep depending only on this bridge.
   get petName(): string {
     return this.pet.state.name;
   }
 
-  // Apply a real payment to the pet. `rawCategory` is the backend's
-  // free-text category (e.g. 'Coffee', 'Retail'); we map it to the
-  // pet's category so food payments restore hunger, etc.
-  //
-  // `spendPoints` is the real NETS Points the payment earned on the Rewards
-  // side, which the caller already has in its payment response. The pet plays
-  // no part in awarding it — it's carried through purely so Payogotchi's own
-  // feedback popup can show the whole payment instead of only the milestone
-  // half. Omit it where there is none (P2P transfers earn XP only).
   record(
     amount: number,
     rawCategory: string,
@@ -58,9 +34,6 @@ export class PetBridgeService {
     return result;
   }
 
-  // Queue a celebration for a result that didn't come from a purchase (e.g.
-  // the tutorial completion bonus), so it still plays through Home's
-  // level-up / evolution chain — just without a merchant / feedback step.
   queueResult(result: TransactionResult): void {
     this.pending = mergePending(this.pending, { result });
   }
@@ -73,9 +46,6 @@ export class PetBridgeService {
   }
 }
 
-// Map the backend's free-text category to the pet's TxnCategory.
-// Only real meals restore hunger; drinks/coffee count as generic spend
-// (matching the Home demo, where Coffee is 'other' and Lunch is 'food').
 function mapCategory(raw: string): TxnCategory {
   const c = (raw || '').toLowerCase();
   const has = (...keys: string[]) => keys.some((k) => c.includes(k));
@@ -92,8 +62,6 @@ function mapCategory(raw: string): TxnCategory {
   return 'other';
 }
 
-// Keep the newest celebration, but don't lose a level-up / evolution /
-// revival flag from an earlier queued payment (those drive the big popups).
 function mergePending(prev: PendingCelebration | null, next: PendingCelebration): PendingCelebration {
   if (!prev) {
     return next;

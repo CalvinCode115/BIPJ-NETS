@@ -204,8 +204,6 @@ export class PayogotchiHomePage implements OnDestroy {
 
     if (merchant) {
       // purchases start at the feedback step, which chains on from there.
-      // Nested on purpose: a zero-XP purchase shows nothing, and must not
-      // fall through to the level-up branch below.
       if (r.xpGained > 0) {
         this.showFeedback = true;
       }

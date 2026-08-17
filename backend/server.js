@@ -13,9 +13,18 @@ app.use(express.json());
 
 // Cheap, dependency-free liveness probe — used to warm Render's free tier
 // before a demo, and as the platform health check.
-app.get('/health', (_req, res) => {
+//
+// Exposed under /api as well because that is the only prefix the deployed
+// frontend can reach us on: vercel.json rewrites /api/* to this service, so
+// a bare /health from the browser would hit Vercel's static site instead.
+// The app pings /api/health on boot to start Render's ~40s cold start while
+// the user is still on the login screen.
+function health(_req, res) {
   res.json({ status: 'ok', uptime: process.uptime() });
-});
+}
+
+app.get('/health', health);
+app.get('/api/health', health);
 
 app.use('/api/auth', authRouter);
 app.use('/api', apiRouter);

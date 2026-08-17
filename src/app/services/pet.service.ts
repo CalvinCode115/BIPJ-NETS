@@ -13,14 +13,8 @@ import {
   MilestoneConfirmation,
 } from '../models/pet.model';
 
-// base key we save the pet under in localStorage. The real cache key is
-// namespaced per user (payogotchi_pet_<userId>) so two accounts on the
-// same device keep separate pets. The bare key is the legacy pre-multi-user
-// save, still read once so the pet you already built isn't lost.
-const STORAGE_KEY = 'payogotchi_pet';
 
-// when nobody is logged in we fall back to this demo account so the pet
-// still persists to Firestore during a demo without a login step.
+const STORAGE_KEY = 'payogotchi_pet';
 const FALLBACK_OWNER = 'user_1';
 
 // how much XP the pet can earn per day, depends on its stage
@@ -39,7 +33,6 @@ const MIN_TXN_AMOUNT = 0.5;
 const ONE_DAY_MS = 86_400_000;
 
 // how much hunger drains per day with no food. Bigger pets get hungrier
-// faster, so caring for an Adult takes more attention than a Baby.
 const DAILY_HUNGER_DECAY: Record<PetStage, number> = {
   Baby: 10,
   Teen: 15,
@@ -55,18 +48,7 @@ const FAINT_AFTER_DAYS = 3;
 // hunger a revived pet wakes up with, so it isn't instantly starving again
 const REVIVE_HUNGER_FLOOR = 50;
 
-// NETS Points bonus for reaching a given pet level. Mirrors
-// backend/services/payogotchi-rewards.js's levelUpBonus() exactly — keep
-// both in sync if either changes, or the UI will promise a different number
-// than the backend actually grants. Deliberately much smaller than the real
-// 1-point-per-dollar transaction rate (see transaction-rewards.js on the
-// backend): a rare milestone reward, not a second way to farm points.
-//
-// Rebalanced 2026-08-16 — halved (floor 3) after Yunen's economy change took
-// spending from 10 points per dollar down to 1, which had quietly made these
-// bonuses ~10x more significant than they were designed to be. A full
-// level-1-to-50 run is now worth 602 points against ~12,250 from the spending
-// needed to get there (~4.7%). See the backend copy for the full reasoning.
+// NETS Points bonus for reaching a given pet level. 
 function levelUpBonus(level: number): number {
   if (level <= 10) return 3;
   if (level <= 20) return 5;
@@ -81,56 +63,35 @@ function levelUpBonus(level: number): number {
 // NETS Points bonus for a stage evolution (Baby -> Teen -> Adult).
 const EVOLVE_MILESTONE_BONUS = 50;
 
-// This service holds the pet's state and all the game logic.
-// Every Payogotchi screen reads/updates the pet through here so
-// they all stay in sync.
-//
-// The pet is saved to localStorage after every change and loaded
-// back when the app starts, so refreshing the browser doesn't
-// wipe it. (Firestore is planned but not done yet.)
-//
+// how long to wait between attempts at reading the pet, while the API is
+const COLD_START_RETRY_MS = 2_000;
+
+export type PetSyncStatus = 'loaded' | 'empty' | 'unavailable';
+
 // A fresh install starts with a brand new level 1 pet, which sends
-// the user through the intro -> egg -> hatch flow. For demos we can
-// also load a "returning user" pet using seedReturningUser().
+// the user through the intro -> egg -> hatch flow
 @Injectable({ providedIn: 'root' })
 export class PetService {
   readonly state: PetState = PetService.freshState();
 
-  // ---- Milestone bonus reconciliation ----
-  //
-  // The pet shows its own optimistic bonus figure the moment it levels up,
-  // because waiting on the network would kill the celebration. But only the
-  // backend knows how much of today's shared 300-point budget is left, so
-  // what it actually credits can be less (see awardPetMilestone on the
-  // backend). These two carry the real figure back to the UI:
-  //
-  //  - milestoneBonusConfirmed fires for a screen that's already open, so an
-  //    in-flight level-up modal can correct its number in place.
-  //  - consumeMilestoneConfirmation() covers the queued case — a payment made
-  //    on the Pay tab whose celebration doesn't play until the user opens
-  //    Payogotchi, by which time the reply already came and went.
+  // ---- Milestone bonus  ----
   private readonly milestoneConfirmed = new Subject<MilestoneConfirmation>();
   readonly milestoneBonusConfirmed = this.milestoneConfirmed.asObservable();
   private pendingConfirmation: MilestoneConfirmation | null = null;
 
-  // which user the in-memory state currently belongs to, so we can detect
-  // an account switch and reload the right pet instead of bleeding across users
+
   private loadedOwner: string | null = null;
-  // debounce handle so a burst of save() calls = one Firestore write
+
   private cloudSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private cloudReadOk = false;
+
   constructor(private http: HttpClient, private auth: AuthService) {
-    // instant state from the local cache for the current owner; the entry
-    // guard calls syncFromCloud() to reconcile with Firestore before routing
     this.loadLocalFor(this.ownerId);
     this.migrateLegacyFields();
     this.applyDecay();
   }
 
-  // the account the pet belongs to: the logged-in user, or the demo
-  // fallback. Public so other Payogotchi screens can look up the same
-  // user's real NETS Points balance via PointsService without duplicating
-  // this fallback logic.
   get ownerId(): string {
     return this.auth.userId ?? FALLBACK_OWNER;
   }
@@ -165,17 +126,11 @@ export class PetService {
   }
 
   // ---- Demo helpers ----
-
-  // wipe everything back to a new user (intro flow will run again)
   resetNewUser(): void {
     Object.assign(this.state, PetService.freshState());
     this.save();
   }
 
-  // Load a demo "returning user": level 9 baby thats very close to
-  // level 10 (780/900 XP) but already maxed out today's XP cap.
-  // Demo flow: tap a transaction -> blocked by cap (toast shows) ->
-  // reset the cap -> tap again -> level up popup!
   seedReturningUser(): void {
     Object.assign(this.state, {
       name: 'Tapatchi',
@@ -205,29 +160,21 @@ export class PetService {
     this.save();
   }
 
-  // called after the naming screen, user is done with onboarding
   completeOnboarding(): void {
     this.state.onboarded = true;
-    // the pet's "birthday" for the Days Together stat — only stamp it once
     if (this.state.createdAt === null) {
       this.state.createdAt = Date.now();
     }
-    // start the decay clock from the hatch, not from whenever the app was
-    // first installed — otherwise a user who sat on the egg screen for a
-    // week would meet an already-starving pet
     this.state.lastDecayAt = Date.now();
     this.save();
   }
 
-  // demo button: clear today's XP cap so the pet can earn again
-  // (pretends it's a new day)
   resetDailyXpCap(): void {
     this.state.dailyXpEarned = 0;
     this.state.dailyXpDate = this.todayStr();
     this.save();
   }
 
-  // remember which egg was picked on the egg selection screen
   setSelectedEgg(egg: string): void {
     this.state.selectedEgg = egg;
     this.save();
@@ -249,8 +196,7 @@ export class PetService {
     return this.state.xpMax > 0 ? Math.min(this.state.xp / this.state.xpMax, 1) : 0;
   }
 
-  // true once hunger has been at 0 for FAINT_AFTER_DAYS straight. The home
-  // page uses this to swap in the fainted layout instead of the normal one.
+  // true once hunger has been at 0 for FAINT_AFTER_DAYS straight. The home page uses this to swap in the fainted layout instead of the normal one.
   get isFainted(): boolean {
     return this.state.faintedAt !== null;
   }
@@ -265,8 +211,7 @@ export class PetService {
 
   // work out the pet's mood from hunger + happiness
   get mood(): TapatchiMood {
-    // a fainted pet outranks every other mood - it isn't sad or hungry,
-    // it's out cold until it gets fed
+    // a fainted pet outranks every other mood 
     if (this.isFainted) {
       return 'fainted';
     }
@@ -309,7 +254,6 @@ export class PetService {
     return Math.max(1, Math.floor((Date.now() - this.state.createdAt) / 86_400_000) + 1);
   }
 
-  // merchant with the most transactions, or null if none recorded yet
   get favouriteMerchant(): string | null {
     const entries = Object.entries(this.state.merchantCounts);
     if (entries.length === 0) {
@@ -321,7 +265,7 @@ export class PetService {
   // ---- Actions ----
 
   // feed the pet (snacks button / food transactions)
-  feed(amount = 20): void {
+  feed(amount = 10): void {
     this.state.hunger = this.clamp(this.state.hunger + amount);
     this.state.happiness = this.clamp(this.state.happiness + 5);
     this.state.lastFedAt = Date.now();
@@ -338,14 +282,6 @@ export class PetService {
   // ---- Time-based decay (the care loop) ----
 
   // Applies however much hunger/happiness decay is owed since the last time
-  // we checked, then works out whether the pet has fainted.
-  //
-  // This runs retroactively rather than on a timer: the app isn't open most
-  // of the time, so on load we look at how many WHOLE days have passed since
-  // lastDecayAt and apply that many days of decay at once. Only whole days
-  // are consumed - the leftover hours stay on the clock for next time, so
-  // opening the app twice in one day doesn't decay the pet twice, and
-  // opening it every 23 hours doesn't decay it never.
   applyDecay(): void {
     // an un-hatched pet has no meters to drain yet
     if (!this.state.onboarded) {
@@ -366,10 +302,6 @@ export class PetService {
       this.state.happiness - DAILY_HAPPINESS_DECAY * elapsedDays
     );
 
-    // If hunger bottomed out somewhere inside that window, the pet has been
-    // starving since THAT day - not since now. Getting this right is what
-    // lets a user who was away for a week come back to an already-fainted
-    // pet, instead of one that only starts its 3-day countdown on return.
     if (this.state.hunger === 0 && hungerBefore > 0) {
       const daysToZero = Math.ceil(hungerBefore / hungerRate);
       this.state.hungerZeroSince = this.state.lastDecayAt + daysToZero * ONE_DAY_MS;
@@ -380,17 +312,12 @@ export class PetService {
     this.save();
   }
 
-  // Decides whether the pet is fainted, given how long hunger has been at 0.
-  // Only ever puts the pet TO sleep - waking it up is revive()'s job, since
-  // that only ever happens by feeding it.
   private refreshFaint(now: number): void {
     if (this.state.hunger > 0) {
       this.state.hungerZeroSince = null;
       return;
     }
 
-    // hunger is 0 but we never stamped when that started (e.g. a pet saved
-    // before this feature existed) - start the clock now
     if (this.state.hungerZeroSince === null) {
       this.state.hungerZeroSince = now;
     }
@@ -401,9 +328,7 @@ export class PetService {
     }
   }
 
-  // Wakes a fainted pet back up and clears the starvation clock. Returns
-  // true only if it actually revived something, so applyTransaction can
-  // report it and the home page can show the Welcome Back screen.
+  // Wakes a fainted pet back up and clears the starvation clock
   private revive(): boolean {
     this.state.hungerZeroSince = null;
     if (this.state.faintedAt === null) {
@@ -414,11 +339,6 @@ export class PetService {
     return true;
   }
 
-  // Demo helper: pretend N days went by. Rewinds the decay clock (and the
-  // fed/starving timestamps with it, so they stay the same distance apart)
-  // then immediately applies the decay that is now owed. Lets the whole
-  // care loop - hunger draining, pet saddening, fainting - be shown in
-  // seconds instead of over three real days.
   simulateDaysPassing(days = 1): void {
     const shift = days * ONE_DAY_MS;
     this.state.lastDecayAt -= shift;
@@ -432,8 +352,6 @@ export class PetService {
   }
 
   // The main game logic: apply a NETS transaction to the pet.
-  // Returns a result object so the home page knows which popups
-  // to show after (feedback -> level up -> evolution).
   applyTransaction(amount: number, category: TxnCategory, merchant?: string): TransactionResult {
     const result: TransactionResult = {
       xpGained: 0,
@@ -446,9 +364,6 @@ export class PetService {
       revived: false,
     };
 
-    // 0. settle any decay owed first, so a payment after a long gap acts on
-    // the pet's real current state (and can revive it) rather than on a
-    // stale snapshot from whenever the app was last opened
     this.applyDecay();
 
     // 1. too small to count, nothing happens
@@ -504,10 +419,7 @@ export class PetService {
       result.newStage = this.state.stage;
     }
 
-    // 7. NETS Points are only awarded for a level-up/evolution milestone —
-    // plain spending already earns real points on the Rewards side (see
-    // backend/services/transaction-rewards.js), so Payogotchi doesn't award
-    // its own separate points for every transaction.
+    // 7. NETS Points are only awarded for a level-up/evolution milestone 
     result.pointsEarned = this.awardMilestoneBonus(levelBefore, this.state.level, result.evolved, result.newStage);
 
     // 8. lifetime stats for the pet-settings "Journey" card
@@ -520,12 +432,7 @@ export class PetService {
     return result;
   }
 
-  // Computes the NETS Points bonus for a level-up/evolution (optimistic —
-  // same scale the backend uses, so the UI can show it immediately without
-  // waiting on a network round trip) and fires a best-effort request to
-  // credit it to the user's REAL points balance, the single source of truth
-  // the Rewards tab reads from (see PointsService.getBalance). Returns 0,
-  // and makes no request at all, when there's no milestone to reward.
+  // Computes the NETS Points bonus for a level-up/evolution 
   private awardMilestoneBonus(fromLevel: number, toLevel: number, evolved: boolean, newStage?: PetStage): number {
     let bonus = 0;
     for (let level = fromLevel + 1; level <= toLevel; level++) {
@@ -535,8 +442,6 @@ export class PetService {
       bonus += EVOLVE_MILESTONE_BONUS;
     }
     if (bonus > 0) {
-      // any confirmation still sitting here belongs to an earlier milestone —
-      // drop it so it can't be mistaken for this one's
       this.pendingConfirmation = null;
 
       this.http
@@ -554,24 +459,18 @@ export class PetService {
             this.pendingConfirmation = confirmation;
             this.milestoneConfirmed.next(confirmation);
           },
-          // offline: keep showing the optimistic figure. We genuinely don't
-          // know what landed, and guessing "0" would be worse than guessing high.
-          error: () => {},
+          error: () => { },
         });
     }
     return bonus;
   }
 
-  // Takes the confirmation for the most recent milestone, if the reply has
-  // already arrived. Clears it on read so an old figure can never be applied
-  // to a later, unrelated milestone.
   consumeMilestoneConfirmation(): MilestoneConfirmation | null {
     const confirmation = this.pendingConfirmation;
     this.pendingConfirmation = null;
     return confirmation;
   }
 
-  // tally the merchant name towards the favourite-merchant stat
   private recordMerchant(merchant?: string): void {
     const name = merchant?.trim();
     if (!name) {
@@ -580,21 +479,18 @@ export class PetService {
     this.state.merchantCounts[name] = (this.state.merchantCounts[name] ?? 0) + 1;
   }
 
-  // extend/reset the daily streak based on when the last counted
-  // transaction happened, and keep the longest-streak high-water mark
   private updateStreak(today: string): void {
     const last = this.state.lastTransactionDate;
     const gap = last ? this.daysBetween(last, today) : null;
 
     if (gap === 0) {
-      return; // already counted a transaction today, streak unchanged
+      return; 
     }
     this.state.currentStreak = gap === 1 ? this.state.currentStreak + 1 : 1;
     this.state.lastTransactionDate = today;
     this.state.longestStreak = Math.max(this.state.longestStreak, this.state.currentStreak);
   }
 
-  // whole-day difference between two 'YYYY-MM-DD' dates (b - a)
   private daysBetween(a: string, b: string): number {
     const [ay, am, ad] = a.split('-').map(Number);
     const [by, bm, bd] = b.split('-').map(Number);
@@ -614,10 +510,7 @@ export class PetService {
     }
   }
 
-  // Grants the one-time tutorial completion bonus and reports whether it
-  // levelled up / evolved the pet, so the caller can celebrate it the same
-  // way a real transaction does. Returns null if already claimed before —
-  // the tutorial can still be re-read, it just won't pay out XP again.
+  // Grants the one-time tutorial completion bonus and reports whether it levelled up / evolved the pet
   awardTutorialCompletion(amount: number): TransactionResult | null {
     if (this.state.tutorialCompleted) {
       return null;
@@ -648,15 +541,6 @@ export class PetService {
   }
 
   // ---- Rewards -> pet (Yunen's quest/challenge XP) ----
-
-  // Applies one external XP/happiness grant — from a claimed quest or
-  // challenge — the same way a real transaction would, so a grant that
-  // crosses a level still reports it and the home page can celebrate it.
-  //
-  // Deliberately NOT subject to the daily XP cap: that cap exists to stop
-  // spending being farmed for XP, and a quest claim is already one-time per
-  // quest per day. Capping it here would silently shrink a reward the user
-  // was explicitly promised on the card they just tapped.
   awardPetProgress(grant: { xp?: number; happiness?: number }): TransactionResult {
     const xp = Math.max(0, Math.round(grant.xp ?? 0));
     const happiness = Math.max(0, Math.round(grant.happiness ?? 0));
@@ -693,12 +577,7 @@ export class PetService {
     return result;
   }
 
-  // Pulls everything the pet is owed from claimed quests/challenges, applies
-  // each grant, and acks them so they aren't granted twice. Returns one
-  // result per grant so the caller can run the celebration chain.
-  //
-  // Acks only AFTER applying: if this dies halfway, the un-acked grants stay
-  // queued and arrive next time rather than being silently lost.
+  // Pulls everything the pet is owed from claimed quests/challenges
   async drainPendingRewards(): Promise<TransactionResult[]> {
     const owner = this.ownerId;
 
@@ -726,8 +605,6 @@ export class PetService {
 
       return results;
     } catch {
-      // offline or backend down — the queue is still on the server, so
-      // whatever was owed simply arrives on a later open
       return [];
     }
   }
@@ -747,9 +624,9 @@ export class PetService {
     this.state.stage = lvl >= 36 ? 'Adult' : lvl >= 16 ? 'Teen' : 'Baby';
   }
 
-  // keep values between 0 and 100
+  // Keep a meter between 0 and 100, as a whole number.
   private clamp(value: number): number {
-    return Math.max(0, Math.min(100, value));
+    return Math.round(Math.max(0, Math.min(100, value)));
   }
 
   // today's date as 'YYYY-MM-DD', used for the daily XP counter
@@ -761,20 +638,10 @@ export class PetService {
   }
 
   // ---- Saving/loading ----
-  //
-  // Two layers: a per-user localStorage cache (instant, offline-safe) and
-  // Firestore via the Node backend (real cloud persistence). Every screen
-  // still just calls save() / reads state - the storage details live here.
-
-  // localStorage cache key for a given user
   private cacheKey(owner: string): string {
     return `${STORAGE_KEY}_${owner}`;
   }
 
-  // load the given user's pet from the local cache into memory. Starts from
-  // a fresh state so a previous user's data never bleeds across an account
-  // switch. For the fallback demo user we also adopt the legacy (pre
-  // multi-user) save once, so the pet you already built carries over.
   private loadLocalFor(owner: string): void {
     Object.assign(this.state, PetService.freshState());
     try {
@@ -785,16 +652,20 @@ export class PetService {
         Object.assign(this.state, JSON.parse(raw) as Partial<PetState>);
       }
     } catch {
-      // cache was broken - just keep the fresh state
     }
     this.loadedOwner = owner;
+    this.cloudReadOk = false;
   }
 
-  // Backfills journey-stat fields for pets saved before they existed, so an
-  // already-onboarded returning pet doesn't show "0 days together" or a
-  // reset lifetime XP total just because the save predates this feature.
   private migrateLegacyFields(): void {
     let changed = false;
+    for (const meter of ['hunger', 'happiness'] as const) {
+      const value = this.state[meter];
+      if (!Number.isInteger(value)) {
+        this.state[meter] = this.clamp(value);
+        changed = true;
+      }
+    }
 
     if (this.state.onboarded && this.state.createdAt === null) {
       this.state.createdAt = Date.now();
@@ -814,11 +685,31 @@ export class PetService {
     }
   }
 
-  // Reconcile the in-memory pet with Firestore. Called by the entry guard
-  // before it decides intro vs home, so a returning user never flashes the
-  // intro and each account loads its own pet. Falls back to the local cache
-  // when offline / the backend is down, so the demo never breaks.
-  async syncFromCloud(): Promise<void> {
+  // MUST NOT confuse with "no pet".
+  private async fetchCloudPet(owner: string, attempts = 3): Promise<Partial<PetState> | null> {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        const res = await firstValueFrom(
+          this.http.get<{ pet: Partial<PetState> | null }>(
+            `${API_BASE_URL}/users/${owner}/payogotchi`
+          )
+        );
+        return res?.pet ?? null;
+      } catch (err) {
+        lastError = err;
+        if (attempt < attempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, COLD_START_RETRY_MS));
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  // Reconcile the in-memory pet with Firestore. 
+  async syncFromCloud(): Promise<PetSyncStatus> {
     const owner = this.ownerId;
     // account switched since last load - swap to that user's cached pet first
     if (this.loadedOwner !== owner) {
@@ -826,46 +717,36 @@ export class PetService {
     }
 
     try {
-      const res = await firstValueFrom(
-        this.http.get<{ pet: Partial<PetState> | null }>(
-          `${API_BASE_URL}/users/${owner}/payogotchi`
-        )
-      );
-      if (res?.pet) {
-        // cloud is the source of truth on load
-        Object.assign(this.state, res.pet);
+      const pet = await this.fetchCloudPet(owner);
+      this.cloudReadOk = true;
+
+      if (pet) {
+        Object.assign(this.state, pet);
         this.migrateLegacyFields();
-        // the cloud pet carries its own lastDecayAt, so settle whatever
-        // decay is owed against THAT before any screen reads the meters
         this.applyDecay();
         this.writeLocal();
-      } else {
-        // no cloud pet yet: promote whatever we have locally (first save /
-        // legacy migration) so this user gets a Firestore document
-        this.saveToCloud();
+        return 'loaded';
       }
+
+      this.saveToCloud();
+      return 'empty';
     } catch {
-      // offline or backend down - keep the local/default state
+      return 'unavailable';
     }
   }
 
-  // save the pet, called after every change. Writes the local cache
-  // immediately and schedules a (debounced) Firestore write.
   private save(): void {
     this.writeLocal();
     this.scheduleCloudSave();
   }
 
-  // write the current pet to this owner's local cache
   private writeLocal(): void {
     try {
       localStorage.setItem(this.cacheKey(this.ownerId), JSON.stringify(this.state));
     } catch {
-      // storage full or blocked (private mode) - just keep going in memory
     }
   }
 
-  // coalesce a burst of save() calls into a single Firestore write
   private scheduleCloudSave(): void {
     if (this.cloudSaveTimer) {
       clearTimeout(this.cloudSaveTimer);
@@ -873,13 +754,30 @@ export class PetService {
     this.cloudSaveTimer = setTimeout(() => this.saveToCloud(), 500);
   }
 
-  // push the current pet to Firestore via the backend. Fire-and-forget:
+  // Push the current pet to Firestore via the backend. Fire-and-forget:
   // a failure (offline) is fine because the local cache already holds it.
-  private saveToCloud(): void {
+  private async saveToCloud(): Promise<void> {
     this.cloudSaveTimer = null;
     const owner = this.ownerId;
+
+    if (!this.cloudReadOk) {
+      try {
+        const remote = await this.fetchCloudPet(owner, 1);
+        this.cloudReadOk = true;
+        if (remote?.onboarded && !this.state.onboarded) {
+          Object.assign(this.state, remote);
+          this.migrateLegacyFields();
+          this.applyDecay();
+          this.writeLocal();
+          return; 
+        }
+      } catch {
+        return;
+      }
+    }
+
     this.http
       .put(`${API_BASE_URL}/users/${owner}/payogotchi`, { pet: this.state })
-      .subscribe({ next: () => {}, error: () => {} });
+      .subscribe({ next: () => { }, error: () => { } });
   }
 }
