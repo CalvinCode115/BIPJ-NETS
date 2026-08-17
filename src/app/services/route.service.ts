@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface DirectionsResponse {
     status: string;
@@ -29,7 +30,7 @@ export interface DirectionsResponse {
 
 @Injectable({ providedIn: 'root' })
 export class RouteService {
-    private readonly API_URL = 'http://localhost:8000/api';
+    private readonly API_URL = environment.pyApiUrl;
 
     constructor(private http: HttpClient) { }
 

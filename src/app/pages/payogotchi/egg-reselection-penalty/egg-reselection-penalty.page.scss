@@ -15,7 +15,6 @@
 
 .screen-number {
   margin: 0;
-  font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 1px;
@@ -25,7 +24,7 @@
 
 .screen-title {
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 26px;
   color: var(--text-accent);
@@ -33,7 +32,6 @@
 
 .screen-note {
   margin: 0;
-  font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: var(--text-secondary);
 }

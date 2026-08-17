@@ -50,7 +50,6 @@
 }
 
 .intro-banner-kicker {
-  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -64,7 +63,7 @@
 .intro-banner-title {
   margin: 4px 0 0;
   // Same display face as the Egg Selection title (.egg-title).
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-size: 40px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -73,7 +72,7 @@
 }
 
 .intro-banner-sub {
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-size: 14px;
   font-weight: 700;
   color: var(--text-secondary);
@@ -119,7 +118,6 @@
 
 .intro-beat {
   margin: 0;
-  font-family: 'Inter', sans-serif;
   font-size: 17px;
   line-height: 1.5;
   font-weight: 500;
@@ -162,7 +160,7 @@
 .intro-cta-line {
   margin: 0;
   // Friendly sub-line face, matching the speech bubbles / egg popup title.
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
@@ -171,7 +169,6 @@
 .intro-start {
   width: 100%;
   padding: 16px 20px;
-  font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: var(--ion-color-primary-contrast);
@@ -189,7 +186,6 @@
   top: 16px;
   right: 18px;
   padding: 6px 14px;
-  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-secondary);

@@ -1,4 +1,11 @@
 :root {
+  /* App-wide body font. Every tab inherits this, Loaded in global.scss. */
+  --ion-font-family: 'Inter', sans-serif;
+
+  /* Display fonts — Payogotchi hero, celebration and onboarding screens only. */
+  --font-display: 'Fredoka', 'Inter', sans-serif;
+  --font-pet-name: 'Quicksand', 'Inter', sans-serif;
+
   --ion-color-primary: #e30613;
   --ion-color-primary-rgb: 227, 6, 19;
   --ion-color-primary-contrast: #ffffff;

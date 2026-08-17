@@ -48,7 +48,7 @@
 
 .hero-name {
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 30px;
   line-height: 1.05;
@@ -57,7 +57,6 @@
 
 .hero-species {
   margin: 2px 0 0;
-  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 14px;
   color: var(--text-secondary);
@@ -126,7 +125,7 @@
 
 .hero-speech-text {
   margin: 0;
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-weight: 700;
   font-size: 13px;
   color: var(--text-primary);
@@ -151,7 +150,7 @@
 }
 
 .hero-level-num {
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 38px;
   color: var(--ion-color-primary);
@@ -159,7 +158,6 @@
 
 .hero-level-word {
   margin-top: 2px;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 10px;
   letter-spacing: 0.12em;
@@ -190,7 +188,6 @@
   align-items: center;
   gap: 8px;
   margin: 7px 0 0;
-  font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: var(--text-secondary);
 }
@@ -198,7 +195,7 @@
 /* One flex item so the gap doesn't split "85" from "/200 XP". */
 .hero-xp-numbers {
   strong {
-    font-family: 'Fredoka', 'Inter', sans-serif;
+    font-family: var(--font-display);
     font-size: 15px;
     color: var(--text-primary);
   }
@@ -255,7 +252,7 @@
 }
 
 .care-label {
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 14px;
   line-height: 1;
@@ -278,7 +275,7 @@
   flex: none;
   min-width: 34px;
   text-align: right;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 18px;
 }
@@ -308,7 +305,6 @@
   align-items: center;
   gap: 12px;
   margin: 4px 0 10px;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.16em;
@@ -345,7 +341,6 @@
 .activity-label {
   flex: 1;
   min-width: 0;
-  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 14px;
   color: var(--text-primary);
@@ -353,7 +348,7 @@
 
 .activity-value {
   flex: none;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 15px;
   color: var(--ion-color-primary);
@@ -405,7 +400,7 @@
 }
 
 .home-action-label {
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 14px;
   color: var(--text-primary);

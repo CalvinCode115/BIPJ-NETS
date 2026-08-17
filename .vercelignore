@@ -1,0 +1,8 @@
+# Vercel only builds the Angular frontend. These deploy to Render instead.
+backend/
+src/app/security-stuffs-hehe/.venv/
+src/app/security-stuffs-hehe/__pycache__/
+
+# Build/cache artifacts
+.angular/
+www/

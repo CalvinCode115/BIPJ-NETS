@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, BehaviorSubject } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface MultiCurrencyBalance {
   currency: string;
@@ -20,7 +21,7 @@ export interface CardCurrencyWallet {
   providedIn: 'root'
 })
 export class MultiCurrencyService {
-  private apiUrl = 'http://localhost:8000';
+  private apiUrl = environment.pyApiUrl;
   private _walletCache: Record<string, CardCurrencyWallet> = {};
 
   // Observable for real-time balance updates
@@ -34,7 +35,7 @@ export class MultiCurrencyService {
       return of(this._walletCache[cardId]);
     }
 
-    return this.http.get<any>(`${this.apiUrl}/api/wallet/${cardId}`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/wallet/${cardId}`).pipe(
       map(response => this.transformWallet(response, cardId)),
       catchError(() => {
         // Return default SGD-only wallet if API fails
@@ -50,7 +51,7 @@ export class MultiCurrencyService {
   }
 
   refreshWallet(cardId: string): Observable<CardCurrencyWallet> {
-    return this.http.get<any>(`${this.apiUrl}/api/wallet/${cardId}`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/wallet/${cardId}`).pipe(
       map(response => {
         const wallet = this.transformWallet(response, cardId);
         this._walletCache[cardId] = wallet;

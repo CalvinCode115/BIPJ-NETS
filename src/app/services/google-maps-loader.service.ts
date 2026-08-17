@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class GoogleMapsLoaderService {
@@ -19,7 +20,7 @@ export class GoogleMapsLoaderService {
     if (this.loadPromise) return this.loadPromise;
 
     this.loadPromise = new Promise((resolve, reject) => {
-      this.http.get<{ apiKey: string; libraries: string }>('http://localhost:8000/api/config/google-maps-key')
+      this.http.get<{ apiKey: string; libraries: string }>(`${environment.pyApiUrl}/config/google-maps-key`)
         .pipe(catchError(() => of(null)))
         .subscribe({
           next: (config) => {
@@ -61,7 +62,7 @@ private mapConfig: { apiKey: string; mapId?: string } | null = null;
 getMapConfig(): Observable<{ apiKey: string; mapId?: string }> {
     if (this.mapConfig) return of(this.mapConfig);
     
-    return this.http.get<{ apiKey: string; mapId?: string }>('http://localhost:8000/api/config/google-maps-key')
+    return this.http.get<{ apiKey: string; mapId?: string }>(`${environment.pyApiUrl}/config/google-maps-key`)
         .pipe(
             map(config => {
                 this.mapConfig = config;

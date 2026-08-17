@@ -42,7 +42,7 @@
 .mini-title {
   flex: 1;
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 22px;
   color: var(--text-primary);
@@ -54,7 +54,6 @@
   border-radius: var(--radius-pill);
   background: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 13px;
   color: var(--text-primary);
@@ -84,14 +83,12 @@
 }
 
 .mini-stat-value {
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 15px;
   color: var(--text-primary);
 }
 
 .mini-stat-text {
-  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 13px;
   color: var(--text-secondary);
@@ -134,7 +131,7 @@
   left: 0;
   right: 0;
   margin: 0;
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-weight: 700;
   font-size: 16px;
   color: var(--text-primary);
@@ -203,7 +200,7 @@
 
 .mini-prompt-title {
   margin: 0;
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-weight: 700;
   font-size: 18px;
   color: var(--text-primary);
@@ -212,7 +209,6 @@
 
 .mini-prompt-sub {
   margin: 4px 0 16px;
-  font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: var(--text-secondary);
   text-align: center;
@@ -220,7 +216,7 @@
 
 .mini-result-title {
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 22px;
   color: var(--ion-color-primary);
@@ -229,7 +225,6 @@
 
 .mini-result-sub {
   margin: 2px 0 12px;
-  font-family: 'Inter', sans-serif;
   font-size: 14px;
   color: var(--text-secondary);
   text-align: center;
@@ -241,7 +236,6 @@
   border: none;
   border-radius: 24px;
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
@@ -257,7 +251,6 @@
 /* ---- Happiness gained ---- */
 .mini-happiness {
   margin: 10px 0;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 15px;
   color: var(--happiness-color);
@@ -277,7 +270,6 @@
   border: 2px solid var(--ion-color-primary);
   border-radius: 22px;
   background: transparent;
-  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 14px;
   color: var(--ion-color-primary);

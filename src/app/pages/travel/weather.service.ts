@@ -4,6 +4,7 @@ import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { DestinationConfig } from '../../services/destination.config';
 import { CacheService } from '../../services/cache.service';
+import { environment } from '../../../environments/environment';
 
 export interface WeatherData {
   temp: number;
@@ -41,7 +42,7 @@ export interface PackingItem {
   providedIn: 'root'
 })
 export class WeatherService {
-  private readonly API_BASE = 'http://localhost:8000/api';
+  private readonly API_BASE = environment.pyApiUrl;
 
   constructor(
     private http: HttpClient,

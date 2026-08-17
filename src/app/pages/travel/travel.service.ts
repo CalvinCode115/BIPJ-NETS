@@ -8,13 +8,15 @@ import {
   DnaProfile, GooglePlace, RecommendationCard,
   CategorySection, BudgetTracker
 } from './travel.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TravelService {
 
-  private readonly BACKEND_URL = 'http://localhost:3000/api';
+  private readonly BACKEND_URL = environment.apiUrl;
+  private readonly PY_URL = environment.pyApiUrl;
   private readonly CACHE_TTL_MS = 5 * 60 * 1000;
 
   constructor(
@@ -148,7 +150,7 @@ export class TravelService {
   }
 
   private searchNearby(keyword: string, destination: DestinationConfig): Observable<GooglePlace[]> {
-    return this.http.post<any>('http://localhost:8000/api/places/nearby', {
+    return this.http.post<any>(`${this.PY_URL}/places/nearby`, {
       includedTypes: [keyword],
       maxResultCount: 10,
       lat: destination.lat,
@@ -164,7 +166,7 @@ export class TravelService {
   }
 
   private searchText(query: string, destination: DestinationConfig): Observable<GooglePlace[]> {
-    return this.http.post<any>('http://localhost:8000/api/places/text', {
+    return this.http.post<any>(`${this.PY_URL}/places/text`, {
       textQuery: `${query} in ${destination.name}`,
       maxResultCount: 10,
       lat: destination.lat,
@@ -479,11 +481,11 @@ export class TravelService {
 
   // ========== HELPERS ==========
 
-  private getPhotoUrl(place: GooglePlace): string | undefined {
+  getPhotoUrl(place: GooglePlace): string | undefined {
     if (place.photos && place.photos.length > 0) {
       const photoName = (place.photos[0] as any).name;
       if (photoName) {
-        return `http://localhost:8000/api/photo?photo_name=${encodeURIComponent(photoName)}`;
+        return `${this.PY_URL}/photo?photo_name=${encodeURIComponent(photoName)}`;
       }
     }
     return undefined;

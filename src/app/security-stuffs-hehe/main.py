@@ -27,9 +27,22 @@ if not WEATHER_API_KEY:
 app = FastAPI(title="Travel Planner API")
 
 # 2. CORS
+# In production the browser reaches this service through the Vercel rewrite
+# (/pyapi/* -> this host), so requests are same-origin and CORS never applies.
+# The allowlist below only matters for local dev and for hitting the Render URL
+# directly. Add extra origins with ALLOWED_ORIGINS="https://a.com,https://b.com".
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:4200",
+    "http://localhost:8100",
+    "http://localhost:8000",
+]
+_extra_origins = [
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200", "http://localhost:8100", "http://localhost:8000"],
+    allow_origins=DEFAULT_ALLOWED_ORIGINS + _extra_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

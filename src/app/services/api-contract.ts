@@ -117,4 +117,5 @@ export const DEMO_ACCOUNTS = [
 /** Use AuthService.userId after login — not a hardcoded constant */
 export const DEMO_USER_ID = 'user_1';
 
-export const API_BASE_URL = 'http://localhost:3000/api';
+/** @deprecated Import API_BASE_URL from '../core/api.config' instead — that one is environment-driven. */
+export { API_BASE_URL } from '../core/api.config';

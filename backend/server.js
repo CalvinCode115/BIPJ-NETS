@@ -11,6 +11,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Cheap, dependency-free liveness probe — used to warm Render's free tier
+// before a demo, and as the platform health check.
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
 app.use('/api/auth', authRouter);
 app.use('/api', apiRouter);
 

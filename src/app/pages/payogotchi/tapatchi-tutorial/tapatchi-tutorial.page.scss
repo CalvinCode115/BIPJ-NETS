@@ -21,7 +21,6 @@
   padding: 4px 8px;
   border: none;
   background: transparent;
-  font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   color: var(--text-secondary);
@@ -82,7 +81,7 @@
 
 .tutorial-heading {
   margin: 20px 0 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 28px;
   text-align: center;
@@ -91,7 +90,6 @@
 
 .tutorial-body {
   margin: 16px 0 0;
-  font-family: 'Inter', sans-serif;
   font-size: 15px;
   line-height: 22px;
   text-align: center;
@@ -110,7 +108,6 @@
   width: 100px;
   height: 48px;
   border-radius: var(--radius-large);
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
@@ -138,7 +135,6 @@
 }
 
 .tutorial-counter {
-  font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   color: var(--text-secondary);

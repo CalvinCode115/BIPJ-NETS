@@ -12,6 +12,8 @@ export const environment = {
     messagingSenderId: 'YOUR_SENDER_ID',
     appId: 'YOUR_APP_ID',
   },
-  /** Local Express API (reads/writes Firestore via firebase-admin). */
-  apiUrl: 'http://localhost:3000',
+  /** Express API (reads/writes Firestore via firebase-admin). Relative — see proxy.conf.json / vercel.json. */
+  apiUrl: '/api',
+  /** FastAPI service (Google Places/Directions, weather, FX, countries). Relative — see proxy.conf.json / vercel.json. */
+  pyApiUrl: '/pyapi',
 };

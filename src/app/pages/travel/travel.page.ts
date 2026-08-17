@@ -1505,6 +1505,10 @@ export class TravelPage implements OnInit {
     return this.weatherService.isIndoorPlace(types);
   }
 
+  getPhotoUrl(place: GooglePlace): string | undefined {
+    return this.travelService.getPhotoUrl(place);
+  }
+
   getDayAdvice(day: DailyForecast): string {
     return this.weatherService.getDayAdvice(day);
   }

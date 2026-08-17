@@ -38,7 +38,7 @@
 
 .wb-title {
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 36px;
   line-height: 1.5;
@@ -48,7 +48,7 @@
 
 .wb-subtitle {
   margin: 8px 0 0;
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-weight: 700;
   font-size: 18px;
   color: var(--text-primary);
@@ -142,7 +142,7 @@
 
 .wb-bubble-text {
   margin: 0;
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-weight: 700;
   font-size: 16px;
   color: var(--text-primary);
@@ -168,7 +168,7 @@
 
 .wb-bonus-title {
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 18px;
   color: var(--text-primary);
@@ -194,7 +194,7 @@
 
 .wb-bonus-value {
   padding-top: 4px;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 24px;
   line-height: 36px;
@@ -216,7 +216,6 @@
   margin-top: 8px;
   border: none;
   border-radius: 28px;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;
   color: #ffffff;

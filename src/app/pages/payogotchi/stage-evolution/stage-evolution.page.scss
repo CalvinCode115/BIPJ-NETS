@@ -35,7 +35,7 @@
 
 .evo-title {
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 700;
   font-size: 54px;
   line-height: 1;
@@ -50,7 +50,7 @@
 
 .evo-subtitle {
   margin: 8px 0 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: 22px;
   color: rgba(255, 255, 255, 0.9);
@@ -131,7 +131,6 @@
 }
 
 .evo-compare-label {
-  font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
@@ -143,7 +142,7 @@
 }
 
 .evo-compare-arrow {
-  font-family: 'Fredoka', 'Inter', sans-serif;
+  font-family: var(--font-display);
   font-size: 28px;
   color: #ffd700;
   opacity: 0.8;
@@ -160,7 +159,7 @@
 
 .evo-unlocks-title {
   margin: 0 0 8px;
-  font-family: 'Quicksand', 'Inter', sans-serif;
+  font-family: var(--font-pet-name);
   font-weight: 700;
   font-size: 15px;
   color: var(--text-primary);
@@ -179,7 +178,6 @@
 }
 
 .evo-unlock-text {
-  font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: var(--text-primary);
 }
@@ -190,7 +188,6 @@
   height: 56px;
   border: none;
   border-radius: 28px;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;
   color: var(--text-primary);

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Wallet {
   cardId: string;
@@ -26,12 +27,12 @@ export interface ExchangeResult {
   providedIn: 'root'
 })
 export class ExchangeService {
-  private apiUrl = 'http://localhost:8000';
+  private apiUrl = environment.pyApiUrl;
 
   constructor(private http: HttpClient) { }
 
   getWallet(cardId: string): Observable<Wallet> {
-    return this.http.get<Wallet>(`${this.apiUrl}/api/wallet/${cardId}`).pipe(
+    return this.http.get<Wallet>(`${this.apiUrl}/wallet/${cardId}`).pipe(
       catchError(err => {
         console.error('Wallet load failed:', err);
         return of({ cardId, balances: { SGD: 500 }, currencies: ['SGD'] });
@@ -40,7 +41,7 @@ export class ExchangeService {
   }
 
   exchange(req: ExchangeRequest): Observable<ExchangeResult> {
-    return this.http.post<ExchangeResult>(`${this.apiUrl}/api/exchange`, req).pipe(
+    return this.http.post<ExchangeResult>(`${this.apiUrl}/exchange`, req).pipe(
       catchError(err => {
         console.error('Exchange failed:', err);
         return of({
@@ -52,7 +53,7 @@ export class ExchangeService {
   }
 
   getHistory(cardId: string, limit: number = 10): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/api/exchange/history/${cardId}?limit=${limit}`).pipe(
+    return this.http.get<any[]>(`${this.apiUrl}/exchange/history/${cardId}?limit=${limit}`).pipe(
       catchError(err => {
         console.error('History load failed:', err);
         return of([]);
@@ -62,7 +63,7 @@ export class ExchangeService {
 
   // In exchange.service.ts
   deduct(req: { cardId: string; currency: string; amount: number }): Observable<ExchangeResult> {
-    return this.http.post<ExchangeResult>(`${this.apiUrl}/api/wallet/deduct`, req).pipe(
+    return this.http.post<ExchangeResult>(`${this.apiUrl}/wallet/deduct`, req).pipe(
       catchError(err => {
         console.error('Deduct failed:', err);
         return of({

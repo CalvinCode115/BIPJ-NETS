@@ -27,7 +27,6 @@
 
 .rename-title {
   margin: 0;
-  font-family: 'Fredoka', 'Inter', sans-serif;
   font-weight: 700;
   font-size: 22px;
   color: var(--text-primary);
@@ -66,7 +65,6 @@
 
 .rename-pet-current {
   margin: 12px 0 0;
-  font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 14px;
   color: var(--text-secondary);
@@ -74,7 +72,6 @@
 
 .rename-pet-meta {
   margin: 4px 0 0;
-  font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: var(--text-light);
 }
@@ -116,7 +113,6 @@
 .rename-bubble-text {
   margin: 0;
   max-width: 176px;
-  font-family: 'Quicksand', sans-serif;
   font-weight: 700;
   font-size: 14px;
   text-align: center;
@@ -134,7 +130,6 @@
 
 .rename-label {
   display: block;
-  font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 13px;
   color: var(--text-secondary);
@@ -152,7 +147,6 @@
   border: 2px solid var(--payogotchi-soft-pink);
   border-radius: var(--radius-medium);
   background: #ffffff;
-  font-family: 'Inter', sans-serif;
   font-size: 16px;
   color: var(--text-primary);
 }
@@ -183,7 +177,6 @@
 
 .rename-counter {
   margin: 8px 0 0;
-  font-family: 'Inter', sans-serif;
   font-size: 12px;
   text-align: right;
   color: var(--text-secondary);
@@ -200,7 +193,6 @@
 
 .rename-reminder-title {
   margin: 0;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 13px;
   color: var(--text-primary);
@@ -212,7 +204,6 @@
 }
 
 .rename-reminder-list li {
-  font-family: 'Inter', sans-serif;
   font-size: 12px;
   line-height: 18px;
   color: var(--text-primary);
@@ -231,7 +222,6 @@
   border: none;
   border-radius: 26px;
   color: #ffffff;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 16px;
   background: linear-gradient(171deg, var(--text-accent) 0%, var(--happiness-color) 100%);
@@ -250,7 +240,6 @@
   border: 2px solid #e8e8e8;
   border-radius: 22px;
   background: #ffffff;
-  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: var(--text-secondary);

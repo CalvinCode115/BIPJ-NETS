@@ -445,7 +445,7 @@
       <ion-item *ngFor="let place of weatherSortedPlaces.slice(0, 5)">
         <ion-thumbnail slot="start" *ngIf="place.photos?.[0]">
           <img
-            [src]="'http://localhost:8000/api/photo?photo_name=' + place.photos[0].name"
+            [src]="getPhotoUrl(place)"
           />
         </ion-thumbnail>
         <ion-label>

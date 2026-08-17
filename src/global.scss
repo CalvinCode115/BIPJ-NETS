@@ -17,7 +17,9 @@
 @import "@ionic/angular/css/flex-utils.css";
 @import "@ionic/angular/css/palettes/dark.system.css";
 
-/* Payogotchi typography: Fredoka (headings), Inter (body), Quicksand (pet names) */
+/* App typography. Inter is the body font for every tab (--ion-font-family);
+   Fredoka and Quicksand are display fonts for Payogotchi's hero, celebration
+   and onboarding screens only (--font-display / --font-pet-name). */
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
 
 @media (min-width: 480px) {
@@ -65,10 +67,6 @@ ion-content.scroll-content-visible::part(scroll)::-webkit-scrollbar {
 
 .nets-page-header ion-toolbar.nets-page-toolbar {
   --background: #ffffff;
-  // Pin the text/icon colour to match the forced white background. Without
-  // this it inherits --ion-text-color, which the dark.system.css palette
-  // imported above flips to white when the device is in dark mode — giving
-  // an invisible white-on-white title and buttons.
   --color: #1f2937;
   --border-color: #ececf1;
   --padding-start: 16px;
@@ -77,7 +75,6 @@ ion-content.scroll-content-visible::part(scroll)::-webkit-scrollbar {
 }
 
 // One title style for every tab, matching the Pay tab's "Pay & Transfer".
-// Colour is set here too, not inherited — see the --color note above.
 .nets-page-toolbar ion-title {
   font-size: 17px;
   font-weight: 700;

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, map, catchError } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface CountryInfo {
   id: string;
@@ -70,16 +71,16 @@ export const FEATURED_DESTINATIONS: CountryInfo[] = [
   providedIn: 'root',
 })
 export class CountryDataService {
-  private apiUrl = 'http://localhost:8000';
+  private apiUrl = environment.pyApiUrl;
 
   constructor(private http: HttpClient) {}
 
   getAllCountries(): Observable<CountryInfo[]> {
     console.log(
       '[CountryData] Fetching from:',
-      `${this.apiUrl}/api/countries/all`,
+      `${this.apiUrl}/countries/all`,
     );
-    return this.http.get<any[]>(`${this.apiUrl}/api/countries/all`).pipe(
+    return this.http.get<any[]>(`${this.apiUrl}/countries/all`).pipe(
       map((data) => {
         console.log('[CountryData] Raw API response type:', typeof data);
         console.log('[CountryData] Is Array?', Array.isArray(data));
@@ -108,7 +109,7 @@ export class CountryDataService {
     return this.http
       .get<
         any[]
-      >(`${this.apiUrl}/api/countries/search?q=${encodeURIComponent(query)}`)
+      >(`${this.apiUrl}/countries/search?q=${encodeURIComponent(query)}`)
       .pipe(
         map((data) => this.transformCountries(data)),
         catchError(() => of([])),

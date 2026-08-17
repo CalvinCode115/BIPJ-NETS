@@ -4,6 +4,7 @@ import { Observable, forkJoin, map, catchError, of } from 'rxjs';
 import { DestinationConfig } from '../../../services/destination.config';
 import { CacheService } from '../../../services/cache.service';
 import { FxRate, FxInsight } from './fx-tracker.model';
+import { environment } from '../../../../environments/environment';
 
 interface FxHistoryResponse {
   base: string;
@@ -38,7 +39,7 @@ export interface FxInsightWithPrediction extends FxInsight {
 
 @Injectable({ providedIn: 'root' })
 export class FxTrackerService {
-  private readonly API_BASE = 'http://localhost:8000/api';
+  private readonly API_BASE = environment.pyApiUrl;
 
   // Demo fallback rates (expandable)
   private readonly DEMO_RATES: Record<string, number> = {
