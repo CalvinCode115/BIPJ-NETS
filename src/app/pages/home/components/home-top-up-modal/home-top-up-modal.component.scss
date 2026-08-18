@@ -1,5 +1,8 @@
+@import '../../light-surface';
+
 :host {
   display: contents;
+  @include nets-light-page;
 }
 
 .form-error {
@@ -29,6 +32,8 @@
 .top-up-panel {
   background: #fff;
   border-radius: 16px;
+  @include nets-light-page;
+  @include nets-light-fields;
   overflow: hidden;
   max-height: 90vh;
   display: flex;

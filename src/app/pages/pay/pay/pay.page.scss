@@ -1,3 +1,9 @@
+@import '../light-surface';
+
+:host {
+  @include nets-light-page;
+}
+
 .pay-header {
   ion-toolbar {
     --background: #fff;
@@ -9,6 +15,14 @@
     font-weight: 700;
     color: #1a1a2e;
   }
+}
+
+.pay-content,
+.top-up-panel,
+.transfer-panel,
+.add-contact-panel {
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .pay-content {

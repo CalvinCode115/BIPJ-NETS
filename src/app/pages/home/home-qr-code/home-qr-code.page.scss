@@ -1,3 +1,9 @@
+@import '../light-surface';
+
+:host {
+  @include nets-light-page;
+}
+
 .qr-header {
   ion-toolbar {
     --background: #fff;
@@ -13,6 +19,8 @@
 
 .qr-content {
   --background: #fff;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .qr-content::part(scroll) {

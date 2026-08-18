@@ -1,3 +1,9 @@
+@import '../light-surface';
+
+:host {
+  @include nets-light-page;
+}
+
 .report-header {
   ion-toolbar {
     --background: #fff;
@@ -18,6 +24,8 @@
 .report-content {
   --background: #ffffff;
   --padding-bottom: 24px;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .report-page {

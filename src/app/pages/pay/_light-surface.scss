@@ -1,0 +1,23 @@
+@mixin nets-light-page {
+  color-scheme: light;
+  --ion-text-color: #1a1a2e;
+  --ion-text-color-rgb: 26, 26, 46;
+  --ion-background-color: #ffffff;
+  --ion-item-background: #ffffff;
+  --ion-toolbar-background: #ffffff;
+  --ion-toolbar-color: #1a1a2e;
+  --ion-card-background: #ffffff;
+  color: #1a1a2e;
+}
+
+@mixin nets-light-fields {
+  ion-input,
+  ion-textarea,
+  input,
+  textarea {
+    color: #1a1a2e;
+    --color: #1a1a2e;
+    --placeholder-color: #8e8e93;
+    -webkit-text-fill-color: #1a1a2e;
+  }
+}

@@ -1,6 +1,14 @@
+@import '../light-surface';
+
+:host {
+  @include nets-light-page;
+}
+
 .login-content {
   --background: #ffffff;
   --overflow: hidden;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .login-content::part(scroll) {

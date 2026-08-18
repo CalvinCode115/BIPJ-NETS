@@ -1,5 +1,13 @@
+@import '../light-surface';
+
+:host {
+  @include nets-light-page;
+}
+
 .card-mgmt-content {
   --background: #f8f8fa;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .card-mgmt-page {

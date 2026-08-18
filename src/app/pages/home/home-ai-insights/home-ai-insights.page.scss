@@ -1,3 +1,9 @@
+@import '../light-surface';
+
+:host {
+  @include nets-light-page;
+}
+
 .insights-header {
   ion-toolbar {
     --background: #fff;
@@ -29,6 +35,8 @@
 .insights-content {
   --background: #ffffff;
   --padding-bottom: 24px;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .insights-content::part(scroll) {

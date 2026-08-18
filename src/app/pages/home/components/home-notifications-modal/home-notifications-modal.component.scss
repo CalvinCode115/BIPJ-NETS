@@ -1,5 +1,8 @@
+@import '../../light-surface';
+
 :host {
   display: contents;
+  @include nets-light-page;
 }
 
 .notifications-modal {
@@ -12,6 +15,8 @@
   max-height: 70vh;
   display: flex;
   flex-direction: column;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .notifications-panel-header {

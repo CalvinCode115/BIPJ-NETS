@@ -1,6 +1,14 @@
-﻿.home-content {
+﻿@import '../light-surface';
+
+:host {
+  @include nets-light-page;
+}
+
+.home-content {
   --background: #ffffff;
   --padding-bottom: 16px;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .home-content::part(scroll) {

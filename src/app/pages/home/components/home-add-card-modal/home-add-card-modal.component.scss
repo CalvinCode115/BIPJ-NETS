@@ -1,5 +1,8 @@
-﻿:host {
+﻿@import '../../light-surface';
+
+:host {
   display: contents;
+  @include nets-light-page;
 }
 
 .add-card-modal {
@@ -21,6 +24,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  @include nets-light-page;
+  @include nets-light-fields;
 }
 
 .add-card-panel-header {
